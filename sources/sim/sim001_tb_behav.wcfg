@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="sim001_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="friscv_pkg" />
+            <top_module name="glbl" />
+            <top_module name="sim001_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="2,074.572 ns"></ZoomStartTime>
+      <ZoomEndTime time="2,967.538 ns"></ZoomEndTime>
+      <Cursor1Time time="2,474.389 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="440"></NameColumnWidth>
+      <ValueColumnWidth column_width="102"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="3" />
+   <wave_markers>
+      <marker time="2410000" label="" />
+   </wave_markers>
+   <wvobject fp_name="/sim001_tb/uut/friscv_cpu_0/friscv_id_stage_0/clk_in" type="logic">
+      <obj_property name="ElementShortName">clk_in</obj_property>
+      <obj_property name="ObjectShortName">clk_in</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim001_tb/uut/friscv_cpu_0/friscv_if_stage_0/pc_out" type="array">
+      <obj_property name="ElementShortName">pc_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_out[31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim001_tb/uut/friscv_cpu_0/friscv_id_stage_0/regfile" type="array">
+      <obj_property name="ElementShortName">regfile[0:31][31:0]</obj_property>
+      <obj_property name="ObjectShortName">regfile[0:31][31:0]</obj_property>
+   </wvobject>
+</wave_config>

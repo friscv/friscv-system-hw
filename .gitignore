@@ -1,0 +1,6 @@
+*
+!.gitignore
+!README.md
+!sources/
+!sources/**/*
+!friscv_system_fpga.tcl
