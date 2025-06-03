@@ -24,8 +24,15 @@ module friscv_system_top_wrapper(
     input [31:0] debug_mem_addr_in,
     input [31:0] debug_mem_data_in,
     output [31:0] debug_mem_data_out,
-    output  [7:0] gpio1_data_out,
-    output  [7:0] gpio2_data_out,  
+
+    output [0:0] gpio1_out,
+    input  [0:0] gpio1_in,
+    output [0:0] gpio1_tristate_out,
+
+    output [0:0] gpio2_out,
+    input  [0:0] gpio2_in,
+    output [0:0] gpio2_tristate_out,
+
     output  end_signal_out
 
 );
@@ -41,8 +48,12 @@ module friscv_system_top_wrapper(
         .debug_mem_addr_in(debug_mem_addr_in),
         .debug_mem_data_in(debug_mem_data_in),
         .debug_mem_data_out(debug_mem_data_out),
-        .gpio1_data_out(gpio1_data_out),
-        .gpio2_data_out(gpio2_data_out),
+        .gpio1_out(gpio1_out),
+        .gpio1_in(gpio1_in),
+        .gpio1_tristate_out(gpio1_tristate_out),
+        .gpio2_out(gpio2_out),
+        .gpio2_in(gpio2_in),
+        .gpio2_tristate_out(gpio2_tristate_out),
         .end_signal_out(end_signal_out)
     );
 

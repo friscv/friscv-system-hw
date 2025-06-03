@@ -41,7 +41,10 @@ package friscv_pkg;
 	parameter int unsigned MEM_SIZE = 2**16;
 	
     parameter int unsigned GPIO1_ADDR = 32'H10000;
+    parameter int unsigned GPIO1_WIDTH = 1;
+
 	parameter int unsigned GPIO2_ADDR = 32'H20000;
+    parameter int unsigned GPIO2_WIDTH = 1;
 
     parameter int unsigned NOP = 32'H00000013; // ADDI x0,x0,0
 

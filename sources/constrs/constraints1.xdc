@@ -10,27 +10,27 @@ set_property -dict { PACKAGE_PIN L14   IOSTANDARD LVCMOS33 } [get_ports { end_si
 
 ##GPIO1 connections
 ##LEDs connected to GPIO1
-set_property -dict { PACKAGE_PIN R14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[0] }]; #IO_L6N_T0_VREF_34 Sch=led[0]
-set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[1] }]; #IO_L6P_T0_34 Sch=led[1]
-set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[2] }]; #IO_L21N_T3_DQS_AD14N_35 Sch=led[2]
-set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[3] }]; #IO_L23P_T3_35 Sch=led[3]
+set_property -dict { PACKAGE_PIN R14   IOSTANDARD LVCMOS33 } [get_ports { gpio1_out[0] }]; #IO_L6N_T0_VREF_34 Sch=led[0]
+set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_out[0] }]; #IO_L6P_T0_34 Sch=led[1]
+#set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[2] }]; #IO_L21N_T3_DQS_AD14N_35 Sch=led[2]
+#set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[3] }]; #IO_L23P_T3_35 Sch=led[3]
 ##RGB LEDs connected to GPIO1
-set_property -dict { PACKAGE_PIN L15   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[4] }]; #IO_L22N_T3_AD7N_35 Sch=led4_b
-set_property -dict { PACKAGE_PIN G17   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[5] }]; #IO_L16P_T2_35 Sch=led4_g
-set_property -dict { PACKAGE_PIN N15   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[6] }]; #IO_L21P_T3_DQS_AD14P_35 Sch=led4_r
-set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[7] }]; #IO_0_35 Sch=led5_b
+#set_property -dict { PACKAGE_PIN L15   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[4] }]; #IO_L22N_T3_AD7N_35 Sch=led4_b
+#set_property -dict { PACKAGE_PIN G17   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[5] }]; #IO_L16P_T2_35 Sch=led4_g
+#set_property -dict { PACKAGE_PIN N15   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[6] }]; #IO_L21P_T3_DQS_AD14P_35 Sch=led4_r
+#set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports { gpio2_data_out[7] }]; #IO_0_35 Sch=led5_b
 
 
 ##GPIO2 conncetions
 ## Arduino GPIO
-set_property -dict {PACKAGE_PIN T14 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[0]}];
-set_property -dict {PACKAGE_PIN U12 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[1]}];
-set_property -dict {PACKAGE_PIN U13 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[2]}];
-set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[3]}];
-set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[4]}];
-set_property -dict {PACKAGE_PIN T15 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[5]}];
-set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[6]}];
-set_property -dict {PACKAGE_PIN U17 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[7]}];
+#set_property -dict {PACKAGE_PIN T14 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[0]}];
+#set_property -dict {PACKAGE_PIN U12 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[1]}];
+#set_property -dict {PACKAGE_PIN U13 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[2]}];
+#set_property -dict {PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[3]}];
+#set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[4]}];
+#set_property -dict {PACKAGE_PIN T15 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[5]}];
+#set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[6]}];
+#set_property -dict {PACKAGE_PIN U17 IOSTANDARD LVCMOS33} [get_ports {gpio1_data_out[7]}];
 
 
 # OLD Constraints

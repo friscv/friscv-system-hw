@@ -31,9 +31,14 @@ module friscv_system_top(
     output logic [1:0] debug_signals_out,
 
     //GPIO interface
-    output logic [7:0] gpio1_data_out,
-    output logic [7:0] gpio2_data_out,    
-    
+    output logic [GPIO1_WIDTH-1:0] gpio1_out,
+    input  logic [GPIO1_WIDTH-1:0] gpio1_in,
+    output logic [GPIO1_WIDTH-1:0] gpio1_tristate_out,
+
+    output logic [GPIO2_WIDTH-1:0] gpio2_out,
+    input  logic [GPIO2_WIDTH-1:0] gpio2_in,
+    output logic [GPIO2_WIDTH-1:0] gpio2_tristate_out,
+
     output logic      end_signal_out
     
 );
@@ -49,11 +54,16 @@ module friscv_system_top(
     logic [ADDR_WIDTH-1:0]  cpu_d_mem_addr;
     logic [DATA_WIDTH-1:0]  cpu_d_mem_data_o;
     logic [DATA_WIDTH-1:0]  cpu_d_mem_data_i;
+    logic [DATA_WIDTH-1:0]  mux_d_mem_data_i;
     logic                   cpu_d_mem_en;
     logic                   cpu_d_mem_wr;
     logic [1:0]             cpu_d_mem_size;
     logic                   cpu_d_mem_stall;
     logic                   end_signal_output;
+    logic [GPIO1_WIDTH-1:0] d_mux_gpio1_data_in;
+    logic [GPIO2_WIDTH-1:0] d_mux_gpio2_data_in;
+
+
 
     friscv_clock_divider friscv_clock_divider_0 (
         .clk_extern_in(clk_extern_in),
@@ -92,7 +102,7 @@ module friscv_system_top(
 
         .d_mem_addr_in(cpu_d_mem_addr),
         .d_mem_data_in(cpu_d_mem_data_o),
-        .d_mem_data_out(cpu_d_mem_data_i),
+        .d_mem_data_out(mux_d_mem_data_i),
         .d_mem_en_in(cpu_d_mem_en),
         .d_mem_wr_in(cpu_d_mem_wr),
         .d_mem_size_in(cpu_d_mem_size),
@@ -103,6 +113,18 @@ module friscv_system_top(
         .debug_mem_wr_in(debug_mem_wr_in)
     );
     
+    friscv_d_mem_in_mux friscv_d_mem_in_mux_0(
+
+        .d_mem_addr_in(cpu_d_mem_addr),
+        .d_mux_mem_data_out(cpu_d_mem_data_i),
+
+        .d_mux_mem_data_in(mux_d_mem_data_i),
+        .d_mux_gpio1_data_in(d_mux_gpio1_data_in),
+        .d_mux_gpio2_data_in(d_mux_gpio2_data_in)
+    );
+
+
+
     
     friscv_end friscv_end_0(
         .clk_cpu_in(clk_cpu),
@@ -116,22 +138,37 @@ module friscv_system_top(
         .end_signal_out(end_signal_output)
     );
 
- friscv_gpio #(.GPIO_ADDRESS(GPIO1_ADDR)) friscv_gpio_1 (
-        .clk(clk_cpu),    
-        .d_mem_wr_in(cpu_d_mem_wr),
+
+ friscv_gpio #(.GPIO_ADDRESS(GPIO1_ADDR), .GPIO_WIDTH(GPIO1_WIDTH)) friscv_gpio_1 (
+        .clk_cpu_in(clk_cpu),
+        .clk_mem_in(clk_mem),
+        .debug_mode_in(debug_mode_in),    
         .d_mem_addr_in(cpu_d_mem_addr),
         .d_mem_data_in(cpu_d_mem_data_o),
-        .data_reg_out(gpio1_data_out)
-    );
-    
-    friscv_gpio #(.GPIO_ADDRESS(GPIO2_ADDR)) friscv_gpio_2 (
-        .clk(clk_cpu),    
+        .d_mux_gpio_data_out(d_mux_gpio1_data_in),
+        .d_mem_en_in(cpu_d_mem_en),
         .d_mem_wr_in(cpu_d_mem_wr),
-        .d_mem_addr_in(cpu_d_mem_addr),
-        .d_mem_data_in(cpu_d_mem_data_o),
-        .data_reg_out(gpio2_data_out)
+        .rst_n_in(rst_n_cpu),
+        .gpio_in(gpio1_in),
+        .gpio_out(gpio1_out),
+        .gpio_tristate_out(gpio1_tristate_out)
     );
 
+ friscv_gpio #(.GPIO_ADDRESS(GPIO2_ADDR), .GPIO_WIDTH(GPIO2_WIDTH)) friscv_gpio_2 (
+        .clk_cpu_in(clk_cpu),
+        .clk_mem_in(clk_mem),
+        .debug_mode_in(debug_mode_in),    
+        .d_mem_addr_in(cpu_d_mem_addr),
+        .d_mem_data_in(cpu_d_mem_data_o),
+        .d_mux_gpio_data_out(d_mux_gpio2_data_in),
+        .d_mem_en_in(cpu_d_mem_en),
+        .d_mem_wr_in(cpu_d_mem_wr),
+        .rst_n_in(rst_n_cpu),
+        .gpio_in(gpio1_in),
+        .gpio_out(gpio1_out),
+        .gpio_tristate_out(gpio1_tristate_out)
+    );
+    
 
     always_ff @(negedge clk_cpu) begin
         if (~rst_n_extern_in | rst_pushbutton_in )
