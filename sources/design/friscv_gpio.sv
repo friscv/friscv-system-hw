@@ -36,10 +36,7 @@ module friscv_gpio
     output logic [GPIO_WIDTH-1:0]   gpio_out,
     output logic [GPIO_WIDTH-1:0]   gpio_tristate_out
 );
-
-	
-//new parameters:
-    
+	    
 logic [GPIO_WIDTH-1:0] gpio_buff;
 logic [GPIO_WIDTH-1:0] gpio_tristate_buff;
 

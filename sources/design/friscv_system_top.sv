@@ -164,9 +164,9 @@ module friscv_system_top(
         .d_mem_en_in(cpu_d_mem_en),
         .d_mem_wr_in(cpu_d_mem_wr),
         .rst_n_in(rst_n_cpu),
-        .gpio_in(gpio1_in),
-        .gpio_out(gpio1_out),
-        .gpio_tristate_out(gpio1_tristate_out)
+        .gpio_in(gpio2_in),
+        .gpio_out(gpio2_out),
+        .gpio_tristate_out(gpio2_tristate_out)
     );
     
 
