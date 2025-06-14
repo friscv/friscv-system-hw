@@ -178,7 +178,9 @@ set proj_dir [get_property directory [current_project]]
 
 # Set project properties
 set obj [current_project]
-set_property -name "board_part_repo_paths" -value "[file normalize "$origin_dir/../../Users/Mario/AppData/Roaming/Xilinx/Vivado/2022.2/xhub/board_store/xilinx_board_store"]" -objects $obj
+
+# Change next line to point to correct location on your computer - usually you will need to change just Mario to XXXX
+set_property -name "board_part_repo_paths" -value "[file normalize "C:/Users/Mario/AppData/Roaming/Xilinx/Vivado/2022.2/xhub/board_store/xilinx_board_store"]" -objects $obj
 set_property -name "board_part" -value "tul.com.tw:pynq-z2:part0:1.0" -objects $obj
 set_property -name "compxlib.activehdl_compiled_library_dir" -value "$proj_dir/${_xil_proj_name_}.cache/compile_simlib/activehdl" -objects $obj
 set_property -name "compxlib.funcsim" -value "1" -objects $obj
@@ -652,33 +654,33 @@ set_property -name "xsim.simulate.wdb" -value "" -objects $obj
 set_property -name "xsim.simulate.xsim.more_options" -value "" -objects $obj
 
 # Set 'utils_1' fileset object
-set obj [get_filesets utils_1]
+#set obj [get_filesets utils_1]
 # Import local files from the original project
-set files [list \
- [file normalize "${origin_dir}/friscv_system_fpga/friscv_system_fpga.srcs/utils_1/imports/synth_1/friscv_system_fpga_wrapper.dcp" ]\
-]
-set imported_files [import_files -fileset utils_1 $files]
+#set files [list \
+# [file normalize "${origin_dir}/friscv_system_fpga/friscv_system_fpga.srcs/utils_1/imports/synth_1/friscv_system_fpga_wrapper.dcp" ]\
+#]
+#set imported_files [import_files -fileset utils_1 $files]
 
 # Set 'utils_1' fileset file properties for remote files
 # None
 
 # Set 'utils_1' fileset file properties for local files
-set file "synth_1/friscv_system_fpga_wrapper.dcp"
-set file_obj [get_files -of_objects [get_filesets utils_1] [list "*$file"]]
-set_property -name "is_enabled" -value "1" -objects $file_obj
-set_property -name "is_global_include" -value "0" -objects $file_obj
-set_property -name "library" -value "xil_defaultlib" -objects $file_obj
-set_property -name "netlist_only" -value "0" -objects $file_obj
-set_property -name "path_mode" -value "RelativeFirst" -objects $file_obj
-set_property -name "scoped_to_cells" -value "" -objects $file_obj
-set_property -name "used_in" -value "synthesis implementation" -objects $file_obj
-set_property -name "used_in_implementation" -value "1" -objects $file_obj
-set_property -name "used_in_synthesis" -value "1" -objects $file_obj
+#set file "synth_1/friscv_system_fpga_wrapper.dcp"
+#set file_obj [get_files -of_objects [get_filesets utils_1] [list "*$file"]]
+#set_property -name "is_enabled" -value "1" -objects $file_obj
+#set_property -name "is_global_include" -value "0" -objects $file_obj
+#set_property -name "library" -value "xil_defaultlib" -objects $file_obj
+#set_property -name "netlist_only" -value "0" -objects $file_obj
+#set_property -name "path_mode" -value "RelativeFirst" -objects $file_obj
+#set_property -name "scoped_to_cells" -value "" -objects $file_obj
+#set_property -name "used_in" -value "synthesis implementation" -objects $file_obj
+#set_property -name "used_in_implementation" -value "1" -objects $file_obj
+#set_property -name "used_in_synthesis" -value "1" -objects $file_obj
 
 
 # Set 'utils_1' fileset properties
-set obj [get_filesets utils_1]
-set_property -name "name" -value "utils_1" -objects $obj
+#set obj [get_filesets utils_1]
+#set_property -name "name" -value "utils_1" -objects $obj
 
 
 # Adding sources referenced in BDs, if not already added
@@ -1615,7 +1617,7 @@ set_property -name "flow" -value "Vivado Synthesis 2022" -objects $obj
 set_property -name "name" -value "synth_1" -objects $obj
 set_property -name "needs_refresh" -value "0" -objects $obj
 set_property -name "srcset" -value "sources_1" -objects $obj
-set_property -name "incremental_checkpoint" -value "$proj_dir/friscv_system_fpga.srcs/utils_1/imports/synth_1/friscv_system_fpga_wrapper.dcp" -objects $obj
+#set_property -name "incremental_checkpoint" -value "$proj_dir/friscv_system_fpga.srcs/utils_1/imports/synth_1/friscv_system_fpga_wrapper.dcp" -objects $obj
 set_property -name "auto_incremental_checkpoint" -value "1" -objects $obj
 set_property -name "rqs_files" -value "" -objects $obj
 set_property -name "auto_rqs.suggestion_run" -value "" -objects $obj
