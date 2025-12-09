@@ -28,25 +28,23 @@ v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 offic
 
 package friscv_pkg;
 
-	parameter int unsigned XLEN =32;
+	localparam int unsigned XLEN = 32;
 	
-	parameter int unsigned ADDR_WIDTH = XLEN;
-	parameter int unsigned DATA_WIDTH = XLEN;
+	localparam int unsigned ADDR_WIDTH = XLEN;
+	localparam int unsigned DATA_WIDTH = XLEN;
 	
-	parameter int unsigned REG_SEL_WIDTH = 5;
-	parameter int unsigned REGISTER_NUM = 32;
+	localparam int unsigned REG_SEL_WIDTH = 5;
+	localparam int unsigned REGISTER_NUM = 32;
 	
-	parameter int unsigned RESET_VEC = 32'h0;
-	
-	parameter int unsigned MEM_SIZE = 2**16;
-	
-    parameter int unsigned GPIO1_ADDR = 32'H10000;
-    parameter int unsigned GPIO1_WIDTH = 1;
+	localparam int unsigned RESET_VEC = 32'h0;
+		
+    localparam int unsigned GPIO1_ADDR = 32'H10000;
+    localparam int unsigned GPIO1_WIDTH = 1;
 
-	parameter int unsigned GPIO2_ADDR = 32'H20000;
-    parameter int unsigned GPIO2_WIDTH = 1;
+	localparam int unsigned GPIO2_ADDR = 32'H20000;
+    localparam int unsigned GPIO2_WIDTH = 1;
 
-    parameter int unsigned NOP = 32'H00000013; // ADDI x0,x0,0
+    localparam int unsigned NOP = 32'H00000013; // ADDI x0,x0,0
 
 	typedef enum logic [2:0] {
 		I_TYPE  = 3'b000,
@@ -66,7 +64,7 @@ package friscv_pkg;
 		logic [6:0] opcode;
 	} r_type;
 
-// Load/Store instruction funct3
+	// Load/Store instruction funct3
 	typedef logic [2:0] load_store_width_t;
 
 	typedef union packed {
@@ -77,15 +75,15 @@ package friscv_pkg;
 
 	typedef enum logic [1:0] {
 	    BRANCH_JAL_NONE = 2'b00,
-	    BRANCH_INSTR = 2'b01,
-	    JAL_INSTR = 2'b10
+	    BRANCH_INSTR    = 2'b01,
+	    JAL_INSTR       = 2'b10
 	} branch_jal_sel_t;
 
 	typedef enum logic [2:0] {
-	    COND_EQ = 3'b000, 
-	    COND_NE = 3'b001, 
-	    COND_LT = 3'b100, 
-	    COND_GE = 3'b101, 
+	    COND_EQ  = 3'b000, 
+	    COND_NE  = 3'b001, 
+	    COND_LT  = 3'b100, 
+	    COND_GE  = 3'b101, 
 	    COND_LTU = 3'b110, 
 	    COND_GEU = 3'b111
 	} branch_cond_t;
@@ -96,43 +94,43 @@ package friscv_pkg;
 	} mux_sel_t;
 
 	typedef enum logic [3:0] {
-		ADD_OP =  4'b0000,
-		SUB_OP =  4'b1000,
-		AND_OP =  4'b0111,
-		OR_OP =   4'b0110,
-		XOR_OP =  4'b0100,
-		SLL_OP =  4'b0001,
-		SRL_OP =  4'b0101,
-		SRA_OP =  4'b1101,
-		SLT_OP =  4'b0010,
+		ADD_OP  = 4'b0000,
+		SUB_OP  = 4'b1000,
+		AND_OP  = 4'b0111,
+		OR_OP   = 4'b0110,
+		XOR_OP  = 4'b0100,
+		SLL_OP  = 4'b0001,
+		SRL_OP  = 4'b0101,
+		SRA_OP  = 4'b1101,
+		SLT_OP  = 4'b0010,
         SLTU_OP = 4'b0011
 	} alu_op_t;
 
 	typedef enum logic [1:0] {
-	    MEM_INSTR_NONE = 2'b00,
-	    MEM_INSTR_LOAD = 2'b01,
+	    MEM_INSTR_NONE  = 2'b00,
+	    MEM_INSTR_LOAD  = 2'b01,
 	    MEM_INSTR_STORE = 2'b10
 	} mem_instr_sel_t;
 
 	typedef enum logic [1:0] {
 	    WB_DATA_SEL_PC_PLUS_4 = 2'b00,
-	    WB_DATA_SEL_ALU = 2'b01,
-	    WB_DATA_SEL_MEM = 2'b10
+	    WB_DATA_SEL_ALU       = 2'b01,
+	    WB_DATA_SEL_MEM       = 2'b10
     } wb_data_sel_t;
 	
 	// Instruction types
 	typedef enum logic [6:0] {
-		LOAD = 		7'b0000011, 
-		FENCE = 	7'b0001111,
-		ALOP_IMM = 	7'b0010011,
-		AUIPC = 	7'b0010111,
-		STORE = 	7'b0100011,
-		ALOP = 		7'b0110011,
-		LUI = 		7'b0110111,
-		BRANCH = 	7'b1100011,
-		JALR = 		7'b1100111,
-		JAL = 		7'b1101111,
-		ENV = 		7'b1110011
+		LOAD     = 7'b0000011, 
+		FENCE    = 7'b0001111,
+		ALOP_IMM = 7'b0010011,
+		AUIPC    = 7'b0010111,
+		STORE    = 7'b0100011,
+		ALOP     = 7'b0110011,
+		LUI      = 7'b0110111,
+		BRANCH   = 7'b1100011,
+		JALR     = 7'b1100111,
+		JAL      = 7'b1101111,
+		ENV      = 7'b1110011
 	} opcode_t;
 
 	typedef struct packed {
@@ -145,6 +143,26 @@ package friscv_pkg;
 		load_store_width_t load_store_width;
 		wb_data_sel_t wb_data_sel;
 	} instr_ex_t;
+
+	typedef enum logic [1:0] {
+		RW_IDLE  = 2'b00,
+		RW_WRITE = 2'b01,
+		RW_READ  = 2'b10
+	} rw_cmd_t;
+
+	typedef enum logic [1:0] {
+		AXI_RESP_OKAY   = 2'b00,
+		AXI_RESP_EXOKAY = 2'b01,
+		AXI_RESP_SLVERR = 2'b10,
+		AXI_RESP_DECERR = 2'b11
+	} axi_resp_t;
+
+	typedef enum logic [2:0] {
+		AXI_SIZE_BYTE  = 3'b000,
+		AXI_SIZE_HALF  = 3'b001,
+		AXI_SIZE_WORD  = 3'b010,
+		AXI_SIZE_DWORD = 3'b011
+	} axi_size_t;
 
 endpackage
 

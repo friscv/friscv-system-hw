@@ -15,14 +15,10 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_d_mem_in_mux
-(
-// CPU interface
-    input  logic [ADDR_WIDTH-1:0]   d_mem_addr_in,
-    output  logic [DATA_WIDTH-1:0]   d_mux_mem_data_out,
-
-// data memory interface
-    input  logic [DATA_WIDTH-1:0]   d_mux_mem_data_in,
+module friscv_mem_mux(
+    input  logic [ADDR_WIDTH-1:0]    d_mem_addr_in,
+    output logic [DATA_WIDTH-1:0]    d_mux_mem_data_out,
+    input  logic [DATA_WIDTH-1:0]    d_mux_mem_data_in,
     input  logic [GPIO1_WIDTH-1:0]   d_mux_gpio1_data_in,
     input  logic [GPIO2_WIDTH-1:0]   d_mux_gpio2_data_in
 );
@@ -41,5 +37,3 @@ always_comb begin
     end 
 end
 endmodule
-
-
