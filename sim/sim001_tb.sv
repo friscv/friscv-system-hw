@@ -5,13 +5,13 @@ module sim001_tb;
     // Testbench parameters
     parameter CLK_PERIOD = 20;  // 20ns clock period (50MHz)
     parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
-    parameter PROG_FILE = "prog.bin";  // Program binary file
+    parameter PROG_FILE = "../../../../../software/asm/prog.bin";  // Program binary file
     
     // Memory configuration
-    parameter MEM_SIZE = 32 * 1024 * 1024;  // 32 MiB
+    parameter MEM_SIZE = 2 * 1024 * 1024;  // 2 MiB
     parameter MEM_BASE = 32'h80000000;      // Memory base address
     parameter GPIO_ADDR = 32'h40000000;     // GPIO address
-    parameter RESULT_ADDR = 32'h81000000;   // Result address (MEM_BASE + 16M)
+    parameter RESULT_ADDR = 32'h80100000;   // Result address (MEM_BASE + 1M)
     
     // Memory delay configuration
     // Set to 0 for zero latency, or a positive number for fixed delay cycles
@@ -93,10 +93,10 @@ module sim001_tb;
                 mem_wait = 0;
                 
                 // Handle memory/GPIO read operations
-                if (mem_addr == GPIO_ADDR && mem_rw == 2'b01) begin
-                    // GPIO register read
+                if (mem_addr == GPIO_ADDR && mem_rw == 2'b10) begin
+                    // GPIO register read (RW_READ = 2'b10)
                     mem_rdata = gpio_reg;
-                end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE) && mem_rw == 2'b01) begin
+                end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE) && mem_rw == 2'b10) begin
                     // Main memory read
                     logic [31:0] offset;
                     offset = mem_addr - MEM_BASE;
@@ -125,8 +125,8 @@ module sim001_tb;
                         end
                         default: mem_rdata = 32'h0;
                     endcase
-                end else if (mem_rw == 2'b01) begin
-                    // Invalid address read
+                end else if (mem_rw == 2'b10) begin
+                    // Invalid address read (RW_READ = 2'b10)
                     mem_rdata = 32'hDEADC0DE;
                 end
             end
@@ -140,6 +140,8 @@ module sim001_tb;
             mem_transaction_active <= 0;
             mem_transaction_delay <= 0;
             gpio_reg <= 32'h0;
+            mem_read_count <= 0;
+            mem_write_count <= 0;
         end else begin
             // Check if there's an active memory request
             if (mem_rw != 2'b00) begin
@@ -170,8 +172,8 @@ module sim001_tb;
                         mem_delay_counter <= 0;
                         
                         // Handle write operations
-                        if (mem_addr == GPIO_ADDR && mem_rw == 2'b10) begin
-                            // GPIO register write
+                        if (mem_addr == GPIO_ADDR && mem_rw == 2'b01) begin
+                            // GPIO register write (RW_WRITE = 2'b01)
                             gpio_reg <= mem_wdata;
                             $display("[%0t] GPIO write: 0x%08h", $time, mem_wdata);
                             mem_write_count <= mem_write_count + 1;
@@ -179,7 +181,7 @@ module sim001_tb;
                             logic [31:0] offset;
                             offset = mem_addr - MEM_BASE;
                             
-                            if (mem_rw == 2'b10) begin  // Write
+                            if (mem_rw == 2'b01) begin  // Write (RW_WRITE = 2'b01)
                                 case (mem_size[1:0])
                                     2'b00: begin  // Byte
                                         if (offset < MEM_SIZE) begin
@@ -202,7 +204,7 @@ module sim001_tb;
                                     end
                                 endcase
                                 mem_write_count <= mem_write_count + 1;
-                            end else if (mem_rw == 2'b01) begin  // Read
+                            end else if (mem_rw == 2'b10) begin  // Read (RW_READ = 2'b10)
                                 mem_read_count <= mem_read_count + 1;
                             end
                         end else if (mem_rw != 2'b00) begin
@@ -253,8 +255,6 @@ module sim001_tb;
         // Initialize signals
         extern_rst_n = 0;  // Keep in reset
         pushbtn_rst = 0;
-        mem_read_count = 0;
-        mem_write_count = 0;
         
         // Initialize memory to zero
         for (int i = 0; i < MEM_SIZE; i++) begin
@@ -278,10 +278,13 @@ module sim001_tb;
             end
             $fclose(fd);
             $display("Loaded %0d bytes into memory", bytes_read);
+            $display("First 16 bytes: %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h %02h",
+                     memory[0], memory[1], memory[2], memory[3], memory[4], memory[5], memory[6], memory[7],
+                     memory[8], memory[9], memory[10], memory[11], memory[12], memory[13], memory[14], memory[15]);
         end
         
         // Wait a few cycles
-        repeat(10) @(posedge clk);
+        repeat(2) @(posedge clk);
         
         // Release reset
         $display("Releasing reset at time %0t", $time);

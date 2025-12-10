@@ -63,21 +63,26 @@ end
 // IF stage input buffers
 
 always_ff @(posedge clk_in) begin
-    if (~rst_n_in) begin
-        ir_buff    <= NOP;
-        pc_in_buff <= 0;
-        pc_plus_4_in_buff <= 0; 
-        if (~rst_id_wb_ok_in) regfile <= '{REGISTER_NUM{0}};
-        else if (rd_sel_in != 0) regfile[rd_sel_in] <= rd_data_in; // rd store must be enabled during bubble
-    end 
-    else begin
-        if (rd_sel_in != 0) regfile[rd_sel_in] <= rd_data_in;
-        if (~stage_stall_in) begin
-            ir_buff <= ir_in ;
-            pc_in_buff <= pc_in;
-            pc_plus_4_in_buff <= pc_plus_4_in; 
-        end
+    // Register file writes (always allowed, even during reset/flush)
+    if (~rst_n_in && ~rst_id_wb_ok_in) begin
+        regfile <= '{REGISTER_NUM{0}};
+    end else if (rd_sel_in != 0) begin
+        regfile[rd_sel_in] <= rd_data_in;
     end
+    
+    // Instruction buffer management
+    if (~stage_stall_in) begin
+        // Not stalled - accept new instruction from IF
+        ir_buff <= ir_in;
+        pc_in_buff <= pc_in;
+        pc_plus_4_in_buff <= pc_plus_4_in;
+    end else if (~rst_n_in) begin
+        // Stalled AND reset - insert bubble (NOP)
+        ir_buff <= NOP;
+        pc_in_buff <= 0;
+        pc_plus_4_in_buff <= 0;
+    end
+    // else: stalled but not reset - hold current instruction
 end
 
 assign pc_out = pc_in_buff;

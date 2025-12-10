@@ -40,7 +40,7 @@ logic                  w_inst_en;
 logic                  w_inst_muxout_en;
 logic                  w_inst_wait;
 logic                  w_inst_wait_stalled;
-logic                  w_zsbl_data;
+logic [31:0]           w_zsbl_data;
 
 logic [ADDR_WIDTH-1:0] w_data_addr;
 logic [DATA_WIDTH-1:0] w_data_wdata;
@@ -116,7 +116,7 @@ friscv_l1_subsystem l1_subsystem(
 );
 
 friscv_zsbl_rom zsbl_rom(
-    .i_addr (w_inst_addr),
+    .i_addr (w_inst_addr[15:0]),
     .o_data (w_zsbl_data)
 );
 

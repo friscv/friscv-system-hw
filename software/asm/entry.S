@@ -4,12 +4,12 @@
 _start:
     li t0, -1
 
-    # Write to LEDs
+    # Write to GPIO
     li t1, 0x40000000
     sw t0, 0(t1)
 
     # Write to result address
-    li t1, 0x81000000
+    li t1, 0x80100000
     sw t0, 0(t1)
 
     # Write to end address to halt

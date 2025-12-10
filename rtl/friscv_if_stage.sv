@@ -41,17 +41,16 @@ module friscv_if_stage(
 // input registers, clk_in driven
 logic [ADDR_WIDTH-1:0] pc_reg;
 
-
 always_ff @(posedge clk_in) begin
-    if (~rst_n_in) begin
-        pc_reg <= (RESET_VEC-4);
+    if (jump_branch_in) begin
+        // Jumps/branches have highest priority - they override both reset and stalls
+        pc_reg <= {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00};
+    end else if (~rst_n_in) begin
+        pc_reg <= RESET_VEC;
     end else if (~stage_stall_in) begin
-        if (jump_branch_in) begin
-            pc_reg <= {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00};
-        end else begin
-            pc_reg <= pc_plus_4_out;
-        end
+        pc_reg <= pc_plus_4_out;
     end
+    // else: stalled, hold current PC
 end
 
 always_comb begin
