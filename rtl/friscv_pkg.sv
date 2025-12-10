@@ -34,17 +34,14 @@ package friscv_pkg;
 	localparam int unsigned DATA_WIDTH = XLEN;
 	
 	localparam int unsigned REG_SEL_WIDTH = 5;
-	localparam int unsigned REGISTER_NUM = 32;
+	localparam int unsigned REGISTER_NUM  = 32;
 	
-	localparam int unsigned RESET_VEC = 32'h0;
-		
-    localparam int unsigned GPIO1_ADDR = 32'H10000;
-    localparam int unsigned GPIO1_WIDTH = 1;
-
-	localparam int unsigned GPIO2_ADDR = 32'H20000;
-    localparam int unsigned GPIO2_WIDTH = 1;
+	localparam int unsigned ZSBL_ROM_SIZE = 256;
 
     localparam int unsigned NOP = 32'H00000013; // ADDI x0,x0,0
+
+	localparam logic [ADDR_WIDTH-1:0] RESET_VEC   = 32'h1000;
+	localparam logic [ADDR_WIDTH-1:0] END_ADDRESS = 32'h50000000;
 
 	typedef enum logic [2:0] {
 		I_TYPE  = 3'b000,

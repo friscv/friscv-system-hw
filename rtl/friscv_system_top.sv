@@ -18,7 +18,7 @@ Version info is listed in friscv_pkg.sv
 module friscv_system_top(
     input  logic                   i_clk,
     input  logic                   i_extern_rstn,
-    input  logic                   i_pushbtn_rst,
+    input  logic                   i_push_rst,
     output logic                   o_end,
 
     // Memory Interface
@@ -30,24 +30,43 @@ module friscv_system_top(
     input  logic                   i_mem_wait
 );
 
-logic                   r_rstn;
+logic                  r_rstn;
+logic                  r_end_signal;
 
-logic [ADDR_WIDTH-1:0]  w_inst_addr;
-logic [DATA_WIDTH-1:0]  w_inst_data;
-logic                   w_inst_en;
-logic                   w_inst_wait;
+logic [ADDR_WIDTH-1:0] w_inst_addr;
+logic [31:0]           w_inst_data;
+logic [31:0]           w_inst_muxout_data;
+logic                  w_inst_en;
+logic                  w_inst_muxout_en;
+logic                  w_inst_wait;
+logic                  w_inst_wait_stalled;
+logic                  w_zsbl_data;
 
-logic [ADDR_WIDTH-1:0]  w_data_addr;
-logic [DATA_WIDTH-1:0]  w_data_wdata;
-logic [DATA_WIDTH-1:0]  w_data_rdata;
-logic                   w_data_en;
-logic                   w_data_wr;
-logic [1:0]             w_data_size;
-logic                   w_data_wait;
+logic [ADDR_WIDTH-1:0] w_data_addr;
+logic [DATA_WIDTH-1:0] w_data_wdata;
+logic [DATA_WIDTH-1:0] w_data_rdata;
+logic                  w_data_en;
+logic                  w_data_wr;
+logic [1:0]            w_data_size;
+logic                  w_data_wait;
 
 always_ff @(negedge i_clk) begin
-    r_rstn <= i_extern_rstn && i_pushbtn_rst;
+    r_rstn <= i_extern_rstn && !i_push_rst;
 end
+
+// End signal detection
+always_ff @(posedge i_clk or negedge r_rstn) begin
+    if (!r_rstn) begin
+        r_end_signal <= 1'b0;
+    end else if (w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
+        r_end_signal <= 1'b1;
+    end
+end
+
+assign o_end = r_end_signal;
+
+// Stall instruction fetch when end signal is high
+assign w_inst_wait_stalled = w_inst_wait || r_end_signal;
 
 friscv_cpu cpu0(
     .i_clk          (i_clk),
@@ -55,9 +74,9 @@ friscv_cpu cpu0(
 
     // Instruction Memory Interface
     .i_mem_addr_out (w_inst_addr),
-    .i_mem_data_in  (w_inst_data),
+    .i_mem_data_in  (w_inst_muxout_data),
     .i_mem_en_out   (w_inst_en),
-    .i_mem_wait_in  (w_inst_wait),
+    .i_mem_wait_in  (w_inst_wait_stalled),
 
     // Data memory interface
     .d_mem_addr_out (w_data_addr),
@@ -76,7 +95,7 @@ friscv_l1_subsystem l1_subsystem(
     // Instruction Memory Interface
     .i_inst_addr  (w_inst_addr),
     .o_inst_data  (w_inst_data),
-    .i_inst_en    (w_inst_en),
+    .i_inst_en    (w_inst_muxout_en),
     .o_inst_wait  (w_inst_wait),
 
     // Data Memory Interface
@@ -96,16 +115,18 @@ friscv_l1_subsystem l1_subsystem(
     .i_mem_wait   (i_mem_wait)
 );
 
-friscv_end friscv_end(
-    .clk_cpu_in     (i_clk),
-    .clk_mem_in     (w_clk_mem),
-    .debug_mode_in  (w_debug_mode),    
-    .d_mem_addr_in  (w_data_addr),
-    .d_mem_data_in  (w_data_wdata),
-    .d_mem_en_in    (w_data_en),
-    .d_mem_wr_in    (w_data_wr),
-    .rst_n_in       (r_rstn),
-    .end_signal_out (o_end)
+friscv_zsbl_rom zsbl_rom(
+    .i_addr (w_inst_addr),
+    .o_data (w_zsbl_data)
+);
+
+friscv_zsbl_mux zsbl_mux(
+    .i_addr      (w_inst_addr),
+    .i_en        (w_inst_en),
+    .i_zsbl_data (w_zsbl_data),
+    .i_mem_data  (w_inst_data),
+    .o_data      (w_inst_muxout_data),
+    .o_mem_en    (w_inst_muxout_en)
 );
 
 endmodule

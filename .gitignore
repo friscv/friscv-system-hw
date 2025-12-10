@@ -23,6 +23,7 @@ bd/*/*
 *.bin
 *.mcs
 *.xsa
+*.elf
 
 # Do not ignore generated overlays
 !overlay/*.bit

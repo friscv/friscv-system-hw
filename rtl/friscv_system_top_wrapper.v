@@ -16,7 +16,7 @@ Version info is listed in friscv_pkg.sv
 module friscv_system_top_wrapper(
     input  wire        i_clk,
     input  wire        i_extern_rstn,
-    input  wire        i_pushbtn_rst,
+    input  wire        i_push_rst,
     output wire        o_end,
 
     // Memory Interface
@@ -31,7 +31,7 @@ module friscv_system_top_wrapper(
     friscv_system_top friscv_system_top_0(
         .i_clk         (i_clk),
         .i_extern_rstn (i_extern_rstn),
-        .i_pushbtn_rst (i_pushbtn_rst),
+        .i_push_rst    (i_push_rst),
         .o_end         (o_end),
         .o_mem_size    (o_mem_size),
         .o_mem_addr    (o_mem_addr),

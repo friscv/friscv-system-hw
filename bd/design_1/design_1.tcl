@@ -286,7 +286,7 @@ proc create_root_design { parentCell } {
   set gpio_addr_ctrl [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 gpio_addr_ctrl ]
   set_property -dict [list \
     CONFIG.C_ALL_OUTPUTS {1} \
-    CONFIG.C_DOUT_DEFAULT {0x80000000} \
+    CONFIG.C_DOUT_DEFAULT {0x00000000} \
   ] $gpio_addr_ctrl
 
 
@@ -295,7 +295,7 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.C_ALL_INPUTS_2 {1} \
     CONFIG.C_ALL_OUTPUTS {1} \
-    CONFIG.C_DOUT_DEFAULT {0xFFFFFFFF} \
+    CONFIG.C_DOUT_DEFAULT {0x00000000} \
     CONFIG.C_GPIO2_WIDTH {1} \
     CONFIG.C_GPIO_WIDTH {1} \
     CONFIG.C_IS_DUAL {1} \
@@ -375,7 +375,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net friscv_system_top_wr_0_o_mem_wdata [get_bd_pins friscv_axi_master/i_wdata] [get_bd_pins friscv_system/o_mem_wdata]
   connect_bd_net -net gpio2_io_i_0_1 [get_bd_ports sw_in] [get_bd_pins friscv_gpio_0/gpio2_io_i]
   connect_bd_net -net i_clk_0_1 [get_bd_pins friscv_addr_unit/i_clk] [get_bd_pins friscv_axi_master/i_clk] [get_bd_pins friscv_gpio_0/s_axi_aclk] [get_bd_pins friscv_interconnect/ACLK] [get_bd_pins friscv_interconnect/M00_ACLK] [get_bd_pins friscv_interconnect/M01_ACLK] [get_bd_pins friscv_interconnect/S00_ACLK] [get_bd_pins friscv_system/i_clk] [get_bd_pins ps/FCLK_CLK1] [get_bd_pins ps/S_AXI_HP0_ACLK]
-  connect_bd_net -net i_pushbtn_rst_0_1 [get_bd_ports rst_pushbutton_in] [get_bd_pins friscv_system/i_pushbtn_rst]
+  connect_bd_net -net i_pushbtn_rst_0_1 [get_bd_ports rst_pushbutton_in] [get_bd_pins friscv_system/i_push_rst]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins debug_interconnect/ARESETN] [get_bd_pins debug_interconnect/M00_ARESETN] [get_bd_pins debug_interconnect/M01_ARESETN] [get_bd_pins debug_interconnect/S00_ARESETN] [get_bd_pins gpio_addr_ctrl/s_axi_aresetn] [get_bd_pins gpio_debug/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
   connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins debug_interconnect/ACLK] [get_bd_pins debug_interconnect/M00_ACLK] [get_bd_pins debug_interconnect/M01_ACLK] [get_bd_pins debug_interconnect/S00_ACLK] [get_bd_pins gpio_addr_ctrl/s_axi_aclk] [get_bd_pins gpio_debug/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins ps/FCLK_CLK0] [get_bd_pins ps/M_AXI_GP0_ACLK]
   connect_bd_net -net ps_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins ps/FCLK_RESET0_N]
@@ -383,12 +383,15 @@ proc create_root_design { parentCell } {
   connect_bd_net -net single_beat_axi_mast_0_o_wait [get_bd_pins friscv_axi_master/o_wait] [get_bd_pins friscv_system/i_mem_wait]
 
   # Create address segments
+  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_axi_master/m_axi] [get_bd_addr_segs friscv_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces friscv_axi_master/m_axi] [get_bd_addr_segs ps/S_AXI_HP0/HP0_DDR_LOWOCM] -force
+  assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces ps/Data] [get_bd_addr_segs gpio_addr_ctrl/S_AXI/Reg] -force
+  assign_bd_address -offset 0x41210000 -range 0x00010000 -target_address_space [get_bd_addr_spaces ps/Data] [get_bd_addr_segs gpio_debug/S_AXI/Reg] -force
 
 
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -400,4 +403,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

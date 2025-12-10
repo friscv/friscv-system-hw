@@ -81,6 +81,13 @@ clean:
 	@find bd/ -type d -empty -delete 2>/dev/null || true
 	@echo "Clean complete!"
 
+# Deploy software and overlay to PYNQ board
+.PHONY: deploy
+deploy:
+	@echo "Copying software and overlay directories to pynq..."
+	scp -r $(CURDIR)/software $(CURDIR)/overlay pynq:~/jupyter_notebooks/friscv/
+	@echo "Deploy complete!"
+
 # Show help
 .PHONY: help
 help:
@@ -93,4 +100,5 @@ help:
 	@echo "  make open      - Open project in Vivado GUI"
 	@echo "  make clean     - Remove project directory"
 	@echo "  make bitstream - Build bitstream and copy to overlay/"
+	@echo "  make deploy    - Copy software and overlay directories to pynq"
 	@echo "  make help      - Show this help"

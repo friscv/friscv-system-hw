@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Tue Dec  9 00:56:06 2025" VIVADOVERSION="2022.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Wed Dec 10 01:27:56 2025" VIVADOVERSION="2022.2">
 
   <SYSTEMINFO ARCH="zynq" DEVICE="7z020" NAME="design_1" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -121,7 +121,7 @@
     </PORT>
     <PORT DIR="I" NAME="rst_pushbutton_in" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="External_Ports_rst_pushbutton_in">
       <CONNECTIONS>
-        <CONNECTION INSTANCE="friscv_system" PORT="i_pushbtn_rst"/>
+        <CONNECTION INSTANCE="friscv_system" PORT="i_push_rst"/>
       </CONNECTIONS>
     </PORT>
     <PORT DIR="I" LEFT="1" NAME="sw_in" RIGHT="0" SIGIS="undef" SIGNAME="External_Ports_sw_in">
@@ -1001,11 +1001,11 @@
     <MODULE COREREVISION="1" FULLNAME="/friscv_addr_unit" HWVERSION="1.0" INSTANCE="friscv_addr_unit" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="friscv_address_translation_wrapper" VLNV="xilinx.com:module_ref:friscv_address_translation_wrapper:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_friscv_address_trans_0_0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_friscv_addr_unit_0"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="i_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="i_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK1"/>
           </CONNECTIONS>
@@ -1040,7 +1040,7 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="i_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="i_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK1"/>
           </CONNECTIONS>
@@ -1250,7 +1250,7 @@
         <BUSINTERFACE BUSNAME="friscv_axi_master_m_axi" DATAWIDTH="32" NAME="m_axi" TYPE="MASTER" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="5e+07"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -1511,7 +1511,7 @@
         <PARAMETER NAME="C_IS_DUAL" VALUE="1"/>
         <PARAMETER NAME="C_DOUT_DEFAULT_2" VALUE="0x00000000"/>
         <PARAMETER NAME="C_TRI_DEFAULT_2" VALUE="0xFFFFFFFF"/>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_axi_gpio_0_0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_friscv_gpio_0_0"/>
         <PARAMETER NAME="USE_BOARD_FLOW" VALUE="false"/>
         <PARAMETER NAME="GPIO_BOARD_INTERFACE" VALUE="Custom"/>
         <PARAMETER NAME="GPIO2_BOARD_INTERFACE" VALUE="Custom"/>
@@ -1520,7 +1520,7 @@
         <PARAMETER NAME="C_HIGHADDR" VALUE="0x4000FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK1"/>
           </CONNECTIONS>
@@ -1630,7 +1630,7 @@
         <BUSINTERFACE BUSNAME="friscv_interconnect_M01_AXI" DATAWIDTH="32" NAME="S_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4LITE"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="5e+07"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="9"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -2074,7 +2074,7 @@
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_awburst"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_awlock" SIGIS="undef" SIGNAME="friscv_axi_master_m_axi_awlock">
+        <PORT DIR="I" LEFT="0" NAME="S00_AXI_awlock" RIGHT="0" SIGIS="undef" SIGNAME="friscv_axi_master_m_axi_awlock">
           <CONNECTIONS>
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_awlock"/>
           </CONNECTIONS>
@@ -2089,6 +2089,7 @@
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_awprot"/>
           </CONNECTIONS>
         </PORT>
+        <PORT DIR="I" NAME="S00_AXI_awregion" SIGIS="undef"/>
         <PORT DIR="I" LEFT="3" NAME="S00_AXI_awqos" RIGHT="0" SIGIS="undef" SIGNAME="friscv_axi_master_m_axi_awqos">
           <CONNECTIONS>
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_awqos"/>
@@ -2164,7 +2165,7 @@
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_arburst"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_arlock" SIGIS="undef" SIGNAME="friscv_axi_master_m_axi_arlock">
+        <PORT DIR="I" LEFT="0" NAME="S00_AXI_arlock" RIGHT="0" SIGIS="undef" SIGNAME="friscv_axi_master_m_axi_arlock">
           <CONNECTIONS>
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_arlock"/>
           </CONNECTIONS>
@@ -2179,6 +2180,7 @@
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_arprot"/>
           </CONNECTIONS>
         </PORT>
+        <PORT DIR="I" NAME="S00_AXI_arregion" SIGIS="undef"/>
         <PORT DIR="I" LEFT="3" NAME="S00_AXI_arqos" RIGHT="0" SIGIS="undef" SIGNAME="friscv_axi_master_m_axi_arqos">
           <CONNECTIONS>
             <CONNECTION INSTANCE="friscv_axi_master" PORT="m_axi_arqos"/>
@@ -2482,6 +2484,7 @@
             <PORTMAP LOGICAL="AWLOCK" PHYSICAL="S00_AXI_awlock"/>
             <PORTMAP LOGICAL="AWCACHE" PHYSICAL="S00_AXI_awcache"/>
             <PORTMAP LOGICAL="AWPROT" PHYSICAL="S00_AXI_awprot"/>
+            <PORTMAP LOGICAL="AWREGION" PHYSICAL="S00_AXI_awregion"/>
             <PORTMAP LOGICAL="AWQOS" PHYSICAL="S00_AXI_awqos"/>
             <PORTMAP LOGICAL="AWVALID" PHYSICAL="S00_AXI_awvalid"/>
             <PORTMAP LOGICAL="AWREADY" PHYSICAL="S00_AXI_awready"/>
@@ -2500,6 +2503,7 @@
             <PORTMAP LOGICAL="ARLOCK" PHYSICAL="S00_AXI_arlock"/>
             <PORTMAP LOGICAL="ARCACHE" PHYSICAL="S00_AXI_arcache"/>
             <PORTMAP LOGICAL="ARPROT" PHYSICAL="S00_AXI_arprot"/>
+            <PORTMAP LOGICAL="ARREGION" PHYSICAL="S00_AXI_arregion"/>
             <PORTMAP LOGICAL="ARQOS" PHYSICAL="S00_AXI_arqos"/>
             <PORTMAP LOGICAL="ARVALID" PHYSICAL="S00_AXI_arvalid"/>
             <PORTMAP LOGICAL="ARREADY" PHYSICAL="S00_AXI_arready"/>
@@ -2579,7 +2583,7 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="i_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="i_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK1"/>
           </CONNECTIONS>
@@ -2589,7 +2593,7 @@
             <CONNECTION INSTANCE="gpio_debug" PORT="gpio_io_o"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="i_pushbtn_rst" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="External_Ports_rst_pushbutton_in">
+        <PORT DIR="I" NAME="i_push_rst" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="External_Ports_rst_pushbutton_in">
           <CONNECTIONS>
             <CONNECTION INSTANCE="External_Ports" PORT="rst_pushbutton_in"/>
           </CONNECTIONS>
@@ -2814,12 +2818,12 @@
         <PARAMETER NAME="C_ALL_OUTPUTS" VALUE="1"/>
         <PARAMETER NAME="C_ALL_OUTPUTS_2" VALUE="0"/>
         <PARAMETER NAME="C_INTERRUPT_PRESENT" VALUE="0"/>
-        <PARAMETER NAME="C_DOUT_DEFAULT" VALUE="0x80000000"/>
+        <PARAMETER NAME="C_DOUT_DEFAULT" VALUE="0x00000000"/>
         <PARAMETER NAME="C_TRI_DEFAULT" VALUE="0xFFFFFFFF"/>
         <PARAMETER NAME="C_IS_DUAL" VALUE="0"/>
         <PARAMETER NAME="C_DOUT_DEFAULT_2" VALUE="0x00000000"/>
         <PARAMETER NAME="C_TRI_DEFAULT_2" VALUE="0xFFFFFFFF"/>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_axi_gpio_1_0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_gpio_addr_ctrl_0"/>
         <PARAMETER NAME="USE_BOARD_FLOW" VALUE="false"/>
         <PARAMETER NAME="GPIO_BOARD_INTERFACE" VALUE="Custom"/>
         <PARAMETER NAME="GPIO2_BOARD_INTERFACE" VALUE="Custom"/>
@@ -2828,7 +2832,7 @@
         <PARAMETER NAME="C_HIGHADDR" VALUE="0x4120FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK0"/>
           </CONNECTIONS>
@@ -2933,7 +2937,7 @@
         <BUSINTERFACE BUSNAME="debug_interconnect_M01_AXI" DATAWIDTH="32" NAME="S_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4LITE"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="5e+07"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="9"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -2952,8 +2956,8 @@
           <PARAMETER NAME="HAS_BRESP" VALUE="1"/>
           <PARAMETER NAME="HAS_RRESP" VALUE="1"/>
           <PARAMETER NAME="SUPPORTS_NARROW_BURST" VALUE="0"/>
-          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="8"/>
-          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="8"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="1"/>
           <PARAMETER NAME="PHASE" VALUE="0.0"/>
           <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_ps_0_FCLK_CLK0"/>
@@ -3170,7 +3174,7 @@
         <PARAMETER NAME="C_ALL_OUTPUTS" VALUE="1"/>
         <PARAMETER NAME="C_ALL_OUTPUTS_2" VALUE="0"/>
         <PARAMETER NAME="C_INTERRUPT_PRESENT" VALUE="0"/>
-        <PARAMETER NAME="C_DOUT_DEFAULT" VALUE="0xFFFFFFFF"/>
+        <PARAMETER NAME="C_DOUT_DEFAULT" VALUE="0x00000000"/>
         <PARAMETER NAME="C_TRI_DEFAULT" VALUE="0xFFFFFFFF"/>
         <PARAMETER NAME="C_IS_DUAL" VALUE="1"/>
         <PARAMETER NAME="C_DOUT_DEFAULT_2" VALUE="0x00000000"/>
@@ -3184,7 +3188,7 @@
         <PARAMETER NAME="C_HIGHADDR" VALUE="0x4121FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK0"/>
           </CONNECTIONS>
@@ -3281,14 +3285,14 @@
         </PORT>
         <PORT DIR="O" LEFT="0" NAME="gpio_io_o" RIGHT="0" SIGIS="undef" SIGNAME="gpio_debug_gpio_io_o">
           <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_addr_unit" PORT="i_rstn"/>
+            <CONNECTION INSTANCE="friscv_axi_master" PORT="i_rstn"/>
             <CONNECTION INSTANCE="friscv_gpio_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="ARESETN"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="M00_ARESETN"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="M01_ARESETN"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="S00_ARESETN"/>
-            <CONNECTION INSTANCE="friscv_addr_unit" PORT="i_rstn"/>
             <CONNECTION INSTANCE="friscv_system" PORT="i_extern_rstn"/>
-            <CONNECTION INSTANCE="friscv_axi_master" PORT="i_rstn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="0" NAME="gpio2_io_i" RIGHT="0" SIGIS="undef" SIGNAME="friscv_system_o_end">
@@ -3301,7 +3305,7 @@
         <BUSINTERFACE BUSNAME="debug_interconnect_M00_AXI" DATAWIDTH="32" NAME="S_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4LITE"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="5e+07"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="9"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -3320,8 +3324,8 @@
           <PARAMETER NAME="HAS_BRESP" VALUE="1"/>
           <PARAMETER NAME="HAS_RRESP" VALUE="1"/>
           <PARAMETER NAME="SUPPORTS_NARROW_BURST" VALUE="0"/>
-          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="8"/>
-          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="8"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="1"/>
           <PARAMETER NAME="PHASE" VALUE="0.0"/>
           <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_ps_0_FCLK_CLK0"/>
@@ -3382,7 +3386,7 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="slowest_sync_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="slowest_sync_clk" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK0"/>
           </CONNECTIONS>
@@ -3402,9 +3406,9 @@
         <PORT DIR="O" LEFT="0" NAME="peripheral_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst" SIGNAME="proc_sys_reset_0_peripheral_aresetn">
           <CONNECTIONS>
             <CONNECTION INSTANCE="debug_interconnect" PORT="ARESETN"/>
-            <CONNECTION INSTANCE="debug_interconnect" PORT="S00_ARESETN"/>
             <CONNECTION INSTANCE="debug_interconnect" PORT="M00_ARESETN"/>
             <CONNECTION INSTANCE="debug_interconnect" PORT="M01_ARESETN"/>
+            <CONNECTION INSTANCE="debug_interconnect" PORT="S00_ARESETN"/>
             <CONNECTION INSTANCE="gpio_addr_ctrl" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="gpio_debug" PORT="s_axi_aresetn"/>
           </CONNECTIONS>
@@ -3723,12 +3727,12 @@
         <PARAMETER NAME="PCW_USE_S_AXI_HP1" VALUE="0"/>
         <PARAMETER NAME="PCW_USE_S_AXI_HP2" VALUE="0"/>
         <PARAMETER NAME="PCW_USE_S_AXI_HP3" VALUE="0"/>
-        <PARAMETER NAME="PCW_M_AXI_GP0_FREQMHZ" VALUE="50"/>
+        <PARAMETER NAME="PCW_M_AXI_GP0_FREQMHZ" VALUE="50.0"/>
         <PARAMETER NAME="PCW_M_AXI_GP1_FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PCW_S_AXI_GP0_FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PCW_S_AXI_GP1_FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PCW_S_AXI_ACP_FREQMHZ" VALUE="10"/>
-        <PARAMETER NAME="PCW_S_AXI_HP0_FREQMHZ" VALUE="50"/>
+        <PARAMETER NAME="PCW_S_AXI_HP0_FREQMHZ" VALUE="50.0"/>
         <PARAMETER NAME="PCW_S_AXI_HP1_FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PCW_S_AXI_HP2_FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PCW_S_AXI_HP3_FREQMHZ" VALUE="10"/>
@@ -4494,7 +4498,7 @@
             <CONNECTION INSTANCE="debug_interconnect" PORT="S00_AXI_wstrb"/>
           </CONNECTIONS>
         </PORT>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="M_AXI_GP0_ACLK" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="M_AXI_GP0_ACLK" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK0"/>
           </CONNECTIONS>
@@ -4605,7 +4609,7 @@
         <PORT DIR="O" LEFT="7" NAME="S_AXI_HP0_WCOUNT" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="2" NAME="S_AXI_HP0_RACOUNT" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="5" NAME="S_AXI_HP0_WACOUNT" RIGHT="0" SIGIS="undef"/>
-        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="S_AXI_HP0_ACLK" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
+        <PORT CLKFREQUENCY="5e+07" DIR="I" NAME="S_AXI_HP0_ACLK" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps" PORT="FCLK_CLK1"/>
           </CONNECTIONS>
@@ -4735,29 +4739,29 @@
             <CONNECTION INSTANCE="friscv_interconnect" PORT="M00_AXI_wstrb"/>
           </CONNECTIONS>
         </PORT>
-        <PORT CLKFREQUENCY="50000000" DIR="O" NAME="FCLK_CLK0" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
+        <PORT CLKFREQUENCY="5e+07" DIR="O" NAME="FCLK_CLK0" SIGIS="clk" SIGNAME="ps_FCLK_CLK0">
           <CONNECTIONS>
             <CONNECTION INSTANCE="debug_interconnect" PORT="ACLK"/>
             <CONNECTION INSTANCE="debug_interconnect" PORT="M00_ACLK"/>
             <CONNECTION INSTANCE="debug_interconnect" PORT="M01_ACLK"/>
             <CONNECTION INSTANCE="debug_interconnect" PORT="S00_ACLK"/>
-            <CONNECTION INSTANCE="gpio_debug" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="ps" PORT="M_AXI_GP0_ACLK"/>
             <CONNECTION INSTANCE="gpio_addr_ctrl" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="gpio_debug" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="proc_sys_reset_0" PORT="slowest_sync_clk"/>
+            <CONNECTION INSTANCE="ps" PORT="M_AXI_GP0_ACLK"/>
           </CONNECTIONS>
         </PORT>
-        <PORT CLKFREQUENCY="50000000" DIR="O" NAME="FCLK_CLK1" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
+        <PORT CLKFREQUENCY="5e+07" DIR="O" NAME="FCLK_CLK1" SIGIS="clk" SIGNAME="ps_FCLK_CLK1">
           <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_addr_unit" PORT="i_clk"/>
+            <CONNECTION INSTANCE="friscv_axi_master" PORT="i_clk"/>
             <CONNECTION INSTANCE="friscv_gpio_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="ACLK"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="M00_ACLK"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="M01_ACLK"/>
             <CONNECTION INSTANCE="friscv_interconnect" PORT="S00_ACLK"/>
             <CONNECTION INSTANCE="ps" PORT="S_AXI_HP0_ACLK"/>
-            <CONNECTION INSTANCE="friscv_addr_unit" PORT="i_clk"/>
             <CONNECTION INSTANCE="friscv_system" PORT="i_clk"/>
-            <CONNECTION INSTANCE="friscv_axi_master" PORT="i_clk"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="FCLK_RESET0_N" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="ps_FCLK_RESET0_N">
@@ -4932,7 +4936,7 @@
           <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="8"/>
           <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI3"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="5e+07"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="12"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -5004,7 +5008,7 @@
           <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="8"/>
           <PARAMETER NAME="DATA_WIDTH" VALUE="64"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI3"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="5e+07"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="6"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
