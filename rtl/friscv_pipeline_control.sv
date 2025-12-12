@@ -72,7 +72,6 @@ logic jal_active;
 
 // global pipeline controls
 
-// reset
 always_ff @(negedge clk_in) begin
     if (~rst_n_cpu_in) begin
         rst_buff          <= 0;
@@ -96,7 +95,7 @@ assign rst_n_id_out = rst_buff[1];
 assign rst_n_ex_out = rst_buff[2];
 assign rst_n_mem_out= rst_buff[3];
 
-assign stall_if_out = stall_buff[0]; 
+assign stall_if_out = stall_buff[0];
 assign stall_id_out = stall_buff[1];
 
 assign rst_id_wb_ok_out = rst_id_wb_ok_buff;

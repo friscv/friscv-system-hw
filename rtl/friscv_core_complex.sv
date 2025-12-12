@@ -15,22 +15,20 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_system_top(
-    input  logic                   i_clk,
-    input  logic                   i_extern_rstn,
-    input  logic                   i_push_rst,
-    output logic                   o_end,
+module friscv_core_complex(
+    input  logic i_clk,
+    input  logic i_rstn,
+    output logic o_end,
 
     // Memory Interface
-    output logic [2:0]             o_mem_size,
-    output logic [ADDR_WIDTH-1:0]  o_mem_addr,
-    output logic [DATA_WIDTH-1:0]  o_mem_wdata,
-    input  logic [DATA_WIDTH-1:0]  i_mem_rdata,
-    output logic [1:0]             o_mem_rw,
-    input  logic                   i_mem_wait
+    output logic [2:0]            o_mem_size,
+    output logic [ADDR_WIDTH-1:0] o_mem_addr,
+    output logic [DATA_WIDTH-1:0] o_mem_wdata,
+    input  logic [DATA_WIDTH-1:0] i_mem_rdata,
+    output logic [1:0]            o_mem_rw,
+    input  logic                  i_mem_wait
 );
 
-logic                  r_rstn;
 logic                  r_end_signal;
 
 logic [ADDR_WIDTH-1:0] w_inst_addr;
@@ -50,13 +48,9 @@ logic                  w_data_wr;
 logic [1:0]            w_data_size;
 logic                  w_data_wait;
 
-always_ff @(negedge i_clk) begin
-    r_rstn <= i_extern_rstn && !i_push_rst;
-end
-
-// End signal detection
-always_ff @(posedge i_clk or negedge r_rstn) begin
-    if (!r_rstn) begin
+// End signal detection on write to END_ADDRESS
+always_ff @(posedge i_clk or negedge i_rstn) begin
+    if (!i_rstn) begin
         r_end_signal <= 1'b0;
     end else if (w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
         r_end_signal <= 1'b1;
@@ -68,9 +62,9 @@ assign o_end = r_end_signal;
 // Stall instruction fetch when end signal is high
 assign w_inst_wait_stalled = w_inst_wait || r_end_signal;
 
-friscv_cpu cpu0(
+friscv_core cpu_0(
     .i_clk          (i_clk),
-    .i_rstn         (r_rstn),
+    .i_rstn         (i_rstn),
 
     // Instruction Memory Interface
     .i_mem_addr_out (w_inst_addr),
@@ -88,9 +82,10 @@ friscv_cpu cpu0(
     .d_mem_wait_in  (w_data_wait)
 );
 
+// Contains the hart's fabric arbiter and L1I/L1D caches
 friscv_l1_subsystem l1_subsystem(
     .i_clk        (i_clk),
-    .i_rstn       (r_rstn),
+    .i_rstn       (i_rstn),
 
     // Instruction Memory Interface
     .i_inst_addr  (w_inst_addr),
@@ -106,7 +101,7 @@ friscv_l1_subsystem l1_subsystem(
     .i_data_wr    (w_data_wr),
     .o_data_wait  (w_data_wait),
 
-    // External Interface
+    // L2 Interface
     .o_mem_size   (o_mem_size),
     .o_mem_addr   (o_mem_addr),
     .o_mem_wdata  (o_mem_wdata),
@@ -115,6 +110,7 @@ friscv_l1_subsystem l1_subsystem(
     .i_mem_wait   (i_mem_wait)
 );
 
+// Zero-stage bootloader
 friscv_zsbl_rom zsbl_rom(
     .i_addr (w_inst_addr[15:0]),
     .o_data (w_zsbl_data)

@@ -12,16 +12,16 @@ licensing.hpc@fer.hr
 
 Version info is listed in friscv_pkg.sv
 */
+
 `include "friscv_pkg.sv"
 
-module branch_unit
-  (
+module branch_unit(
     input branch_jal_sel_t branch_jal_sel_in,
     input branch_cond_t branch_cond_in,
     input [DATA_WIDTH-1:0] src1_in,
     input [DATA_WIDTH-1:0] src2_in,
     output logic branch_ok_out
-   );
+);
 
     logic [DATA_WIDTH:0]     c_int;
     logic [DATA_WIDTH-1:0]   G_int, P_int;

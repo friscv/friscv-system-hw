@@ -13,20 +13,24 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+module friscv_address_translation(
+    input  logic        i_clk,
+    input  logic        i_rstn,
+    
+    // Translation parameters
+    input  logic [31:0] i_base_addr,
 
-module friscv_wb_stage(
-
-// inputs from MEM stage
-    input logic [DATA_WIDTH-1:0]    rd_data_in,
-    input logic [REG_SEL_WIDTH-1:0] rd_sel_in,
-
- // outputs to ID stage
-    output logic [DATA_WIDTH-1:0]    rd_data_out,
-    output logic [REG_SEL_WIDTH-1:0] rd_sel_out
+    // Translated address
+    input  logic [31:0] i_cpu_addr,
+    output logic [31:0] o_dram_addr
 );
 
-assign rd_data_out = rd_data_in;
-assign rd_sel_out = rd_sel_in;
+logic r_base_addr;
+assign o_dram_addr = (i_cpu_addr < i_base_addr) ? i_cpu_addr : i_cpu_addr - i_base_addr;
+
+always_ff @(posedge i_clk) begin
+    if (!i_rstn)
+        r_base_addr <= i_base_addr;
+end
 
 endmodule

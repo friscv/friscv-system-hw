@@ -21,8 +21,7 @@ module sim001_tb;
     
     // Clock and reset
     logic clk;
-    logic extern_rst_n;
-    logic pushbtn_rst;
+    logic rstn;
     logic end_signal;
     
     // Unified memory interface (from system_top)
@@ -46,10 +45,9 @@ module sim001_tb;
     int mem_write_count;
     
     // DUT instantiation
-    friscv_system_top dut (
+    friscv_core_complex dut (
         .i_clk(clk),
-        .i_extern_rstn(extern_rst_n),
-        .i_push_rst(pushbtn_rst),
+        .i_rstn(rstn),
         .o_end(end_signal),
         
         // Unified Memory Interface
@@ -134,8 +132,8 @@ module sim001_tb;
     end
     
     // Sequential logic for delay counter, writes, and statistics
-    always_ff @(posedge clk or negedge extern_rst_n) begin
-        if (!extern_rst_n) begin
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
             mem_delay_counter <= 0;
             mem_transaction_active <= 0;
             mem_transaction_delay <= 0;
@@ -221,8 +219,8 @@ module sim001_tb;
     end
     
     // Cycle counter
-    always_ff @(posedge clk or negedge extern_rst_n) begin
-        if (!extern_rst_n)
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn)
             cycle_count <= 0;
         else
             cycle_count <= cycle_count + 1;
@@ -253,8 +251,7 @@ module sim001_tb;
         $display("==============================================");
         
         // Initialize signals
-        extern_rst_n = 0;  // Keep in reset
-        pushbtn_rst = 0;
+        rstn = 0;  // Keep in reset
         
         // Initialize memory to zero
         for (int i = 0; i < MEM_SIZE; i++) begin
@@ -288,7 +285,7 @@ module sim001_tb;
         
         // Release reset
         $display("Releasing reset at time %0t", $time);
-        extern_rst_n = 1;
+        rstn = 1;
         
         // Run simulation
         $display("Starting execution...");
