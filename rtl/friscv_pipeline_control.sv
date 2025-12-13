@@ -28,6 +28,9 @@ module friscv_pipeline_control(
     // IF stage    
     output logic stall_if_out,
     output logic stall_id_out,
+    output logic stall_ex_out,
+    output logic stall_mem_out,
+    output logic flush_ex_out,
 
     output logic jump_branch_out,
 
@@ -50,7 +53,7 @@ module friscv_pipeline_control(
 
 // internal registers for pipeline control
 logic [3:0] rst_buff;
-logic [1:0] stall_buff;
+logic [4:0] stall_buff;
 logic       rst_id_wb_ok_buff;
 logic       branch_ok_buff;
 logic [1:0] jal_delay_buff;
@@ -61,10 +64,9 @@ logic rst_buff_2_in;
 
 logic stall_if;
 logic stall_id;
-
-// Memory wait stall - stall entire pipeline when waiting for memory
-logic mem_stall;
-assign mem_stall = if_wait_in || mem_wait_in;
+logic stall_ex;
+logic stall_mem;
+logic flush_ex;
 
 logic rst_id_wb_ok;
 
@@ -82,38 +84,48 @@ always_ff @(negedge clk_in) begin
     end
     else begin
         rst_buff          <= {rst_buff[2], rst_buff_2_in, rst_buff_1_in, rst_buff_0_in};
-        stall_buff        <= {stall_id, stall_if};
+        stall_buff        <= {flush_ex, stall_mem, stall_ex, stall_id, stall_if};
         rst_id_wb_ok_buff <= rst_id_wb_ok || jal_delay_buff[0];
         branch_ok_buff    <= branch_ok_in;
         jal_delay_buff    <= {jal_delay_buff[0] ,jal_active && ~branch_ok_buff};
     end   
-end
-
-
-assign rst_n_if_out = rst_buff[0]; 
-assign rst_n_id_out = rst_buff[1];
-assign rst_n_ex_out = rst_buff[2];
-assign rst_n_mem_out= rst_buff[3];
-
-assign stall_if_out = stall_buff[0];
-assign stall_id_out = stall_buff[1];
-
-assign rst_id_wb_ok_out = rst_id_wb_ok_buff;
+end 
 
 logic w_src_is_ex_dest;
 logic w_src_is_mem_dest;
-logic w_do_stall;
-
-assign w_src_is_ex_dest  = (id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in);
-assign w_src_is_mem_dest = (id_rs1_sel_in == mem_rd_sel_in) || (id_rs2_sel_in == mem_rd_sel_in);
+logic mem_stall;
+logic do_stall;
+logic hazard_stall;
 
 always_comb begin
-    w_do_stall = mem_stall ||
-                 (ex_rd_sel_in  != 0) && w_src_is_ex_dest || 
-                 (mem_rd_sel_in != 0) && w_src_is_mem_dest;
+    rst_id_wb_ok_out = rst_id_wb_ok_buff;
 
-    stall_if = w_do_stall;
-    stall_id = w_do_stall;
+    rst_n_if_out = rst_buff[0];
+    rst_n_id_out = rst_buff[1];
+    rst_n_ex_out = rst_buff[2];
+    rst_n_mem_out= rst_buff[3];
+
+    stall_if_out = stall_buff[0];
+    stall_id_out = stall_buff[1];
+    stall_ex_out = stall_buff[2];
+    stall_mem_out= stall_buff[3];
+    flush_ex_out = stall_buff[4];
+
+    w_src_is_ex_dest  = (id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in);
+    w_src_is_mem_dest = (id_rs1_sel_in == mem_rd_sel_in) || (id_rs2_sel_in == mem_rd_sel_in);
+
+    mem_stall = if_wait_in || mem_wait_in;
+    hazard_stall = (ex_rd_sel_in  != 0) && w_src_is_ex_dest ||
+                   (mem_rd_sel_in != 0) && w_src_is_mem_dest;
+
+    do_stall = mem_stall || hazard_stall;
+
+    stall_if = do_stall;
+    stall_id = do_stall;
+    stall_ex = mem_stall;
+    stall_mem = mem_stall;
+
+    flush_ex = hazard_stall && ~mem_stall;
 
     rst_id_wb_ok = branch_ok_in || jal_delay_buff [0] || jal_active;
 
@@ -121,15 +133,12 @@ always_comb begin
 
     rst_buff_1_in = rst_buff[0] && ~branch_ok_in && ~jal_active;
 
-    rst_buff_2_in = rst_buff[1] && ~branch_ok_in &&
-       ~((ex_rd_sel_in  != 0) && w_src_is_ex_dest || 
-         (mem_rd_sel_in != 0) && w_src_is_mem_dest);
+    rst_buff_2_in = rst_buff[1] && ~branch_ok_in && ~hazard_stall;
     
     // Wait until JAL is ready to execute due to possible DATA HAZARD and is not overridden by prior successful branch
     jal_active = id_branch_jal_sel_in == JAL_INSTR && ~stall_id && ~branch_ok_in;
 
     // Next PC control
-    jump_branch_out = branch_ok_buff || jal_delay_buff[1];    
-    
+    jump_branch_out = branch_ok_buff || jal_delay_buff[1];
 end
 endmodule

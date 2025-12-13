@@ -21,6 +21,8 @@ module friscv_ex_stage(
 
 // stage control inputs
     input logic                     rst_n_in,
+    input logic                     stage_stall_in,
+    input logic                     stage_flush_in,
   
  // inputs from ID stage 
     input logic [ADDR_WIDTH-1:0]    pc_in,
@@ -58,13 +60,32 @@ module friscv_ex_stage(
 // EX stage always accepts data from ID stage
 // Bubbles are inserted by ID sending NOPs (rd_sel=0), not by resetting EX
 always_ff @(posedge clk_in) begin
-    pc_buff <= pc_in;
-    pc_plus_4_buff <= pc_plus_4_in;
-    rs1_buff <= rs1_in;
-    rs2_buff <= rs2_in;
-    imm32_buff <= imm32_in;
-    rd_sel_buff <= rd_sel_in;        
-    instr_ex_buff <= instr_ex_in;
+    if (stage_flush_in) begin
+        pc_buff <= 0;
+        pc_plus_4_buff <= 0;
+        rs1_buff <= 0;
+        rs2_buff <= 0;
+        imm32_buff <= 0;
+        rd_sel_buff <= 0;        
+        instr_ex_buff <= '{
+            branch_jal_sel: BRANCH_JAL_NONE,
+            branch_cond: COND_EQ,
+            mux1_sel: RS,
+            mux2_sel: RS,
+            alu_op: ADD_OP,
+            mem_instr_sel: MEM_INSTR_NONE,
+            load_store_width: 3'b010,
+            wb_data_sel: WB_DATA_SEL_ALU
+        };
+    end else if (~stage_stall_in) begin
+        pc_buff <= pc_in;
+        pc_plus_4_buff <= pc_plus_4_in;
+        rs1_buff <= rs1_in;
+        rs2_buff <= rs2_in;
+        imm32_buff <= imm32_in;
+        rd_sel_buff <= rd_sel_in;        
+        instr_ex_buff <= instr_ex_in;
+    end
 end
 
 

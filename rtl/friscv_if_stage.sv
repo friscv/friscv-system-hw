@@ -16,41 +16,38 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_if_stage(
-// global inputs  
-    input logic                     clk_in,
+    input logic clk_in,
 
-// stage control inputs
-    input logic                     rst_n_in,
-    input logic                     stage_stall_in,
-    input logic                     jump_branch_in,
-    
-// inputs from EX stage
-    input logic [ADDR_WIDTH-1:0]    jump_branch_addr_in,
+    // Stage control inputs
+    input logic rst_n_in,
+    input logic stage_stall_in,
+    input logic jump_branch_in,
+    input logic i_mem_wait_in,
+
+    // Inputs from EX stage
+    input logic [ADDR_WIDTH-1:0]  jump_branch_addr_in,
  
- // outputs to ID stage
-    output logic [ADDR_WIDTH-1:0]   pc_out,
-    output logic [ADDR_WIDTH-1:0]   pc_plus_4_out,
-    output logic [DATA_WIDTH-1:0]   ir_out,
+    // Outputs to ID stage
+    output logic [ADDR_WIDTH-1:0] pc_out,
+    output logic [ADDR_WIDTH-1:0] pc_plus_4_out,
+    output logic [DATA_WIDTH-1:0] ir_out,
 
-//  instruction memory interface
-    output logic [ADDR_WIDTH-1:0]   i_mem_addr_out,
-    input  logic [DATA_WIDTH-1:0]   i_mem_data_in,
-    output logic                    i_mem_en_out
+    // Instruction memory interface
+    output logic [ADDR_WIDTH-1:0] i_mem_addr_out,
+    input  logic [DATA_WIDTH-1:0] i_mem_data_in,
+    output logic                  i_mem_en_out
 );
 
-// input registers, clk_in driven
 logic [ADDR_WIDTH-1:0] pc_reg;
 
 always_ff @(posedge clk_in) begin
     if (jump_branch_in) begin
-        // Jumps/branches have highest priority - they override both reset and stalls
         pc_reg <= {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00};
     end else if (~rst_n_in) begin
         pc_reg <= RESET_VEC;
     end else if (~stage_stall_in) begin
         pc_reg <= pc_plus_4_out;
     end
-    // else: stalled, hold current PC
 end
 
 always_comb begin
@@ -58,8 +55,7 @@ always_comb begin
     pc_plus_4_out = pc_reg + 4;
     i_mem_addr_out = pc_reg;
     ir_out = i_mem_data_in;
-    if (~stage_stall_in) i_mem_en_out = 1;
-    else i_mem_en_out = 0;
+    i_mem_en_out = !stage_stall_in || i_mem_wait_in;
 end
 
 endmodule
