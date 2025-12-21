@@ -228,9 +228,9 @@ always_comb begin
 
     S_W_DATA_LAST: begin
         m_axi_wvalid = 1'b1;
+        m_axi_wlast  = 1'b1;
         if (m_axi_wready) begin
             w_next_state = S_W_RET;
-            m_axi_wlast  = 1'b1;
         end
     end
 

@@ -167,7 +167,8 @@ friscv_mem_stage mem_stage(
     .d_mem_data_in       (d_mem_data_in),
     .d_mem_en_out        (d_mem_en_out),
     .d_mem_wr_out        (d_mem_wr_out),
-    .d_mem_size_out      (d_mem_size_out)
+    .d_mem_size_out      (d_mem_size_out),
+    .d_mem_wait_in       (d_mem_wait_in)
 );
 
 friscv_wb_stage wb_stage(

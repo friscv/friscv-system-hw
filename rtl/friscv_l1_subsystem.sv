@@ -46,89 +46,23 @@ module friscv_l1_subsystem(
 logic w_data_grant;
 logic w_inst_grant;
 
-// Pending request tracking
-logic r_inst_pending;
-logic r_data_pending;
-
-// Combinatorial pending signals for same-cycle grant detection
-logic w_inst_pending;
-logic w_data_pending;
-
-// Track which master is currently being served
-logic r_inst_granted;
-logic r_data_granted;
-
-// Requests for arbiter - include both new requests and pending requests
-logic w_inst_req;
-logic w_data_req;
-
-assign w_inst_req = i_inst_en || r_inst_pending;
-assign w_data_req = i_data_en || r_data_pending;
-
 round_robin_arbiter #(.PORTS(2)) l2_arbiter (
     .i_clk       (i_clk),
     .i_rstn      (i_rstn),
-    .i_req_vec   ({w_data_req, w_inst_req}),
+    .i_req_vec   ({i_data_en, i_inst_en}),
     .o_grant_vec ({w_data_grant, w_inst_grant})
 );
 
-// Pending request state machine
-// A request becomes pending when en goes high
-// A request is cleared when it's granted AND the transfer completes (i_mem_wait goes low)
-always_ff @(posedge i_clk) begin
-    if (!i_rstn) begin
-        r_inst_pending  <= 1'b0;
-        r_data_pending  <= 1'b0;
-        r_inst_granted  <= 1'b0;
-        r_data_granted  <= 1'b0;
-    end else begin
-        // Instruction pending logic
-        if (i_inst_en && !w_inst_grant) begin
-            // New request but not granted - set pending
-            r_inst_pending <= 1'b1;
-        end else if (i_inst_en && w_inst_grant && i_mem_wait) begin
-            // Granted but transfer not complete - set pending
-            r_inst_pending <= 1'b1;
-        end else if (r_inst_pending && w_inst_grant && !i_mem_wait) begin
-            // Pending request granted and transfer complete - clear pending
-            r_inst_pending <= 1'b0;
-        end else if (i_inst_en && w_inst_grant && !i_mem_wait) begin
-            // New request granted and completes same cycle - no pending
-            r_inst_pending <= 1'b0;
-        end
-
-        // Data pending logic
-        if (i_data_en && !w_data_grant) begin
-            // New request but not granted - set pending
-            r_data_pending <= 1'b1;
-        end else if (i_data_en && w_data_grant && i_mem_wait) begin
-            // Granted but transfer not complete - set pending
-            r_data_pending <= 1'b1;
-        end else if (r_data_pending && w_data_grant && !i_mem_wait) begin
-            // Pending request granted and transfer complete - clear pending
-            r_data_pending <= 1'b0;
-        end else if (i_data_en && w_data_grant && !i_mem_wait) begin
-            // New request granted and completes same cycle - no pending
-            r_data_pending <= 1'b0;
-        end
-
-        r_inst_granted <= w_inst_grant;
-        r_data_granted <= w_data_grant;
-    end
-end
-
 // Wait signal generation
 // Wait is high when:
-// 1. There's a new request (en high) that isn't completing this cycle, OR
-// 2. There's a pending request that hasn't completed yet
+// 1. Master has a request but not granted, OR
+// 2. Master has a request and is granted but downstream is waiting
 always_comb begin
-    // Instruction wait: high if request pending or new request not completing
-    w_inst_pending = r_inst_pending || (i_inst_en && (!w_inst_grant || i_mem_wait));
-    o_inst_wait = w_inst_pending;
+    // Instruction wait: not granted, or granted but memory waiting
+    o_inst_wait = i_inst_en && (!w_inst_grant || i_mem_wait);
 
-    // Data wait: high if request pending or new request not completing  
-    w_data_pending = r_data_pending || (i_data_en && (!w_data_grant || i_mem_wait));
-    o_data_wait = w_data_pending;
+    // Data wait: not granted, or granted but memory waiting  
+    o_data_wait = i_data_en && (!w_data_grant || i_mem_wait);
 end
 
 // Forward granted master to bus

@@ -39,23 +39,40 @@ module friscv_if_stage(
 );
 
 logic [ADDR_WIDTH-1:0] pc_reg;
+logic [DATA_WIDTH-1:0] ir_buff;  // Buffer for fetched instruction
+
+// Set when we start a new fetch, cleared when wait goes low
+logic r_fetch_active;
 
 always_ff @(posedge clk_in) begin
     if (jump_branch_in) begin
         pc_reg <= {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00};
-    end else if (~rst_n_in) begin
-        pc_reg <= RESET_VEC;
-    end else if (~stage_stall_in) begin
-        pc_reg <= pc_plus_4_out;
+        r_fetch_active <= 1'b1;
     end
+    else if (~rst_n_in) begin
+        pc_reg <= RESET_VEC;
+        r_fetch_active <= 1'b1;
+    end
+    else if (~stage_stall_in) begin
+        // Not stalled - advance to next instruction
+        pc_reg <= pc_plus_4_out;
+        r_fetch_active <= 1'b1;
+    end
+    else if (r_fetch_active && ~i_mem_wait_in) begin
+        // Stalled but fetch completed - capture instruction and clear active flag
+        ir_buff <= i_mem_data_in;
+        r_fetch_active <= 1'b0;
+    end
+    // else: stalled with pending fetch - hold state
 end
 
 always_comb begin
     pc_out = pc_reg;
     pc_plus_4_out = pc_reg + 4;
     i_mem_addr_out = pc_reg;
-    ir_out = i_mem_data_in;
-    i_mem_en_out = !stage_stall_in || i_mem_wait_in;
+    // Output buffered instruction if fetch complete, else live data
+    ir_out = r_fetch_active ? i_mem_data_in : ir_buff;
+    i_mem_en_out = r_fetch_active;
 end
 
 endmodule

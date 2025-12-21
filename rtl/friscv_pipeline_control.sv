@@ -88,7 +88,7 @@ always_ff @(negedge clk_in) begin
         rst_id_wb_ok_buff <= rst_id_wb_ok || jal_delay_buff[0];
         branch_ok_buff    <= branch_ok_in;
         jal_delay_buff    <= {jal_delay_buff[0] ,jal_active && ~branch_ok_buff};
-    end   
+    end
 end 
 
 logic w_src_is_ex_dest;

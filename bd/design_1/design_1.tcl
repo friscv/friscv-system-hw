@@ -324,6 +324,8 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_DDR_RAM_HIGHADDR {0x1FFFFFFF} \
     CONFIG.PCW_EN_CLK1_PORT {1} \
     CONFIG.PCW_FCLK_CLK1_BUF {TRUE} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {50} \
+    CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
     CONFIG.PCW_FPGA_FCLK1_ENABLE {1} \
     CONFIG.PCW_UIPARAM_ACT_DDR_FREQ_MHZ {533.333374} \
@@ -356,12 +358,15 @@ proc create_root_design { parentCell } {
   connect_bd_net -net util_vector_logic_1_Res [get_bd_pins friscv_rstn_gen/Op2] [get_bd_pins invert_rst_btn/Res]
 
   # Create address segments
+  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs friscv_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs ps/S_AXI_HP0/HP0_DDR_LOWOCM] -force
+  assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces ps/Data] [get_bd_addr_segs gpio_addr_ctrl/S_AXI/Reg] -force
+  assign_bd_address -offset 0x41210000 -range 0x00010000 -target_address_space [get_bd_addr_spaces ps/Data] [get_bd_addr_segs gpio_debug/S_AXI/Reg] -force
 
 
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -373,4 +378,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

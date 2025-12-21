@@ -42,7 +42,8 @@ module friscv_mem_stage(
     input  logic [DATA_WIDTH-1:0]   d_mem_data_in,
     output logic                    d_mem_en_out,
     output logic                    d_mem_wr_out,
-    output logic [1:0]              d_mem_size_out
+    output logic [1:0]              d_mem_size_out,
+    input  logic                    d_mem_wait_in
 );
 
 // input registers, clk_in driven
@@ -58,6 +59,11 @@ wb_data_sel_t           wb_data_sel_buff;
 // internal logic
 logic [DATA_WIDTH-1:0] load_data = 0;
 
+logic r_mem_active;
+
+logic w_is_mem_instr;
+assign w_is_mem_instr = (mem_instr_sel_in == MEM_INSTR_LOAD) || (mem_instr_sel_in == MEM_INSTR_STORE);
+
 // stage inputs buffering
 // MEM stage always accepts data from EX stage
 // Bubbles are inserted by EX sending instructions with rd_sel=0
@@ -70,10 +76,15 @@ always_ff @(posedge clk_in) begin
         mem_instr_sel_buff <= mem_instr_sel_in;
         load_store_width_buff <= load_store_width_in;
         wb_data_sel_buff <= wb_data_sel_in;
+        r_mem_active <= w_is_mem_instr;
+    end
+    
+    else if (r_mem_active && ~d_mem_wait_in) begin
+        r_mem_active <= 1'b0;
     end
 end
 
-assign d_mem_en_out = ((mem_instr_sel_buff == MEM_INSTR_LOAD) || (mem_instr_sel_buff == MEM_INSTR_STORE));
+assign d_mem_en_out = r_mem_active;
 assign d_mem_wr_out = (mem_instr_sel_buff == MEM_INSTR_STORE);
 
 // load_store address alignment
