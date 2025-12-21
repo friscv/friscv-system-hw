@@ -157,12 +157,21 @@ if {[file exists ${sim_dir}]} {
         add_files -norecurse -fileset sim_1 $sim_files
         
         # Set simulation top
-        set_property top sim001_tb.sv [get_filesets sim_1]
+        set_property top sim001_tb [get_filesets sim_1]
         set_property top_lib xil_defaultlib [get_filesets sim_1]
         
         # Simulation settings
         set_property -name {xsim.simulate.runtime} -value {1000ns} -objects [get_filesets sim_1]
         puts "  Simulation top: sim001_tb.sv"
+    }
+    
+    # Add waveform configuration file
+    set wcfg_file "${sim_dir}/sim001_tb_behav.wcfg"
+    if {[file exists ${wcfg_file}]} {
+        puts "Adding waveform configuration..."
+        add_files -norecurse -fileset sim_1 ${wcfg_file}
+        set_property xsim.view ${wcfg_file} [get_filesets sim_1]
+        puts "  Waveform config: sim001_tb_behav.wcfg"
     }
 }
 

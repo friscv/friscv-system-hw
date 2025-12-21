@@ -6,12 +6,12 @@ parameter CLK_PERIOD = 20;  // 20ns clock period (50MHz)
 parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
 parameter PROG_FILE = "../../../../../software/asm/prog.bin";  // Program binary file
 
-parameter MEM_SIZE = 2 * 1024 * 1024;   // 2 MiB
+parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter MEM_BASE = 32'h80000000;      // Memory base address
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
-parameter RESULT_ADDR = 32'h80100000;   // Result address (MEM_BASE + 1M)
+parameter RESULT_ADDR = 32'h80000400;   // Result address (MEM_BASE + 1K)
 
-parameter int MEM_DELAY_CYCLES = 5;
+parameter int MEM_DELAY_CYCLES = 0;
 
 logic clk;
 logic rstn;

@@ -38,9 +38,9 @@ test2:
     lw x2, 4(x31)         # Load from memory
     addi x3, x2, 1        # Load-use: must stall here!
     srli x4, x3, 4        # Use result immediately
-    # Expected: x4 = 0x01234568
+    # Expected: x4 = 0x01234567
     lui x5, 0x01234
-    addi x5, x5, 0x568
+    addi x5, x5, 0x567
     beq x4, x5, test2_pass
     j test_fail
 test2_pass:
@@ -56,11 +56,11 @@ test3:
     sw x2, 16(x31)
     lw x3, 12(x31)        # Load 1
     lw x4, 16(x31)        # Load 2
-    add x5, x3, x4        # Use both loads
-    slli x6, x5, 1        # Use result
-    # Expected: x6 = 0x00033332
-    lui x7, 0x00033
-    addi x7, x7, 0x332
+    add x5, x3, x4        # Use both loads: 0xAAAA + 0xBBBB = 0x16665
+    slli x6, x5, 1        # Use result: 0x16665 << 1 = 0x2CCCA
+    # Expected: x6 = 0x2CCCA
+    lui x7, 0x0002D
+    addi x7, x7, -822     # 0x2D000 + (-822) = 0x2D000 - 0x336 = 0x2CCCA
     beq x6, x7, test3_pass
     j test_fail
 test3_pass:
@@ -153,18 +153,17 @@ test8_pass:
 # TEST 9: JAL/JALR with dependencies
 test9:
     li x1, 0
-    jal x2, test9_target  # Jump and link
-    j test_fail           # Should skip this
-test9_target:
-    addi x1, x1, 100      # x1 = 100
-    addi x3, x2, 8        # Use return address
-    jalr x4, x3, -8       # Jump back using computed address
-    j test_fail           # Should skip this
-    addi x1, x1, 1        # x1 = 101
+    jal x2, test9_target  # Jump and link, x2 = PC of next instr
+test9_return:
+    addi x1, x1, 1        # x1 = 101 (executed after jalr returns here)
     # Expected: x1 = 101
     li x5, 101
     beq x1, x5, test9_pass
     j test_fail
+test9_target:
+    addi x1, x1, 100      # x1 = 100
+    jalr x4, x2, 0        # Jump back to x2 (test9_return)
+    j test_fail           # Should skip this
 test9_pass:
     addi x28, x28, 0x099
     sw x1, 48(x31)        # Checkpoint 12
@@ -280,9 +279,8 @@ all_tests_pass:
     bne x29, x1, test_fail
     
     # Compute final magic number from accumulator
-    # Expected accumulator = 0x111+0x222+...+0x0FF
-    # = 0x111+0x222+0x333+0x444+0x555+0x666+0x777+0x088+0x099+0x0AA+0x0BB+0x0CC+0x0DD+0x0EE+0x0FF = 0x2DD8
-    li x2, 0x2DD8
+    # Expected accumulator = 0x111+0x222+0x333+0x444+0x555+0x666+0x777+0x088+0x099+0x0AA+0x0BB+0x0CC+0x0DD+0x0EE+0x0FF = 0x23F8
+    li x2, 0x23F8
     bne x28, x2, test_fail
     
     # Final result: DEADBEEF
