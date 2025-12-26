@@ -283,8 +283,8 @@ all_tests_pass:
     li x2, 0x23F8
     bne x28, x2, test_fail
     
-    # Final result: DEADBEEF
-    li x1, 0xDEADBEEF
+    # Final result: AABBCCDD
+    li x1, 0xAABBCCDD
     sw x1, 0(x30)         # Store at 0x40000000
     
     j end_program

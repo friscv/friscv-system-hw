@@ -16,10 +16,10 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_id_stage(
-// global inputs    
+    // global inputs    
     input logic clk_in,
 
-// stage control inputs
+    // stage control inputs
     input logic rst_n_in,
     input logic stage_stall_in,
     input logic rst_id_wb_ok_in,
@@ -28,12 +28,12 @@ module friscv_id_stage(
     output logic [REG_SEL_WIDTH-1:0] rs2_sel_out,
     output logic [REG_SEL_WIDTH-1:0] rd_sel_out,
    
-// inputs from IF stage
+    // inputs from IF stage
     input logic [ADDR_WIDTH-1:0]   pc_in,
     input logic [ADDR_WIDTH-1:0]   pc_plus_4_in,
     input logic [DATA_WIDTH-1:0]   ir_in,    
      
-// outputs to EXE stage
+    // outputs to EXE stage
     output logic [ADDR_WIDTH-1:0]   pc_out,
     output logic [ADDR_WIDTH-1:0]   pc_plus_4_out,     
     output logic [DATA_WIDTH-1:0]   rs1_out,
@@ -41,24 +41,20 @@ module friscv_id_stage(
     output logic [DATA_WIDTH-1:0]   imm32_out,    
     output instr_ex_t               instr_ex_out,
 
-// inputs from WB stage    
+    // inputs from WB stage    
     input logic [REG_SEL_WIDTH-1:0] rd_sel_in,
-    input logic [DATA_WIDTH-1:0]    rd_data_in
-    
+    input logic [DATA_WIDTH-1:0]    rd_data_in 
 );
 
 instr_op_t ir_buff;
-logic [ADDR_WIDTH-1:0]  pc_in_buff;
-logic [ADDR_WIDTH-1:0]  pc_plus_4_in_buff;
-logic [DATA_WIDTH-1:0]  regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
+logic [ADDR_WIDTH-1:0] pc_in_buff;
+logic [ADDR_WIDTH-1:0] pc_plus_4_in_buff;
+logic [DATA_WIDTH-1:0] regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
 
 imm_t imm_sel; 
 
-
-always_comb begin
-        rs1_out = regfile[rs1_sel_out];
-        rs2_out = regfile[rs2_sel_out];
-end
+assign rs1_out = regfile[rs1_sel_out];
+assign rs2_out = regfile[rs2_sel_out];
 
 // IF stage input buffers
 

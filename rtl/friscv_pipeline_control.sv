@@ -72,7 +72,11 @@ logic rst_id_wb_ok;
 
 logic jal_active;
 
-// global pipeline controls
+logic w_src_is_ex_dest;
+logic w_src_is_mem_dest;
+logic mem_stall;
+logic do_stall;
+logic hazard_stall;
 
 always_ff @(negedge clk_in) begin
     if (~rst_n_cpu_in) begin
@@ -85,17 +89,11 @@ always_ff @(negedge clk_in) begin
     else begin
         rst_buff          <= {rst_buff[2], rst_buff_2_in, rst_buff_1_in, rst_buff_0_in};
         stall_buff        <= {flush_ex, stall_mem, stall_ex, stall_id, stall_if};
-        rst_id_wb_ok_buff <= rst_id_wb_ok || jal_delay_buff[0];
+        rst_id_wb_ok_buff <= ~rst_buff_1_in;
         branch_ok_buff    <= branch_ok_in;
-        jal_delay_buff    <= {jal_delay_buff[0] ,jal_active && ~branch_ok_buff};
+        jal_delay_buff    <= {jal_delay_buff[0], jal_active && ~branch_ok_buff};
     end
-end 
-
-logic w_src_is_ex_dest;
-logic w_src_is_mem_dest;
-logic mem_stall;
-logic do_stall;
-logic hazard_stall;
+end
 
 always_comb begin
     rst_id_wb_ok_out = rst_id_wb_ok_buff;
@@ -114,11 +112,10 @@ always_comb begin
     w_src_is_ex_dest  = (id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in);
     w_src_is_mem_dest = (id_rs1_sel_in == mem_rd_sel_in) || (id_rs2_sel_in == mem_rd_sel_in);
 
-    mem_stall = if_wait_in || mem_wait_in;
+    mem_stall    = if_wait_in || mem_wait_in;
     hazard_stall = (ex_rd_sel_in  != 0) && w_src_is_ex_dest ||
                    (mem_rd_sel_in != 0) && w_src_is_mem_dest;
-
-    do_stall = mem_stall || hazard_stall;
+    do_stall     = mem_stall || hazard_stall;
 
     stall_if = do_stall;
     stall_id = do_stall;
@@ -127,18 +124,12 @@ always_comb begin
 
     flush_ex = hazard_stall && ~mem_stall;
 
-    rst_id_wb_ok = branch_ok_in || jal_delay_buff [0] || jal_active;
-
     rst_buff_0_in = ~(jal_active && ~branch_ok_in);
-
     rst_buff_1_in = rst_buff[0] && ~branch_ok_in && ~jal_active;
-
     rst_buff_2_in = rst_buff[1] && ~branch_ok_in && ~hazard_stall;
     
     // Wait until JAL is ready to execute due to possible DATA HAZARD and is not overridden by prior successful branch
     jal_active = id_branch_jal_sel_in == JAL_INSTR && ~stall_id && ~branch_ok_in;
-
-    // Next PC control
     jump_branch_out = branch_ok_buff || jal_delay_buff[1];
 end
 endmodule
