@@ -12,9 +12,9 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="4,667.443 ns"></ZoomStartTime>
-      <ZoomEndTime time="4,951.041 ns"></ZoomEndTime>
-      <Cursor1Time time="4,803.102 ns"></Cursor1Time>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="21.480001 us"></ZoomEndTime>
+      <Cursor1Time time="4.721665 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="343"></NameColumnWidth>
@@ -23,6 +23,7 @@
    <WVObjectSize size="21" />
    <wave_markers>
       <marker label="" time="4800000" />
+      <marker label="" time="5040000" />
    </wave_markers>
    <wvobject type="logic" fp_name="/sim001_tb/rstn">
       <obj_property name="ElementShortName">rstn</obj_property>

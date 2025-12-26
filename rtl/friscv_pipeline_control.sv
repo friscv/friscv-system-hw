@@ -70,7 +70,7 @@ logic flush_ex;
 
 logic rst_id_wb_ok;
 
-logic jal_active;
+logic start_jal;
 
 logic w_src_is_ex_dest;
 logic w_src_is_mem_dest;
@@ -91,7 +91,7 @@ always_ff @(negedge clk_in) begin
         stall_buff        <= {flush_ex, stall_mem, stall_ex, stall_id, stall_if};
         rst_id_wb_ok_buff <= ~rst_buff_1_in;
         branch_ok_buff    <= branch_ok_in;
-        jal_delay_buff    <= {jal_delay_buff[0], jal_active && ~branch_ok_buff};
+        jal_delay_buff    <= {jal_delay_buff[0], start_jal && ~branch_ok_buff};
     end
 end
 
@@ -124,12 +124,13 @@ always_comb begin
 
     flush_ex = hazard_stall && ~mem_stall;
 
-    rst_buff_0_in = ~(jal_active && ~branch_ok_in);
-    rst_buff_1_in = rst_buff[0] && ~branch_ok_in && ~jal_active;
+    rst_buff_0_in = ~(jal_delay_buff[0] && ~branch_ok_in);
+    rst_buff_1_in = rst_buff[0] && ~branch_ok_in && ~jal_delay_buff[0];
     rst_buff_2_in = rst_buff[1] && ~branch_ok_in && ~hazard_stall;
     
     // Wait until JAL is ready to execute due to possible DATA HAZARD and is not overridden by prior successful branch
-    jal_active = id_branch_jal_sel_in == JAL_INSTR && ~stall_id && ~branch_ok_in;
+    // Don't trigger start_jal if we're already processing a jump (jal_delay_buff != 0) to prevent double jump
+    start_jal = id_branch_jal_sel_in == JAL_INSTR && ~stall_id && ~branch_ok_in && (jal_delay_buff == 0);
     jump_branch_out = branch_ok_buff || jal_delay_buff[1];
 end
 endmodule
