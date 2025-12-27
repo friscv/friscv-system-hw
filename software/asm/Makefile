@@ -36,7 +36,7 @@ help:
 entry: entry.o
 	$(LD) $(LDFLAGS) -o $(ELF) $<
 	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases $(ELF) > $(DIS)
+	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
 	@echo ""
 	@echo "Built entry.S -> $(BIN)"
 	@ls -la $(BIN)
@@ -46,7 +46,7 @@ entry: entry.o
 tests: tests.o
 	$(LD) $(LDFLAGS) -o $(ELF) $<
 	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases $(ELF) > $(DIS)
+	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
 	@echo ""
 	@echo "Built tests.S -> $(BIN)"
 	@ls -la $(BIN)

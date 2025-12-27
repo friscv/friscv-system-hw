@@ -12,9 +12,9 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="5,549.882 ns"></ZoomStartTime>
-      <ZoomEndTime time="5,850.594 ns"></ZoomEndTime>
-      <Cursor1Time time="5,660.000 ns"></Cursor1Time>
+      <ZoomStartTime time="5,621.889 ns"></ZoomStartTime>
+      <ZoomEndTime time="6,027.319 ns"></ZoomEndTime>
+      <Cursor1Time time="5,824.434 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="343"></NameColumnWidth>
@@ -24,10 +24,10 @@
    <wave_markers>
       <marker label="" time="5960000" />
       <marker label="" time="5920000" />
-      <marker label="" time="5800000" />
-      <marker label="" time="5600000" />
       <marker label="" time="5720000" />
       <marker label="" time="5680000" />
+      <marker label="" time="5600000" />
+      <marker label="" time="5800000" />
    </wave_markers>
    <wvobject type="logic" fp_name="/sim001_tb/rstn">
       <obj_property name="ElementShortName">rstn</obj_property>
@@ -228,6 +228,27 @@
             <obj_property name="ElementShortName">jal_delay_buff[1:0]</obj_property>
             <obj_property name="ObjectShortName">jal_delay_buff[1:0]</obj_property>
             <obj_property name="isExpanded"></obj_property>
+            <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Reversed">false</obj_property>
+            <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/control_unit/jal_delay_buff[1]">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">[1]</obj_property>
+               <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/control_unit/jal_delay_buff[0]">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">[0]</obj_property>
+               <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/control_unit/start_jal">
+            <obj_property name="ElementShortName">start_jal</obj_property>
+            <obj_property name="ObjectShortName">start_jal</obj_property>
+            <obj_property name="CustomSignalColor">#00FF7F</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
          <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/id_stage/rst_id_wb_ok_in">
             <obj_property name="ElementShortName">rst_id_wb_ok_in</obj_property>
@@ -356,6 +377,7 @@
          <obj_property name="ObjectShortName">regfile[0:31][31:0]</obj_property>
          <obj_property name="CustomSignalColor">#F0E68C</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="isExpanded"></obj_property>
       </wvobject>
       <wvobject type="array" fp_name="/sim001_tb/dut/cpu_0/id_stage/regfile[28]">
          <obj_property name="ElementShortName">[28][31:0]</obj_property>
