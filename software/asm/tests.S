@@ -1,7 +1,7 @@
 # RV32I Hazard Detection and Stall Test
 # Tests: RAW hazards, load-use hazards, branch hazards, forwarding paths
 # Results stored at checkpoints (0x80000400+) and final result (0x40000000)
-# Final result will be 0xDEADBEEF only if all tests pass correctly
+# Final result will be 0xAABBCCDD only if all tests pass correctly
 
 .text
 .globl _start

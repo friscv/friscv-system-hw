@@ -129,7 +129,7 @@ friscv_id_stage id_stage(
 
 friscv_ex_stage ex_stage(
     .clk_in               (i_clk),
-    .rst_n_in             (rst_n_ex),
+    .rst_n_in             (i_rstn),
     .stage_stall_in       (stall_ex),
     .stage_flush_in       (flush_ex),
     .pc_in                (id_pc_out),

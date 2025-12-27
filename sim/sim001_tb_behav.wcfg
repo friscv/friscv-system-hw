@@ -12,9 +12,9 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="21.480001 us"></ZoomEndTime>
-      <Cursor1Time time="4.721665 us"></Cursor1Time>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="1,000.001 ns"></ZoomEndTime>
+      <Cursor1Time time="1,000.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="343"></NameColumnWidth>
@@ -22,8 +22,10 @@
    </column_width_setting>
    <WVObjectSize size="21" />
    <wave_markers>
-      <marker label="" time="4800000" />
-      <marker label="" time="5040000" />
+      <marker label="" time="1220000" />
+      <marker label="" time="620000" />
+      <marker label="" time="700000" />
+      <marker label="" time="760000" />
    </wave_markers>
    <wvobject type="logic" fp_name="/sim001_tb/rstn">
       <obj_property name="ElementShortName">rstn</obj_property>
@@ -220,10 +222,6 @@
             <obj_property name="ElementShortName">rst_id_wb_ok_buff</obj_property>
             <obj_property name="ObjectShortName">rst_id_wb_ok_buff</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/control_unit/jal_active">
-            <obj_property name="ElementShortName">jal_active</obj_property>
-            <obj_property name="ObjectShortName">jal_active</obj_property>
-         </wvobject>
          <wvobject type="array" fp_name="/sim001_tb/dut/cpu_0/control_unit/jal_delay_buff">
             <obj_property name="ElementShortName">jal_delay_buff[1:0]</obj_property>
             <obj_property name="ObjectShortName">jal_delay_buff[1:0]</obj_property>
@@ -273,6 +271,10 @@
          <obj_property name="ObjectShortName">pc_reg[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/sim001_tb/dut/cpu_0/if_stage/ir_out">
+         <obj_property name="ElementShortName">ir_out[31:0]</obj_property>
+         <obj_property name="ObjectShortName">ir_out[31:0]</obj_property>
       </wvobject>
       <wvobject type="group" fp_name="group133">
          <obj_property name="label">Memory</obj_property>
@@ -351,6 +353,10 @@
          <obj_property name="ObjectShortName">regfile[0:31][31:0]</obj_property>
          <obj_property name="CustomSignalColor">#F0E68C</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/sim001_tb/dut/cpu_0/id_stage/regfile[28]">
+         <obj_property name="ElementShortName">[28][31:0]</obj_property>
+         <obj_property name="ObjectShortName">[28][31:0]</obj_property>
       </wvobject>
       <wvobject type="group" fp_name="group134">
          <obj_property name="label">Reg. &amp; data out</obj_property>
@@ -445,6 +451,7 @@
       <wvobject type="group" fp_name="group434">
          <obj_property name="label">Operands</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
          <wvobject type="array" fp_name="/sim001_tb/dut/cpu_0/ex_stage/alu_input_a">
             <obj_property name="ElementShortName">alu_input_a[31:0]</obj_property>
             <obj_property name="ObjectShortName">alu_input_a[31:0]</obj_property>

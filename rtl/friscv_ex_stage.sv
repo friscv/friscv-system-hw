@@ -48,17 +48,15 @@ module friscv_ex_stage(
 );
 
 // input registers, clk_in driven
-    logic [ADDR_WIDTH-1:0]      pc_buff;
-    logic [ADDR_WIDTH-1:0]      pc_plus_4_buff;
-    logic [DATA_WIDTH-1:0]      rs1_buff;
-    logic [DATA_WIDTH-1:0]      rs2_buff;
-    logic [DATA_WIDTH-1:0]      imm32_buff;
-    logic [REG_SEL_WIDTH-1:0]   rd_sel_buff;
-    instr_ex_t instr_ex_buff;
+logic [ADDR_WIDTH-1:0]    pc_buff;
+logic [ADDR_WIDTH-1:0]    pc_plus_4_buff;
+logic [DATA_WIDTH-1:0]    rs1_buff;
+logic [DATA_WIDTH-1:0]    rs2_buff;
+logic [DATA_WIDTH-1:0]    imm32_buff;
+logic [REG_SEL_WIDTH-1:0] rd_sel_buff;
+instr_ex_t instr_ex_buff;
 
 // stage inputs buffering
-// When stalled, hold current values (instruction continues to next stage)
-// When flushed (hazard), insert bubble (NOP) for next cycle while current instruction advances
 always_ff @(posedge clk_in) begin
     if (~stage_stall_in) begin
         if (stage_flush_in) begin
@@ -93,7 +91,6 @@ always_ff @(posedge clk_in) begin
     // else: stalled (mem_wait) - hold current values
 end
 
-
 branch_unit branch_unit_0(
     .branch_jal_sel_in(instr_ex_buff.branch_jal_sel),
     .branch_cond_in(instr_ex_buff.branch_cond),
@@ -102,20 +99,16 @@ branch_unit branch_unit_0(
     .branch_ok_out(branch_ok_out)
 );
 
-
 assign pc_plus_4_out = pc_plus_4_buff;
 assign mem_instr_sel_out = instr_ex_buff.mem_instr_sel;
 assign load_store_width_out = instr_ex_buff.load_store_width;
 assign wb_data_sel_out = instr_ex_buff.wb_data_sel;
 assign rd_sel_out = rd_sel_buff;
 
-
 // Multiplexed ALU inputs
 logic [DATA_WIDTH-1:0] alu_input_a;
 logic [DATA_WIDTH-1:0] alu_input_b;
 
-
-// Multiplexor
 always_comb begin
     if (instr_ex_buff.mux1_sel == RS) begin
         alu_input_a = rs1_buff;
@@ -132,17 +125,17 @@ end
 
 always_comb begin
     case (instr_ex_buff.alu_op)
-        ADD_OP: alu_data_out = alu_input_a + alu_input_b;        
-        SUB_OP: alu_data_out = alu_input_a - alu_input_b;        
-        AND_OP: alu_data_out = alu_input_a & alu_input_b;        
-        OR_OP:  alu_data_out = alu_input_a | alu_input_b;        
-        XOR_OP: alu_data_out = alu_input_a ^ alu_input_b;        
-        SLL_OP: alu_data_out = alu_input_a << alu_input_b;        
-        SRL_OP: alu_data_out = alu_input_a >> alu_input_b;        
-        SRA_OP: alu_data_out = $signed(alu_input_a) >>> alu_input_b;        
-        SLT_OP: alu_data_out = ($signed(alu_input_a) < $signed(alu_input_b));        
-        SLTU_OP:    alu_data_out = (alu_input_a < alu_input_b);
-        default:    alu_data_out = 0;
+        ADD_OP:  alu_data_out = alu_input_a + alu_input_b;        
+        SUB_OP:  alu_data_out = alu_input_a - alu_input_b;        
+        AND_OP:  alu_data_out = alu_input_a & alu_input_b;        
+        OR_OP:   alu_data_out = alu_input_a | alu_input_b;        
+        XOR_OP:  alu_data_out = alu_input_a ^ alu_input_b;        
+        SLL_OP:  alu_data_out = alu_input_a << alu_input_b;        
+        SRL_OP:  alu_data_out = alu_input_a >> alu_input_b;        
+        SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b;        
+        SLT_OP:  alu_data_out = ($signed(alu_input_a) < $signed(alu_input_b));        
+        SLTU_OP: alu_data_out = (alu_input_a < alu_input_b);
+        default: alu_data_out = 0;
     endcase
 end
 
@@ -151,18 +144,18 @@ always_comb begin
     case (instr_ex_buff.load_store_width)
         3'b000: begin   //B
             case (alu_data_out[1:0]) 
-                2'b00:  store_data_out = {24'h000000, rs2_buff[7:0]};
-                2'b01:  store_data_out = {16'h0000, rs2_buff[7:0], 8'h00};
-                2'b10:  store_data_out = {8'h00, rs2_buff[7:0], 16'h0000};
-                2'b11:  store_data_out = {rs2_buff[7:0], 24'h000000};
+                2'b00: store_data_out = {24'h000000, rs2_buff[7:0]};
+                2'b01: store_data_out = {16'h0000, rs2_buff[7:0], 8'h00};
+                2'b10: store_data_out = {8'h00, rs2_buff[7:0], 16'h0000};
+                2'b11: store_data_out = {rs2_buff[7:0], 24'h000000};
             endcase
         end
         3'b001: begin   //H
-            if (alu_data_out[1])   store_data_out = {rs2_buff[15:0], 16'h0000};
-            else                   store_data_out = {16'h0000, rs2_buff[15:0]};
+            if (alu_data_out[1]) store_data_out = {rs2_buff[15:0], 16'h0000};
+            else                 store_data_out = {16'h0000, rs2_buff[15:0]};
         end
-        3'b010:         store_data_out = rs2_buff; //W
-        default:        store_data_out = 0;
+        3'b010:  store_data_out = rs2_buff; //W
+        default: store_data_out = 0;
     endcase
 end
 
