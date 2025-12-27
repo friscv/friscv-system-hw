@@ -30,6 +30,8 @@ test1_pass:
     addi x28, x28, 0x111  # Accumulate
     sw x4, 0(x31)         # Checkpoint 0
     addi x29, x29, 1
+    li x27, 0x0111        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 2: Load-Use hazard (most critical stall case)
 test2:
@@ -47,6 +49,8 @@ test2_pass:
     addi x28, x28, 0x222
     sw x4, 8(x31)         # Checkpoint 2
     addi x29, x29, 1
+    li x27, 0x0333        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 3: Multiple consecutive loads (cascading load-use)
 test3:
@@ -67,6 +71,8 @@ test3_pass:
     addi x28, x28, 0x333
     sw x6, 20(x31)        # Checkpoint 5
     addi x29, x29, 1
+    li x27, 0x0666        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 4: Store-Load dependency (memory dependency)
 test4:
@@ -82,6 +88,8 @@ test4_pass:
     addi x28, x28, 0x444
     sw x3, 28(x31)        # Checkpoint 7
     addi x29, x29, 1
+    li x27, 0x0AAA        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 5: Branch hazards - data dependency in branch
 test5:
@@ -98,6 +106,8 @@ test5_pass:
     addi x28, x28, 0x555
     sw x3, 32(x31)        # Checkpoint 8
     addi x29, x29, 1
+    li x27, 0x0FFF        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 6: Complex ALU operations with hazards
 test6:
@@ -114,6 +124,8 @@ test6_pass:
     addi x28, x28, 0x666
     sw x5, 36(x31)        # Checkpoint 9
     addi x29, x29, 1
+    li x27, 0x1665        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 7: Shift operations with dependencies
 test7:
@@ -130,6 +142,8 @@ test7_pass:
     addi x28, x28, 0x777
     sw x5, 40(x31)        # Checkpoint 10
     addi x29, x29, 1
+    li x27, 0x1DDC        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 8: SLT/SLTU operations with hazards
 test8:
@@ -149,6 +163,8 @@ test8_pass:
     addi x28, x28, 0x088
     sw x8, 44(x31)        # Checkpoint 11
     addi x29, x29, 1
+    li x27, 0x1E64        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 9: JAL/JALR with dependencies
 test9:
@@ -168,6 +184,8 @@ test9_pass:
     addi x28, x28, 0x099
     sw x1, 48(x31)        # Checkpoint 12
     addi x29, x29, 1
+    li x27, 0x1EFD        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 10: LUI/AUIPC with dependencies
 test10:
@@ -180,6 +198,8 @@ test10:
     addi x28, x28, 0x0AA
     sw x5, 52(x31)        # Checkpoint 13
     addi x29, x29, 1
+    li x27, 0x1FA7        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 11: Branch delay slot edge case
 test11:
@@ -195,6 +215,8 @@ test11_pass:
     addi x28, x28, 0x0BB
     sw x1, 56(x31)        # Checkpoint 14
     addi x29, x29, 1
+    li x27, 0x2062        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 12: Load byte/half variants with sign extension
 test12:
@@ -211,6 +233,8 @@ test12_pass:
     addi x28, x28, 0x0CC
     sw x4, 64(x31)        # Checkpoint 16
     addi x29, x29, 1
+    li x27, 0x212E        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 13: Complex forwarding chain
 test13:
@@ -229,6 +253,8 @@ test13_pass:
     addi x28, x28, 0x0DD
     sw x7, 68(x31)        # Checkpoint 17
     addi x29, x29, 1
+    li x27, 0x220B        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 14: Branch misprediction test
 test14:
@@ -252,6 +278,8 @@ test14_pass:
     addi x28, x28, 0x0EE
     sw x1, 72(x31)        # Checkpoint 18
     addi x29, x29, 1
+    li x27, 0x22F9        # Expected accumulator
+    bne x28, x27, test_fail
 
 # TEST 15: Store-to-load forwarding with different sizes
 test15:
@@ -271,6 +299,8 @@ test15_pass:
     addi x28, x28, 0x0FF
     sw x6, 80(x31)        # Checkpoint 20
     addi x29, x29, 1
+    li x27, 0x23F8        # Expected accumulator
+    bne x28, x27, test_fail
 
 # All tests passed! Compute final result
 all_tests_pass:
