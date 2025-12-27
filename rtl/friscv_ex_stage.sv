@@ -56,17 +56,27 @@ logic [DATA_WIDTH-1:0]    imm32_buff;
 logic [REG_SEL_WIDTH-1:0] rd_sel_buff;
 instr_ex_t instr_ex_buff;
 
+// Duplicate detection: track PC and whether we forwarded to MEM
+logic [ADDR_WIDTH-1:0]    last_captured_pc;
+logic                     forwarded_to_mem;
+
 // stage inputs buffering
 always_ff @(posedge clk_in) begin
+    if (~rst_n_in) begin
+        last_captured_pc <= 0;
+        forwarded_to_mem <= 1;  // Start as if we forwarded (allow first instruction)
+    end
+    
     if (~stage_stall_in) begin
-        if (stage_flush_in) begin
-            // Insert bubble - ID is stalled but EX should advance with NOP
+        // Check for duplicate: same PC as before AND we didn't forward last time
+        if (stage_flush_in || (pc_in == last_captured_pc && ~forwarded_to_mem)) begin
+            // Insert bubble - either hazard flush or duplicate detection
             pc_buff <= 0;
             pc_plus_4_buff <= 0;
             rs1_buff <= 0;
             rs2_buff <= 0;
             imm32_buff <= 0;
-            rd_sel_buff <= 0;        
+            rd_sel_buff <= 0;
             instr_ex_buff <= '{
                 branch_jal_sel: BRANCH_JAL_NONE,
                 branch_cond: COND_EQ,
@@ -77,18 +87,25 @@ always_ff @(posedge clk_in) begin
                 load_store_width: 3'b010,
                 wb_data_sel: WB_DATA_SEL_ALU
             };
+            // Bubble inserted - didn't forward a real instruction
+            forwarded_to_mem <= 0;
         end else begin
-            // Normal operation - accept from ID
+            // Normal operation - accept from ID and track PC
             pc_buff <= pc_in;
             pc_plus_4_buff <= pc_plus_4_in;
             rs1_buff <= rs1_in;
             rs2_buff <= rs2_in;
             imm32_buff <= imm32_in;
-            rd_sel_buff <= rd_sel_in;        
+            rd_sel_buff <= rd_sel_in;
             instr_ex_buff <= instr_ex_in;
+            last_captured_pc <= pc_in;  // Remember this PC
+            // Real instruction forwarded
+            forwarded_to_mem <= 1;
         end
+    end else begin
+        // Stalled - didn't forward to MEM
+        forwarded_to_mem <= 0;
     end
-    // else: stalled (mem_wait) - hold current values
 end
 
 branch_unit branch_unit_0(
@@ -125,15 +142,15 @@ end
 
 always_comb begin
     case (instr_ex_buff.alu_op)
-        ADD_OP:  alu_data_out = alu_input_a + alu_input_b;        
-        SUB_OP:  alu_data_out = alu_input_a - alu_input_b;        
-        AND_OP:  alu_data_out = alu_input_a & alu_input_b;        
-        OR_OP:   alu_data_out = alu_input_a | alu_input_b;        
-        XOR_OP:  alu_data_out = alu_input_a ^ alu_input_b;        
-        SLL_OP:  alu_data_out = alu_input_a << alu_input_b;        
-        SRL_OP:  alu_data_out = alu_input_a >> alu_input_b;        
-        SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b;        
-        SLT_OP:  alu_data_out = ($signed(alu_input_a) < $signed(alu_input_b));        
+        ADD_OP:  alu_data_out = alu_input_a + alu_input_b;
+        SUB_OP:  alu_data_out = alu_input_a - alu_input_b;
+        AND_OP:  alu_data_out = alu_input_a & alu_input_b;
+        OR_OP:   alu_data_out = alu_input_a | alu_input_b;
+        XOR_OP:  alu_data_out = alu_input_a ^ alu_input_b;
+        SLL_OP:  alu_data_out = alu_input_a << alu_input_b;
+        SRL_OP:  alu_data_out = alu_input_a >> alu_input_b;
+        SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b;
+        SLT_OP:  alu_data_out = ($signed(alu_input_a) < $signed(alu_input_b));
         SLTU_OP: alu_data_out = (alu_input_a < alu_input_b);
         default: alu_data_out = 0;
     endcase

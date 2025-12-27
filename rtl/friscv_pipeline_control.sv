@@ -57,6 +57,7 @@ logic [4:0] stall_buff;
 logic       rst_id_wb_ok_buff;
 logic       branch_ok_buff;
 logic [1:0] jal_delay_buff;
+logic       do_stall_prev;  // Track previous stall state
 
 logic rst_buff_0_in;
 logic rst_buff_1_in;
@@ -85,6 +86,7 @@ always_ff @(negedge clk_in) begin
         rst_id_wb_ok_buff <= 0;
         branch_ok_buff    <= 0;
         jal_delay_buff    <= 0;
+        do_stall_prev     <= 0;
     end
     else begin
         rst_buff          <= {rst_buff[2], rst_buff_2_in, rst_buff_1_in, rst_buff_0_in};
@@ -92,6 +94,7 @@ always_ff @(negedge clk_in) begin
         rst_id_wb_ok_buff <= ~rst_buff_1_in;
         branch_ok_buff    <= branch_ok_in;
         jal_delay_buff    <= {jal_delay_buff[0], start_jal && ~branch_ok_buff};
+        do_stall_prev     <= do_stall;
     end
 end
 
