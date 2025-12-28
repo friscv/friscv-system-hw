@@ -16,37 +16,36 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_core_complex(
-    input  logic i_clk,
-    input  logic i_rstn,
-    output logic o_end,
+    input  logic       i_clk,
+    input  logic       i_rstn,
+    output logic       o_end,
 
-    // Memory Interface
-    output logic [2:0]            o_mem_size,
-    output logic [ADDR_WIDTH-1:0] o_mem_addr,
-    output logic [DATA_WIDTH-1:0] o_mem_wdata,
-    input  logic [DATA_WIDTH-1:0] i_mem_rdata,
-    output logic [1:0]            o_mem_rw,
-    input  logic                  i_mem_wait
+    output logic [2:0] o_mem_size,
+    output addr_t      o_mem_addr,
+    output data_t      o_mem_wdata,
+    input  data_t      i_mem_rdata,
+    output rw_cmd_t    o_mem_rw,
+    input  logic       i_mem_wait
 );
 
-logic                  r_end_signal;
+logic        r_end_signal;
 
-logic [ADDR_WIDTH-1:0] w_inst_addr;
-logic [31:0]           w_inst_data;
-logic [31:0]           w_inst_muxout_data;
-logic                  w_inst_en;
-logic                  w_inst_muxout_en;
-logic                  w_inst_wait;
-logic                  w_inst_wait_stalled;
-logic [31:0]           w_zsbl_data;
+addr_t       w_inst_addr;
+logic [31:0] w_inst_data;
+logic [31:0] w_inst_muxout_data;
+logic        w_inst_en;
+logic        w_inst_muxout_en;
+logic        w_inst_wait;
+logic        w_inst_wait_stalled;
+logic [31:0] w_zsbl_data;
 
-logic [ADDR_WIDTH-1:0] w_data_addr;
-logic [DATA_WIDTH-1:0] w_data_wdata;
-logic [DATA_WIDTH-1:0] w_data_rdata;
-logic                  w_data_en;
-logic                  w_data_wr;
-logic [1:0]            w_data_size;
-logic                  w_data_wait;
+addr_t       w_data_addr;
+data_t       w_data_wdata;
+data_t       w_data_rdata;
+logic        w_data_en;
+logic        w_data_wr;
+logic [1:0]  w_data_size;
+logic        w_data_wait;
 
 // End signal detection on write to END_ADDRESS
 always_ff @(posedge i_clk or negedge i_rstn) begin

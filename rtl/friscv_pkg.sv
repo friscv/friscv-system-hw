@@ -40,8 +40,12 @@ package friscv_pkg;
 
     localparam int unsigned NOP = 32'H00000013; // ADDI x0,x0,0
 
-	localparam logic [ADDR_WIDTH-1:0] RESET_VEC   = 32'h1000;
-	localparam logic [ADDR_WIDTH-1:0] END_ADDRESS = 32'h50000000;
+	typedef logic [ADDR_WIDTH-1:0]    addr_t;
+	typedef logic [DATA_WIDTH-1:0]    data_t;
+	typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
+
+	localparam addr_t RESET_VEC   = 32'h1000;
+	localparam addr_t END_ADDRESS = 32'h50000000;
 
 	typedef enum logic [2:0] {
 		I_TYPE  = 3'b000,
@@ -68,7 +72,6 @@ package friscv_pkg;
 		logic [31:0] b;
 		r_type r;
 	} instr_op_t;
-
 
 	typedef enum logic [1:0] {
 	    BRANCH_JAL_NONE = 2'b00,

@@ -16,17 +16,16 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_wb_stage(
+    // Inputs from MEM stage
+    input  data_t     rd_data_in,
+    input  reg_addr_t rd_sel_in,
 
-// inputs from MEM stage
-    input logic [DATA_WIDTH-1:0]    rd_data_in,
-    input logic [REG_SEL_WIDTH-1:0] rd_sel_in,
-
- // outputs to ID stage
-    output logic [DATA_WIDTH-1:0]    rd_data_out,
-    output logic [REG_SEL_WIDTH-1:0] rd_sel_out
+    // Outputs to ID stage
+    output data_t     rd_data_out,
+    output reg_addr_t rd_sel_out
 );
 
 assign rd_data_out = rd_data_in;
-assign rd_sel_out = rd_sel_in;
+assign rd_sel_out  = rd_sel_in;
 
 endmodule

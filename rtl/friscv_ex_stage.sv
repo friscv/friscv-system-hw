@@ -16,49 +16,58 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_ex_stage(
-// global inputs  
-    input logic                     clk_in,
+    input  logic              clk_in,
 
-// stage control inputs
-    input logic                     rst_n_in,
-    input logic                     stage_stall_in,
-    input logic                     stage_flush_in,
+    // Stage control inputs
+    input  logic              rst_n_in,
+    input  logic              stage_stall_in,
+    input  logic              stage_flush_in,
   
- // inputs from ID stage 
-    input logic [ADDR_WIDTH-1:0]    pc_in,
-    input logic [ADDR_WIDTH-1:0]    pc_plus_4_in,
-    input logic [DATA_WIDTH-1:0]    rs1_in,
-    input logic [DATA_WIDTH-1:0]    rs2_in,
-    input logic [DATA_WIDTH-1:0]    imm32_in,
-    input logic [REG_SEL_WIDTH-1:0] rd_sel_in,
-    input instr_ex_t instr_ex_in,
+    // Inputs from ID stage 
+    input  addr_t             pc_in,
+    input  addr_t             pc_plus_4_in,
+    input  data_t             rs1_in,
+    input  data_t             rs2_in,
+    input  data_t             imm32_in,
+    input  reg_addr_t         rd_sel_in,
+    input  instr_ex_t         instr_ex_in,
 
+    // Outputs to MEM stage 
+    output addr_t             pc_plus_4_out,
+    output data_t             alu_data_out,
+    output reg_addr_t         rd_sel_out,
+    output data_t             store_data_out,
+    output mem_instr_sel_t    mem_instr_sel_out,
+	output load_store_width_t load_store_width_out,
+    output wb_data_sel_t      wb_data_sel_out,
 
-// outputs to MEM stage 
-    output logic [ADDR_WIDTH-1:0]   pc_plus_4_out,
-    output logic [DATA_WIDTH-1:0]   alu_data_out,
-    output logic [REG_SEL_WIDTH-1:0]    rd_sel_out,
-    output logic [DATA_WIDTH-1:0]   store_data_out,
-    output mem_instr_sel_t          mem_instr_sel_out,
-	output load_store_width_t       load_store_width_out,
-    output wb_data_sel_t            wb_data_sel_out,
-
-    // outputs control logic
-    output logic branch_ok_out
+    // Outputs to control logic
+    output logic              branch_ok_out
 );
 
-// input registers, clk_in driven
-logic [ADDR_WIDTH-1:0]    pc_buff;
-logic [ADDR_WIDTH-1:0]    pc_plus_4_buff;
-logic [DATA_WIDTH-1:0]    rs1_buff;
-logic [DATA_WIDTH-1:0]    rs2_buff;
-logic [DATA_WIDTH-1:0]    imm32_buff;
-logic [REG_SEL_WIDTH-1:0] rd_sel_buff;
+// Input registers, clk_in driven
+addr_t     pc_buff;
+addr_t     pc_plus_4_buff;
+data_t     rs1_buff;
+data_t     rs2_buff;
+data_t     imm32_buff;
+reg_addr_t rd_sel_buff;
 instr_ex_t instr_ex_buff;
 
 // Duplicate detection: track PC and whether we forwarded to MEM
-logic [ADDR_WIDTH-1:0]    last_captured_pc;
-logic                     forwarded_to_mem;
+addr_t last_captured_pc;
+logic  forwarded_to_mem;
+
+data_t alu_input_a;
+data_t alu_input_b;
+
+branch_unit branch_unit(
+    .branch_jal_sel_in (instr_ex_buff.branch_jal_sel),
+    .branch_cond_in    (instr_ex_buff.branch_cond),
+    .src1_in           (rs1_buff),
+    .src2_in           (rs2_buff),
+    .branch_ok_out     (branch_ok_out)
+);
 
 // stage inputs buffering
 always_ff @(posedge clk_in) begin
@@ -108,23 +117,13 @@ always_ff @(posedge clk_in) begin
     end
 end
 
-branch_unit branch_unit_0(
-    .branch_jal_sel_in(instr_ex_buff.branch_jal_sel),
-    .branch_cond_in(instr_ex_buff.branch_cond),
-    .src1_in(rs1_buff),
-    .src2_in(rs2_buff),
-    .branch_ok_out(branch_ok_out)
-);
-
-assign pc_plus_4_out = pc_plus_4_buff;
-assign mem_instr_sel_out = instr_ex_buff.mem_instr_sel;
-assign load_store_width_out = instr_ex_buff.load_store_width;
-assign wb_data_sel_out = instr_ex_buff.wb_data_sel;
-assign rd_sel_out = rd_sel_buff;
-
-// Multiplexed ALU inputs
-logic [DATA_WIDTH-1:0] alu_input_a;
-logic [DATA_WIDTH-1:0] alu_input_b;
+always_comb begin
+    pc_plus_4_out = pc_plus_4_buff;
+    mem_instr_sel_out = instr_ex_buff.mem_instr_sel;
+    load_store_width_out = instr_ex_buff.load_store_width;
+    wb_data_sel_out = instr_ex_buff.wb_data_sel;
+    rd_sel_out = rd_sel_buff;
+end
 
 always_comb begin
     if (instr_ex_buff.mux1_sel == RS) begin

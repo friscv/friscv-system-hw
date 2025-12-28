@@ -14,15 +14,15 @@ Version info is listed in friscv_pkg.sv
 */
 
 module friscv_address_translation(
-    input  logic        i_clk,
-    input  logic        i_rstn,
+    input  logic  i_clk,
+    input  logic  i_rstn,
     
     // Translation parameters
-    input  logic [31:0] i_base_addr,
+    input  addr_t i_base_addr,
 
     // Translated address
-    input  logic [31:0] i_cpu_addr,
-    output logic [31:0] o_dram_addr
+    input  addr_t i_cpu_addr,
+    output addr_t o_dram_addr
 );
 
 logic r_base_addr;

@@ -20,9 +20,9 @@ module friscv_axi_master(
 
     input  logic [2:0]              i_size,
     input  logic [31:0]             i_addr,
-    input  logic [DATA_WIDTH-1:0]   i_wdata,
-    output logic [DATA_WIDTH-1:0]   o_rdata,
-    input  logic [1:0]              i_rw,
+    input  data_t                   i_wdata,
+    output data_t                   o_rdata,
+    input  rw_cmd_t                 i_rw,
     output logic                    o_wait,
     input  logic                    i_clear,
     output logic                    o_done,
@@ -43,7 +43,7 @@ module friscv_axi_master(
     output logic                    m_axi_wvalid,
     input  logic                    m_axi_wready,
     output logic                    m_axi_wlast,
-    output logic [DATA_WIDTH-1:0]   m_axi_wdata,
+    output data_t                   m_axi_wdata,
     output logic [DATA_WIDTH/8-1:0] m_axi_wstrb,
 
     input  logic                    m_axi_bvalid,
@@ -64,7 +64,7 @@ module friscv_axi_master(
     input  logic                    m_axi_rvalid,
     output logic                    m_axi_rready,
     input  logic                    m_axi_rlast,
-    input  logic [DATA_WIDTH-1:0]   m_axi_rdata,
+    input  data_t                   m_axi_rdata,
     input  logic [1:0]              m_axi_rresp
 );
 
@@ -86,13 +86,13 @@ state_e r_state;
 state_e w_next_state;
 
 logic [2:0] r_size;
-logic [1:0] r_rw;
+rw_cmd_t    r_rw;
 
 logic [31:0] r_addr;
-logic [DATA_WIDTH-1:0] r_wdata;
-logic [DATA_WIDTH-1:0] r_rdata;
+data_t       r_wdata;
+data_t       r_rdata;
 
-logic [DATA_WIDTH-1:0] size_mask;
+data_t size_mask;
 logic [DATA_WIDTH/8-1:0] base_strb;
 logic [$clog2(DATA_WIDTH/8)-1:0] byte_offset;
 assign byte_offset = r_addr[$clog2(DATA_WIDTH/8)-1:0];

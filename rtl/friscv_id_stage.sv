@@ -16,48 +16,48 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_id_stage(
-    // global inputs
-    input logic clk_in,
+    input  logic      clk_in,
 
-    // stage control inputs
-    input logic rst_n_in,
-    input logic stage_stall_in,
-    input logic rst_id_wb_ok_in,
+    // Stage control inputs
+    input  logic      rst_n_in,
+    input  logic      stage_stall_in,
+    input  logic      rst_id_wb_ok_in,
 
-    output logic [REG_SEL_WIDTH-1:0] rs1_sel_out,
-    output logic [REG_SEL_WIDTH-1:0] rs2_sel_out,
-    output logic [REG_SEL_WIDTH-1:0] rd_sel_out,
+    output reg_addr_t rs1_sel_out,
+    output reg_addr_t rs2_sel_out,
+    output reg_addr_t rd_sel_out,
    
-    // inputs from IF stage
-    input logic [ADDR_WIDTH-1:0]   pc_in,
-    input logic [ADDR_WIDTH-1:0]   pc_plus_4_in,
-    input logic [DATA_WIDTH-1:0]   ir_in,
+    // Inputs from IF stage
+    input  addr_t     pc_in,
+    input  addr_t     pc_plus_4_in,
+    input  data_t     ir_in,
      
-    // outputs to EXE stage
-    output logic [ADDR_WIDTH-1:0]   pc_out,
-    output logic [ADDR_WIDTH-1:0]   pc_plus_4_out,
-    output logic [DATA_WIDTH-1:0]   rs1_out,
-    output logic [DATA_WIDTH-1:0]   rs2_out,
-    output logic [DATA_WIDTH-1:0]   imm32_out,
-    output instr_ex_t               instr_ex_out,
+    // Outputs to EX stage
+    output addr_t     pc_out,
+    output addr_t     pc_plus_4_out,
+    output data_t     rs1_out,
+    output data_t     rs2_out,
+    output data_t     imm32_out,
+    output instr_ex_t instr_ex_out,
 
-    // inputs from WB stage    
-    input logic [REG_SEL_WIDTH-1:0] rd_sel_in,
-    input logic [DATA_WIDTH-1:0]    rd_data_in 
+    // Inputs from WB stage    
+    input  reg_addr_t rd_sel_in,
+    input  data_t     rd_data_in 
 );
 
 instr_op_t ir_buff;
-logic [ADDR_WIDTH-1:0] pc_in_buff;
-logic [ADDR_WIDTH-1:0] pc_plus_4_in_buff;
-logic [DATA_WIDTH-1:0] regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
-
-imm_t imm_sel;
+addr_t     pc_in_buff;
+addr_t     pc_plus_4_in_buff;
+data_t     regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
+imm_t      imm_sel;
 
 assign rs1_out = regfile[rs1_sel_out];
 assign rs2_out = regfile[rs2_sel_out];
 
-// IF stage input buffers
+assign pc_out = pc_in_buff;
+assign pc_plus_4_out = pc_plus_4_in_buff;
 
+// IF stage input buffers
 always_ff @(posedge clk_in) begin
     // Register file writes (always allowed, even during reset/flush)
     if (~rst_n_in && ~rst_id_wb_ok_in) begin
@@ -80,9 +80,6 @@ always_ff @(posedge clk_in) begin
     end
     // else: Stalled - hold instruction in buffer
 end
-
-assign pc_out = pc_in_buff;
-assign pc_plus_4_out = pc_plus_4_in_buff;
 
 always_comb begin
     case (imm_sel)

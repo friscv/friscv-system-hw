@@ -16,30 +16,30 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_l1_subsystem(
-    input  logic i_clk,
-    input  logic i_rstn,
+    input  logic    i_clk,
+    input  logic    i_rstn,
 
     // Instruction Memory Interface
-    input  logic [ADDR_WIDTH-1:0] i_inst_addr,
-    output logic [DATA_WIDTH-1:0] o_inst_data,
-    input  logic                  i_inst_en,
-    output logic                  o_inst_wait,
+    input  addr_t   i_inst_addr,
+    output data_t   o_inst_data,
+    input  logic    i_inst_en,
+    output logic    o_inst_wait,
 
     // Data Memory Interface
-    input  logic [ADDR_WIDTH-1:0] i_data_addr,
-    input  logic [DATA_WIDTH-1:0] i_data_wdata,
-    output logic [DATA_WIDTH-1:0] o_data_rdata,
-    input  logic                  i_data_en,
-    input  logic                  i_data_wr,
-    output logic                  o_data_wait,
+    input  addr_t   i_data_addr,
+    input  data_t   i_data_wdata,
+    output data_t   o_data_rdata,
+    input  logic    i_data_en,
+    input  logic    i_data_wr,
+    output logic    o_data_wait,
 
     // External Interface
-    output logic [2:0]            o_mem_size,
-    output logic [ADDR_WIDTH-1:0] o_mem_addr,
-    output logic [DATA_WIDTH-1:0] o_mem_wdata,
-    input  logic [DATA_WIDTH-1:0] i_mem_rdata,
-    output logic [1:0]            o_mem_rw,
-    input  logic                  i_mem_wait
+    output logic [2:0] o_mem_size,
+    output addr_t   o_mem_addr,
+    output data_t   o_mem_wdata,
+    input  data_t   i_mem_rdata,
+    output rw_cmd_t o_mem_rw,
+    input  logic    i_mem_wait
 );
 
 // Grant signals from arbiter

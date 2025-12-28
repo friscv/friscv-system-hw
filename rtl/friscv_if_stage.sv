@@ -16,30 +16,30 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_if_stage(
-    input logic clk_in,
+    input  logic  clk_in,
 
     // Stage control inputs
-    input logic rst_n_in,
-    input logic stage_stall_in,
-    input logic jump_branch_in,
-    input logic i_mem_wait_in,
+    input  logic  rst_n_in,
+    input  logic  stage_stall_in,
+    input  logic  jump_branch_in,
+    input  logic  i_mem_wait_in,
 
     // Inputs from EX stage
-    input logic [ADDR_WIDTH-1:0]  jump_branch_addr_in,
+    input  addr_t jump_branch_addr_in,
  
     // Outputs to ID stage
-    output logic [ADDR_WIDTH-1:0] pc_out,
-    output logic [ADDR_WIDTH-1:0] pc_plus_4_out,
-    output logic [DATA_WIDTH-1:0] ir_out,
+    output addr_t pc_out,
+    output addr_t pc_plus_4_out,
+    output data_t ir_out,
 
     // Instruction memory interface
-    output logic [ADDR_WIDTH-1:0] i_mem_addr_out,
-    input  logic [DATA_WIDTH-1:0] i_mem_data_in,
-    output logic                  i_mem_en_out
+    output addr_t i_mem_addr_out,
+    input  data_t i_mem_data_in,
+    output logic  i_mem_en_out
 );
 
-logic [ADDR_WIDTH-1:0] pc_reg;
-logic [DATA_WIDTH-1:0] ir_buff;  // Buffer for fetched instruction
+addr_t pc_reg;
+data_t ir_buff;  // Buffer for fetched instruction
 
 // Set when we start a new fetch, cleared when wait goes low
 logic r_fetch_active;

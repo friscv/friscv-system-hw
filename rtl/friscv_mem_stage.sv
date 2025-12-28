@@ -16,49 +16,45 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_mem_stage(
-// global inputs  
-    input logic                     clk_in,
+    input  logic              clk_in,
+    input  logic              stage_stall_in,
 
-// stage control inputs
-    input logic                     rst_n_in,
-    input logic                     stage_stall_in,
+    // Inputs from EX stage
+    input  addr_t             pc_plus_4_in,
+    input  data_t             alu_data_in,
+    input  reg_addr_t         rd_sel_in,
+    input  data_t             store_data_in,
+    input  mem_instr_sel_t    mem_instr_sel_in,
+	input  load_store_width_t load_store_width_in,
+	input  wb_data_sel_t      wb_data_sel_in,
 
-// inputs from EX stage
-    input logic [ADDR_WIDTH-1:0]   pc_plus_4_in,
-    input logic [DATA_WIDTH-1:0]   alu_data_in,
-    input logic [REG_SEL_WIDTH-1:0]    rd_sel_in,
-    input logic [DATA_WIDTH-1:0]   store_data_in,
-    input mem_instr_sel_t          mem_instr_sel_in,
-	input load_store_width_t       load_store_width_in,
-	input wb_data_sel_t            wb_data_sel_in,
+    // Outputs to WB stage
+    output data_t             rd_data_out,
+    output reg_addr_t         rd_sel_out,
 
- // outputs to WB stage
-    output logic [DATA_WIDTH-1:0]    rd_data_out,
-    output logic [REG_SEL_WIDTH-1:0] rd_sel_out,
-
-//  data memory interface
-    output logic [ADDR_WIDTH-1:0]   d_mem_addr_out,
-    output logic [DATA_WIDTH-1:0]   d_mem_data_out,
-    input  logic [DATA_WIDTH-1:0]   d_mem_data_in,
-    output logic                    d_mem_en_out,
-    output logic                    d_mem_wr_out,
-    output logic [1:0]              d_mem_size_out,
-    input  logic                    d_mem_wait_in
+    // Data memory interface
+    output addr_t             d_mem_addr_out,
+    output data_t             d_mem_data_out,
+    input  data_t             d_mem_data_in,
+    output logic              d_mem_en_out,
+    output logic              d_mem_wr_out,
+    output logic [1:0]        d_mem_size_out,
+    input  logic              d_mem_wait_in
 );
 
 // input registers, clk_in driven
-logic [ADDR_WIDTH-1:0]  pc_plus_4_buff;
-logic [ADDR_WIDTH-1:0]  alu_data_buff;
-logic [DATA_WIDTH-1:0]  store_data_buff;
-logic [DATA_WIDTH-1:0]  rd_sel_buff;
-mem_instr_sel_t         mem_instr_sel_buff;
-load_store_width_t      load_store_width_buff;
-wb_data_sel_t           wb_data_sel_buff;
+addr_t             pc_plus_4_buff;
+addr_t             alu_data_buff;
+data_t             store_data_buff;
+data_t             rd_sel_buff;
+mem_instr_sel_t    mem_instr_sel_buff;
+load_store_width_t load_store_width_buff;
+wb_data_sel_t      wb_data_sel_buff;
 
 
 // internal logic
-logic [DATA_WIDTH-1:0] load_data;
-logic [DATA_WIDTH-1:0] load_data_buff;  // Buffered load data
+data_t load_data;
+data_t load_data_buff;  // Buffered load data
 
 logic r_mem_active;
 logic r_load_data_valid;  // Flag indicating load data has been captured
