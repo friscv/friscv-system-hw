@@ -26,13 +26,16 @@ module branch_unit(
 data_t gen, prop, carry;
 logic  n, z, c, v;  // Negative, Zero, Carry, Overflow
 
-always_comb begin
+genvar i;
+generate
     for (i = 0; i < DATA_WIDTH; i++) begin
-        gen[i]   = src1_in[i] & ~src2_in[i];
-        prop[i]  = src1_in[i] | ~src2_in[i];
-        carry[i] = (i == 0) ? gen[i] | prop[i] : gen[i] | (prop[i] & carry[i-1]);
+        assign gen[i]   = src1_in[i] & ~src2_in[i];
+        assign prop[i]  = src1_in[i] | ~src2_in[i];
+        assign carry[i] = (i == 0) ? gen[i] | prop[i] : gen[i] | (prop[i] & carry[i-1]);
     end
+endgenerate
 
+always_comb begin
     n = src1_in[DATA_WIDTH-1] ^ ~src2_in[DATA_WIDTH-1] ^ carry[DATA_WIDTH-2];
     z = (src1_in == src2_in);
     c = carry[DATA_WIDTH-1];

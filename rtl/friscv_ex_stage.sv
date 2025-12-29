@@ -73,12 +73,14 @@ branch_unit branch_unit(
 always_ff @(posedge clk_in) begin
     if (~rst_n_in) begin
         last_captured_pc <= 0;
-        forwarded_to_mem <= 1;  // Start as if we forwarded (allow first instruction)
+        forwarded_to_mem <= 1;
     end
     
     if (~stage_stall_in) begin
-        // Check for duplicate: same PC as before AND we didn't forward last time
-        if (stage_flush_in || (pc_in == last_captured_pc && ~forwarded_to_mem)) begin
+        // Check if we're taking a branch THIS cycle (branch_ok_out is combinatorial from instr_ex_buff)
+        // If so, ignore the instruction from ID since it's the wrong path
+        // Also check for duplicate: same PC as before AND we didn't forward last time
+        if (stage_flush_in || branch_ok_out || (pc_in == last_captured_pc && ~forwarded_to_mem)) begin
             // Insert bubble - either hazard flush or duplicate detection
             pc_buff <= 0;
             pc_plus_4_buff <= 0;

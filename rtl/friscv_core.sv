@@ -82,7 +82,6 @@ friscv_pipeline_control control_unit(
     .jump_branch_out      (if_jump_branch_in),
     .id_rs1_sel_in        (id_rs1_sel_out),
     .id_rs2_sel_in        (id_rs2_sel_out),
-    .id_branch_jal_sel_in (id_instr_ex_out.branch_jal_sel),
     .ex_rd_sel_in         (ex_rd_sel_out),
     .branch_ok_in         (ex_branch_ok_out),
     .mem_rd_sel_in        (mem_rd_sel_out),
@@ -106,13 +105,13 @@ friscv_if_stage if_stage(
 );
 
 friscv_id_stage id_stage(
-    .clk_in          (i_clk),
-    .rst_n_in        (rst_n_id),
-    .stage_stall_in  (stall_id),
-    .rst_id_wb_ok_in (rst_id_wb_ok),
-    .rs1_sel_out     (id_rs1_sel_out),
-    .rs2_sel_out     (id_rs2_sel_out),
-    .rd_sel_out      (id_rd_sel_out),
+    .clk_in              (i_clk),
+    .rst_n_in            (rst_n_id),
+    .stage_stall_in      (stall_id),
+    .rst_id_wb_ok_in     (rst_id_wb_ok),
+    .rs1_sel_out         (id_rs1_sel_out),
+    .rs2_sel_out         (id_rs2_sel_out),
+    .rd_sel_out          (id_rd_sel_out),
     .pc_in           (if_pc_out),
     .pc_plus_4_in    (if_pc_plus_4_out),
     .ir_in           (if_ir_out),

@@ -26,12 +26,12 @@ module friscv_id_stage(
     output reg_addr_t rs1_sel_out,
     output reg_addr_t rs2_sel_out,
     output reg_addr_t rd_sel_out,
-   
+
     // Inputs from IF stage
     input  addr_t     pc_in,
     input  addr_t     pc_plus_4_in,
     input  data_t     ir_in,
-     
+
     // Outputs to EX stage
     output addr_t     pc_out,
     output addr_t     pc_plus_4_out,
@@ -67,18 +67,18 @@ always_ff @(posedge clk_in) begin
     end
     
     // Instruction buffer management
-    if (~stage_stall_in) begin
-        // Not stalled - accept new instruction from IF
-        ir_buff <= ir_in;
-        pc_in_buff <= pc_in;
-        pc_plus_4_in_buff <= pc_plus_4_in;
-    end else if (~rst_n_in) begin
-        // Stalled AND reset - insert bubble (NOP)
+    if (~rst_n_in) begin
+        // Flush from reset - insert NOP
         ir_buff <= NOP;
         pc_in_buff <= 0;
         pc_plus_4_in_buff <= 0;
+    end else if (~stage_stall_in) begin
+        // Not killed and not stalled - accept new instruction from IF
+        ir_buff <= ir_in;
+        pc_in_buff <= pc_in;
+        pc_plus_4_in_buff <= pc_plus_4_in;
     end
-    // else: Stalled - hold instruction in buffer
+    // else: Not killed but stalled - hold instruction in buffer
 end
 
 always_comb begin
@@ -94,10 +94,22 @@ always_comb begin
 end
 
 always_comb begin
+    // Set signals to have no side effect by default
+    instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
+    instr_ex_out.branch_cond = COND_NE;
+    instr_ex_out.mux1_sel = RS;
+    instr_ex_out.mux2_sel = RS;
+    instr_ex_out.alu_op = ADD_OP;
+    instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
+    instr_ex_out.load_store_width = 3'b110;
+    instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
+    rs1_sel_out = 0;
+    rs2_sel_out = 0;
+    rd_sel_out  = 0;
+
     case (ir_buff.r.opcode)
         LOAD: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
@@ -113,13 +125,11 @@ always_comb begin
 
         STORE: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_STORE;
             instr_ex_out.load_store_width = ir_buff.r.funct3;
-            //instr_ex_out.wb_data_sel;
 
             imm_sel = S_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
@@ -129,12 +139,9 @@ always_comb begin
 
         ALOP: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = RS;
-            //instr_ex_out.alu_op .. below
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = I_TYPE;
@@ -171,12 +178,9 @@ always_comb begin
 
         ALOP_IMM: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
-            //instr_ex_out.alu_op .. below
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = I_TYPE;
@@ -211,12 +215,10 @@ always_comb begin
         
         AUIPC: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = OTHER;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = U_TYPE;
@@ -227,12 +229,10 @@ always_comb begin
         
         LUI: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = U_TYPE;
@@ -243,13 +243,10 @@ always_comb begin
         
         BRANCH: begin
             instr_ex_out.branch_jal_sel = BRANCH_INSTR;
-            //instr_ex_out.branch_cond ... below
             instr_ex_out.mux1_sel = OTHER;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
-            //instr_ex_out.wb_data_sel
 
             imm_sel = B_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
@@ -268,12 +265,10 @@ always_comb begin
         
         JALR: begin
             instr_ex_out.branch_jal_sel = JAL_INSTR;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
             instr_ex_out.wb_data_sel = WB_DATA_SEL_PC_PLUS_4;
 
             imm_sel = I_TYPE;
@@ -284,12 +279,10 @@ always_comb begin
         
         JAL: begin
             instr_ex_out.branch_jal_sel = JAL_INSTR;
-            //instr_ex_out.branch_cond
             instr_ex_out.mux1_sel = OTHER;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
             instr_ex_out.wb_data_sel = WB_DATA_SEL_PC_PLUS_4;
 
             imm_sel = J_TYPE;
@@ -300,13 +293,7 @@ always_comb begin
 
         default: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            //instr_ex_out.branch_cond
-            //instr_ex_out.mux1_sel
-            //instr_ex_out.mux2_sel
-            //instr_ex_out.alu_op .. 
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            //instr_ex_out.load_store_width
-            //instr_ex_out.wb_data_sel
 
             rs1_sel_out = 0;
             rs2_sel_out = 0;
