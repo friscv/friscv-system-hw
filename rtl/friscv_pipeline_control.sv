@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_pipeline_control(
+module friscv_pipeline_control (
     input  logic      clk_in,
     input  logic      rst_n_cpu_in,
 
@@ -86,4 +86,5 @@ always_comb begin
     rst_if_id_in = rst_n_cpu_in && ~branch_ok_in;
     rst_ex_in    = rst_n_cpu_in && ~branch_ok_in && ~hazard_stall;
 end
+
 endmodule

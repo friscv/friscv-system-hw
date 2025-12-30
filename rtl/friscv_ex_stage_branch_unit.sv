@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module branch_unit(
+module branch_unit (
     input  branch_jal_sel_t branch_jal_sel_in,
     input  branch_cond_t    branch_cond_in,
     input  data_t           src1_in,
@@ -53,8 +53,12 @@ always_comb begin
                 default:  branch_ok_out = 0;
             endcase
         end
-        JAL_INSTR: branch_ok_out = 1;
-        default:   branch_ok_out = 0;
+        JAL_INSTR: begin
+            branch_ok_out = 1;
+        end
+        default: begin
+            branch_ok_out = 0;
+        end
     endcase
 end
 

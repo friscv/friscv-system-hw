@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_zsbl_rom(
+module friscv_zsbl_rom (
     input  logic [15:0] i_addr,
     output logic [31:0] o_data
 );
@@ -31,9 +31,8 @@ assign o_data = (i_addr >= RESET_VEC && w_word_offset < (ZSBL_ROM_SIZE/4)) ?
 initial begin
     mem[0] = 32'h8000_02B7;  // lui  t0, 0x80000
     mem[1] = 32'h0002_8067;  // jalr x0, 0(t0)
-    mem[2] = 32'h7000_02B7;  // lui  t0, 0x70000
 
-    for (int i = 3; i < (ZSBL_ROM_SIZE/4); i++) begin
+    for (int i = 2; i < (ZSBL_ROM_SIZE/4); i++) begin
         mem[i] = 32'h0000_0000;
     end
 end

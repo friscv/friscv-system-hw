@@ -13,7 +13,9 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-module friscv_address_translation(
+`include "friscv_pkg.sv"
+
+module friscv_address_translation (
     input  logic  i_clk,
     input  logic  i_rstn,
     

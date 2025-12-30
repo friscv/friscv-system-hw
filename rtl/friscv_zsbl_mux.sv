@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_zsbl_mux(
+module friscv_zsbl_mux (
     input  addr_t       i_addr,
     input  logic        i_en,
     input  logic [31:0] i_zsbl_data,

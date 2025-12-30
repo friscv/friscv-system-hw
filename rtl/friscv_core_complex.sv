@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_core_complex(
+module friscv_core_complex (
     input  logic       i_clk,
     input  logic       i_rstn,
     output logic       o_end,
@@ -31,8 +31,8 @@ module friscv_core_complex(
 logic        r_end_signal;
 
 addr_t       w_inst_addr;
-logic [31:0] w_inst_data;
-logic [31:0] w_inst_muxout_data;
+data_t       w_inst_data;
+data_t       w_inst_muxout_data;
 logic        w_inst_en;
 logic        w_inst_muxout_en;
 logic        w_inst_wait;
@@ -44,7 +44,7 @@ data_t       w_data_wdata;
 data_t       w_data_rdata;
 logic        w_data_en;
 logic        w_data_wr;
-logic [1:0]  w_data_size;
+mem_width_t  w_data_size;
 logic        w_data_wait;
 
 // End signal detection on write to END_ADDRESS
@@ -61,67 +61,68 @@ assign o_end = r_end_signal;
 // Stall instruction fetch when end signal is high
 assign w_inst_wait_stalled = w_inst_wait || r_end_signal;
 
-friscv_core cpu_0(
-    .i_clk          (i_clk),
-    .i_rstn         (i_rstn),
+friscv_core cpu_0 (
+    .i_clk          ( i_clk               ),
+    .i_rstn         ( i_rstn              ),
 
     // Instruction Memory Interface
-    .i_mem_addr_out (w_inst_addr),
-    .i_mem_data_in  (w_inst_muxout_data),
-    .i_mem_en_out   (w_inst_en),
-    .i_mem_wait_in  (w_inst_wait_stalled),
+    .i_mem_addr_out ( w_inst_addr         ),
+    .i_mem_data_in  ( w_inst_muxout_data  ),
+    .i_mem_en_out   ( w_inst_en           ),
+    .i_mem_wait_in  ( w_inst_wait_stalled ),
 
     // Data memory interface
-    .d_mem_addr_out (w_data_addr),
-    .d_mem_data_out (w_data_wdata),
-    .d_mem_data_in  (w_data_rdata),
-    .d_mem_en_out   (w_data_en),
-    .d_mem_wr_out   (w_data_wr),
-    .d_mem_size_out (w_data_size),
-    .d_mem_wait_in  (w_data_wait)
+    .d_mem_addr_out ( w_data_addr         ),
+    .d_mem_data_out ( w_data_wdata        ),
+    .d_mem_data_in  ( w_data_rdata        ),
+    .d_mem_en_out   ( w_data_en           ),
+    .d_mem_wr_out   ( w_data_wr           ),
+    .d_mem_size_out ( w_data_size         ),
+    .d_mem_wait_in  ( w_data_wait         )
 );
 
 // Contains the hart's fabric arbiter and L1I/L1D caches
-friscv_l1_subsystem l1_subsystem(
-    .i_clk        (i_clk),
-    .i_rstn       (i_rstn),
+friscv_l1_subsystem l1_subsystem (
+    .i_clk        ( i_clk            ),
+    .i_rstn       ( i_rstn           ),
 
     // Instruction Memory Interface
-    .i_inst_addr  (w_inst_addr),
-    .o_inst_data  (w_inst_data),
-    .i_inst_en    (w_inst_muxout_en),
-    .o_inst_wait  (w_inst_wait),
+    .i_inst_addr  ( w_inst_addr      ),
+    .o_inst_data  ( w_inst_data      ),
+    .i_inst_en    ( w_inst_muxout_en ),
+    .o_inst_wait  ( w_inst_wait      ),
 
     // Data Memory Interface
-    .i_data_addr  (w_data_addr),
-    .i_data_wdata (w_data_wdata),
-    .o_data_rdata (w_data_rdata),
-    .i_data_en    (w_data_en),
-    .i_data_wr    (w_data_wr),
-    .o_data_wait  (w_data_wait),
+    .i_data_addr  ( w_data_addr      ),
+    .i_data_size  ( w_data_size      ),
+    .i_data_wdata ( w_data_wdata     ),
+    .o_data_rdata ( w_data_rdata     ),
+    .i_data_en    ( w_data_en        ),
+    .i_data_wr    ( w_data_wr        ),
+    .o_data_wait  ( w_data_wait      ),
 
     // L2 Interface
-    .o_mem_size   (o_mem_size),
-    .o_mem_addr   (o_mem_addr),
-    .o_mem_wdata  (o_mem_wdata),
-    .i_mem_rdata  (i_mem_rdata),
-    .o_mem_rw     (o_mem_rw),
-    .i_mem_wait   (i_mem_wait)
+    .o_mem_size   ( o_mem_size       ),
+    .o_mem_addr   ( o_mem_addr       ),
+    .o_mem_wdata  ( o_mem_wdata      ),
+    .i_mem_rdata  ( i_mem_rdata      ),
+    .o_mem_rw     ( o_mem_rw         ),
+    .i_mem_wait   ( i_mem_wait       )
 );
 
 // Zero-stage bootloader
-friscv_zsbl_rom zsbl_rom(
-    .i_addr (w_inst_addr[15:0]),
-    .o_data (w_zsbl_data)
+friscv_zsbl_rom zsbl_rom (
+    .i_addr ( w_inst_addr[15:0] ),
+    .o_data ( w_zsbl_data       )
 );
 
-friscv_zsbl_mux zsbl_mux(
-    .i_addr      (w_inst_addr),
-    .i_en        (w_inst_en),
-    .i_zsbl_data (w_zsbl_data),
-    .i_mem_data  (w_inst_data),
-    .o_data      (w_inst_muxout_data),
-    .o_mem_en    (w_inst_muxout_en)
+friscv_zsbl_mux zsbl_mux (
+    .i_addr      ( w_inst_addr        ),
+    .i_en        ( w_inst_en          ),
+    .i_zsbl_data ( w_zsbl_data        ),
+    .i_mem_data  ( w_inst_data        ),
+    .o_data      ( w_inst_muxout_data ),
+    .o_mem_en    ( w_inst_muxout_en   )
 );
 
 endmodule

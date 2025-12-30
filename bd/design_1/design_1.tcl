@@ -299,8 +299,8 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {50.000000} \
-    CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {50.000000} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {64.000000} \
+    CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_PCAP_PERIPHERAL_FREQMHZ {200.000000} \
@@ -317,17 +317,15 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_TTC1_CLK2_PERIPHERAL_FREQMHZ {111.111115} \
     CONFIG.PCW_ACT_UART_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_WDT_PERIPHERAL_FREQMHZ {111.111115} \
-    CONFIG.PCW_CLK0_FREQ {50000000} \
-    CONFIG.PCW_CLK1_FREQ {50000000} \
+    CONFIG.PCW_CLK0_FREQ {64000000} \
+    CONFIG.PCW_CLK1_FREQ {10000000} \
     CONFIG.PCW_CLK2_FREQ {10000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
     CONFIG.PCW_DDR_RAM_HIGHADDR {0x1FFFFFFF} \
-    CONFIG.PCW_EN_CLK1_PORT {1} \
-    CONFIG.PCW_FCLK_CLK1_BUF {TRUE} \
-    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {50} \
+    CONFIG.PCW_EN_CLK1_PORT {0} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {65} \
     CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
-    CONFIG.PCW_FPGA_FCLK1_ENABLE {1} \
     CONFIG.PCW_UIPARAM_ACT_DDR_FREQ_MHZ {533.333374} \
     CONFIG.PCW_USE_S_AXI_HP0 {1} \
   ] $ps
@@ -344,7 +342,6 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net ps_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins ps/FIXED_IO]
 
   # Create port connections
-  connect_bd_net -net ACLK_1 [get_bd_pins friscv_gpio_0/s_axi_aclk] [get_bd_pins friscv_interconnect/ACLK] [get_bd_pins friscv_interconnect/M00_ACLK] [get_bd_pins friscv_interconnect/M01_ACLK] [get_bd_pins friscv_interconnect/S00_ACLK] [get_bd_pins friscv_soc/i_clk] [get_bd_pins ps/FCLK_CLK1] [get_bd_pins ps/S_AXI_HP0_ACLK]
   connect_bd_net -net Op1_0_1 [get_bd_ports rst_pushbutton_in] [get_bd_pins invert_rst_btn/Op1]
   connect_bd_net -net axi_gpio_0_gpio_io_o [get_bd_ports leds_out] [get_bd_pins friscv_gpio_0/gpio_io_o]
   connect_bd_net -net friscv_soc_0_o_end [get_bd_ports end_signal_out] [get_bd_pins friscv_soc/o_end] [get_bd_pins gpio_debug/gpio2_io_i]
@@ -352,7 +349,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net gpio_addr_ctrl_gpio_io_o [get_bd_pins friscv_soc/i_base_addr] [get_bd_pins gpio_addr_ctrl/gpio_io_o]
   connect_bd_net -net gpio_debug_gpio_io_o [get_bd_pins friscv_rstn_gen/Op1] [get_bd_pins gpio_debug/gpio_io_o]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins debug_interconnect/ARESETN] [get_bd_pins debug_interconnect/M00_ARESETN] [get_bd_pins debug_interconnect/M01_ARESETN] [get_bd_pins debug_interconnect/S00_ARESETN] [get_bd_pins gpio_addr_ctrl/s_axi_aresetn] [get_bd_pins gpio_debug/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins debug_interconnect/ACLK] [get_bd_pins debug_interconnect/M00_ACLK] [get_bd_pins debug_interconnect/M01_ACLK] [get_bd_pins debug_interconnect/S00_ACLK] [get_bd_pins gpio_addr_ctrl/s_axi_aclk] [get_bd_pins gpio_debug/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins ps/FCLK_CLK0] [get_bd_pins ps/M_AXI_GP0_ACLK]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins debug_interconnect/ACLK] [get_bd_pins debug_interconnect/M00_ACLK] [get_bd_pins debug_interconnect/M01_ACLK] [get_bd_pins debug_interconnect/S00_ACLK] [get_bd_pins friscv_gpio_0/s_axi_aclk] [get_bd_pins friscv_interconnect/ACLK] [get_bd_pins friscv_interconnect/M00_ACLK] [get_bd_pins friscv_interconnect/M01_ACLK] [get_bd_pins friscv_interconnect/S00_ACLK] [get_bd_pins friscv_soc/i_clk] [get_bd_pins gpio_addr_ctrl/s_axi_aclk] [get_bd_pins gpio_debug/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins ps/FCLK_CLK0] [get_bd_pins ps/M_AXI_GP0_ACLK] [get_bd_pins ps/S_AXI_HP0_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins ps/FCLK_RESET0_N]
   connect_bd_net -net util_vector_logic_0_Res [get_bd_pins friscv_gpio_0/s_axi_aresetn] [get_bd_pins friscv_interconnect/ARESETN] [get_bd_pins friscv_interconnect/M00_ARESETN] [get_bd_pins friscv_interconnect/M01_ARESETN] [get_bd_pins friscv_interconnect/S00_ARESETN] [get_bd_pins friscv_rstn_gen/Res] [get_bd_pins friscv_soc/i_rstn]
   connect_bd_net -net util_vector_logic_1_Res [get_bd_pins friscv_rstn_gen/Op2] [get_bd_pins invert_rst_btn/Res]
@@ -367,6 +364,7 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
+  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -378,6 +376,4 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
-
-common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

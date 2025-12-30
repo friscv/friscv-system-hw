@@ -12,21 +12,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="22,444.537 ns"></ZoomStartTime>
-      <ZoomEndTime time="22,777.320 ns"></ZoomEndTime>
-      <Cursor1Time time="22,681.295 ns"></Cursor1Time>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="22.860001 us"></ZoomEndTime>
+      <Cursor1Time time="0.000000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="332"></NameColumnWidth>
-      <ValueColumnWidth column_width="159"></ValueColumnWidth>
+      <NameColumnWidth column_width="319"></NameColumnWidth>
+      <ValueColumnWidth column_width="153"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="21" />
-   <wave_markers>
-      <marker label="" time="22500000" />
-      <marker label="" time="22560000" />
-      <marker label="" time="22620000" />
-      <marker label="" time="22640000" />
-   </wave_markers>
    <wvobject type="logic" fp_name="/sim001_tb/rstn">
       <obj_property name="ElementShortName">rstn</obj_property>
       <obj_property name="ObjectShortName">rstn</obj_property>
@@ -67,6 +61,10 @@
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
+      <wvobject type="array" fp_name="/sim001_tb/dut/o_mem_size">
+         <obj_property name="ElementShortName">o_mem_size[2:0]</obj_property>
+         <obj_property name="ObjectShortName">o_mem_size[2:0]</obj_property>
+      </wvobject>
       <wvobject type="array" fp_name="/sim001_tb/mem_wdata">
          <obj_property name="ElementShortName">mem_wdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">mem_wdata[31:0]</obj_property>
@@ -101,6 +99,7 @@
    <wvobject type="group" fp_name="group148">
       <obj_property name="label">Arbitration</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/sim001_tb/dut/l1_subsystem/i_clk">
          <obj_property name="ElementShortName">i_clk</obj_property>
          <obj_property name="ObjectShortName">i_clk</obj_property>
@@ -194,24 +193,12 @@
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/control_unit/w_src_is_ex_dest">
-            <obj_property name="ElementShortName">w_src_is_ex_dest</obj_property>
-            <obj_property name="ObjectShortName">w_src_is_ex_dest</obj_property>
-            <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-         </wvobject>
          <wvobject type="array" fp_name="/sim001_tb/dut/cpu_0/control_unit/mem_rd_sel_in">
             <obj_property name="ElementShortName">mem_rd_sel_in[4:0]</obj_property>
             <obj_property name="ObjectShortName">mem_rd_sel_in[4:0]</obj_property>
             <obj_property name="CustomSignalColor">#FFFF00</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/sim001_tb/dut/cpu_0/control_unit/w_src_is_mem_dest">
-            <obj_property name="ElementShortName">w_src_is_mem_dest</obj_property>
-            <obj_property name="ObjectShortName">w_src_is_mem_dest</obj_property>
-            <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
       <wvobject type="group" fp_name="group123">

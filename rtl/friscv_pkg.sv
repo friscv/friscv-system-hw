@@ -19,7 +19,7 @@ v 0.1.0     Mario Kovac, 2022, Initial design
 v 0.2.0     Matej Grzunov, Duje Strunje, 2022_06, pipeline debug, ALU debug, initial instruction set 
 v 0.5.0		Mario Kovac, 2024_05, memory debug & update, system update
 v 0.9.0     Petra Kelkovic, Luka Kokic, 2024_06, cpu & system verification, external debug interface, PC & ARM SW, External IO board connections
-v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 official   
+v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 official
 
 */
 
@@ -38,7 +38,7 @@ package friscv_pkg;
 	
 	localparam int unsigned ZSBL_ROM_SIZE = 256;
 
-    localparam int unsigned NOP = 32'H00000013; // ADDI x0,x0,0
+    localparam int unsigned NOP = 32'H00000013;  // addi x0,x0,0
 
 	typedef logic [ADDR_WIDTH-1:0]    addr_t;
 	typedef logic [DATA_WIDTH-1:0]    data_t;
@@ -56,17 +56,23 @@ package friscv_pkg;
 		J_TYPE  = 3'b101
 	} imm_t;
 
+	// Load/Store instruction funct3
+	typedef enum logic [2:0] {
+		B  = 3'b000,
+		BU = 3'b100,
+		H  = 3'b001,
+		HU = 3'b101,
+		W  = 3'b010
+	} mem_width_t;
+
 	typedef struct packed {
 		logic [6:0] funct7;
-		logic [4:0] rs2;
-		logic [4:0] rs1;
-		logic [2:0] funct3;
-		logic [4:0] rd;
+		reg_addr_t  rs2;
+		reg_addr_t  rs1;
+		mem_width_t funct3;
+		reg_addr_t  rd;
 		logic [6:0] opcode;
 	} r_type;
-
-	// Load/Store instruction funct3
-	typedef logic [2:0] load_store_width_t;
 
 	typedef union packed {
 		logic [31:0] b;
@@ -89,7 +95,7 @@ package friscv_pkg;
 	} branch_cond_t;
 
 	typedef enum logic {
-	    RS = 1'b0,
+	    RS    = 1'b0,
 	    OTHER = 1'b1
 	} mux_sel_t;
 
@@ -135,13 +141,13 @@ package friscv_pkg;
 
 	typedef struct packed {
 		branch_jal_sel_t branch_jal_sel;
-		branch_cond_t branch_cond;
-		mux_sel_t mux1_sel;
-		mux_sel_t mux2_sel;
-		alu_op_t alu_op;
-		mem_instr_sel_t mem_instr_sel;
-		load_store_width_t load_store_width;
-		wb_data_sel_t wb_data_sel;
+		branch_cond_t    branch_cond;
+		mux_sel_t        mux1_sel;
+		mux_sel_t        mux2_sel;
+		alu_op_t         alu_op;
+		mem_instr_sel_t  mem_instr_sel;
+		mem_width_t      load_store_width;
+		wb_data_sel_t    wb_data_sel;
 	} instr_ex_t;
 
 	typedef enum logic [1:0] {
@@ -149,20 +155,6 @@ package friscv_pkg;
 		RW_WRITE = 2'b01,
 		RW_READ  = 2'b10
 	} rw_cmd_t;
-
-	typedef enum logic [1:0] {
-		AXI_RESP_OKAY   = 2'b00,
-		AXI_RESP_EXOKAY = 2'b01,
-		AXI_RESP_SLVERR = 2'b10,
-		AXI_RESP_DECERR = 2'b11
-	} axi_resp_t;
-
-	typedef enum logic [2:0] {
-		AXI_SIZE_BYTE  = 3'b000,
-		AXI_SIZE_HALF  = 3'b001,
-		AXI_SIZE_WORD  = 3'b010,
-		AXI_SIZE_DWORD = 3'b011
-	} axi_size_t;
 
 endpackage
 

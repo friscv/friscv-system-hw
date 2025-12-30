@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_wb_stage(
+module friscv_wb_stage (
     // Inputs from MEM stage
     input  data_t     rd_data_in,
     input  reg_addr_t rd_sel_in,

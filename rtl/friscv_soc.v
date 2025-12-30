@@ -13,7 +13,7 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-module friscv_soc(
+module friscv_soc (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 i_clk CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF m_axi, ASSOCIATED_RESET i_rstn" *)
     input  wire i_clk,
@@ -121,68 +121,67 @@ wire        w_wait;
 // Core complex
 // Contains datapath + control unit
 friscv_core_complex cc_0 (
-    .i_clk       (i_clk),
-    .i_rstn      (r_rstn),
-    .o_end       (o_end),
-    .o_mem_size  (w_size),
-    .o_mem_addr  (w_phy_addr),
-    .o_mem_wdata (w_wdata),
-    .i_mem_rdata (w_rdata),
-    .o_mem_rw    (w_rw),
-    .i_mem_wait  (w_wait)
+    .i_clk       ( i_clk      ),
+    .i_rstn      ( r_rstn     ),
+    .o_end       ( o_end      ),
+    .o_mem_size  ( w_size     ),
+    .o_mem_addr  ( w_phy_addr ),
+    .o_mem_wdata ( w_wdata    ),
+    .i_mem_rdata ( w_rdata    ),
+    .o_mem_rw    ( w_rw       ),
+    .i_mem_wait  ( w_wait     )
 );
 
 friscv_address_translation address_unit (
-    .i_clk       (i_clk),
-    .i_rstn      (i_rstn),
-    .i_base_addr (i_base_addr),
-    .i_cpu_addr  (w_phy_addr),
-    .o_dram_addr (w_dram_addr)
+    .i_clk       ( i_clk       ),
+    .i_rstn      ( i_rstn      ),
+    .i_base_addr ( i_base_addr ),
+    .i_cpu_addr  ( w_phy_addr  ),
+    .o_dram_addr ( w_dram_addr )
 );
 
 friscv_axi_master axi_master (
-    .i_clk          (i_clk),
-    .i_rstn         (i_rstn),
-    .i_size         (w_size),
-    .i_addr         (w_dram_addr),
-    .i_wdata        (w_wdata),
-    .o_rdata        (w_rdata),
-    .i_rw           (w_rw),
-    .o_wait         (w_wait),
-    .i_clear        (1'b0),
-    .m_axi_awvalid  (m_axi_awvalid),
-    .m_axi_awready  (m_axi_awready),
-    .m_axi_awaddr   (m_axi_awaddr),
-    .m_axi_awsize   (m_axi_awsize),
-    .m_axi_awcache  (m_axi_awcache),
-    .m_axi_awprot   (m_axi_awprot),
-    .m_axi_awburst  (m_axi_awburst),
-    .m_axi_awlen    (m_axi_awlen),
-    .m_axi_awlock   (m_axi_awlock),
-    .m_axi_awqos    (m_axi_awqos),
-    .m_axi_wvalid   (m_axi_wvalid),
-    .m_axi_wready   (m_axi_wready),
-    .m_axi_wlast    (m_axi_wlast),
-    .m_axi_wdata    (m_axi_wdata),
-    .m_axi_wstrb    (m_axi_wstrb),
-    .m_axi_bvalid   (m_axi_bvalid),
-    .m_axi_bready   (m_axi_bready),
-    .m_axi_bresp    (m_axi_bresp),
-    .m_axi_arvalid  (m_axi_arvalid),
-    .m_axi_arready  (m_axi_arready),
-    .m_axi_araddr   (m_axi_araddr),
-    .m_axi_arsize   (m_axi_arsize),
-    .m_axi_arcache  (m_axi_arcache),
-    .m_axi_arprot   (m_axi_arprot),
-    .m_axi_arburst  (m_axi_arburst),
-    .m_axi_arlen    (m_axi_arlen),
-    .m_axi_arlock   (m_axi_arlock),
-    .m_axi_arqos    (m_axi_arqos),
-    .m_axi_rvalid   (m_axi_rvalid),
-    .m_axi_rready   (m_axi_rready),
-    .m_axi_rlast    (m_axi_rlast),
-    .m_axi_rdata    (m_axi_rdata),
-    .m_axi_rresp    (m_axi_rresp)
+    .i_clk          ( i_clk         ),
+    .i_rstn         ( i_rstn        ),
+    .i_size         ( w_size        ),
+    .i_addr         ( w_dram_addr   ),
+    .i_wdata        ( w_wdata       ),
+    .o_rdata        ( w_rdata       ),
+    .i_rw           ( w_rw          ),
+    .o_wait         ( w_wait        ),
+    .m_axi_awvalid  ( m_axi_awvalid ),
+    .m_axi_awready  ( m_axi_awready ),
+    .m_axi_awaddr   ( m_axi_awaddr  ),
+    .m_axi_awsize   ( m_axi_awsize  ),
+    .m_axi_awcache  ( m_axi_awcache ),
+    .m_axi_awprot   ( m_axi_awprot  ),
+    .m_axi_awburst  ( m_axi_awburst ),
+    .m_axi_awlen    ( m_axi_awlen   ),
+    .m_axi_awlock   ( m_axi_awlock  ),
+    .m_axi_awqos    ( m_axi_awqos   ),
+    .m_axi_wvalid   ( m_axi_wvalid  ),
+    .m_axi_wready   ( m_axi_wready  ),
+    .m_axi_wlast    ( m_axi_wlast   ),
+    .m_axi_wdata    ( m_axi_wdata   ),
+    .m_axi_wstrb    ( m_axi_wstrb   ),
+    .m_axi_bvalid   ( m_axi_bvalid  ),
+    .m_axi_bready   ( m_axi_bready  ),
+    .m_axi_bresp    ( m_axi_bresp   ),
+    .m_axi_arvalid  ( m_axi_arvalid ),
+    .m_axi_arready  ( m_axi_arready ),
+    .m_axi_araddr   ( m_axi_araddr  ),
+    .m_axi_arsize   ( m_axi_arsize  ),
+    .m_axi_arcache  ( m_axi_arcache ),
+    .m_axi_arprot   ( m_axi_arprot  ),
+    .m_axi_arburst  ( m_axi_arburst ),
+    .m_axi_arlen    ( m_axi_arlen   ),
+    .m_axi_arlock   ( m_axi_arlock  ),
+    .m_axi_arqos    ( m_axi_arqos   ),
+    .m_axi_rvalid   ( m_axi_rvalid  ),
+    .m_axi_rready   ( m_axi_rready  ),
+    .m_axi_rlast    ( m_axi_rlast   ),
+    .m_axi_rdata    ( m_axi_rdata   ),
+    .m_axi_rresp    ( m_axi_rresp   )
 );
 
 endmodule

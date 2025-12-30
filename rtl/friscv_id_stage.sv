@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_id_stage(
+module friscv_id_stage (
     input  logic      clk_in,
 
     // Stage control inputs
@@ -59,26 +59,21 @@ assign pc_plus_4_out = pc_plus_4_in_buff;
 
 // IF stage input buffers
 always_ff @(posedge clk_in) begin
-    // Register file writes (always allowed, even during reset/flush)
     if (~rst_n_in && ~rst_id_wb_ok_in) begin
         regfile <= '{REGISTER_NUM{0}};
     end else if (rd_sel_in != 0) begin
         regfile[rd_sel_in] <= rd_data_in;
     end
     
-    // Instruction buffer management
     if (~rst_n_in) begin
-        // Flush from reset - insert NOP
         ir_buff <= NOP;
         pc_in_buff <= 0;
         pc_plus_4_in_buff <= 0;
     end else if (~stage_stall_in) begin
-        // Not killed and not stalled - accept new instruction from IF
         ir_buff <= ir_in;
         pc_in_buff <= pc_in;
         pc_plus_4_in_buff <= pc_plus_4_in;
     end
-    // else: Not killed but stalled - hold instruction in buffer
 end
 
 always_comb begin
@@ -101,7 +96,7 @@ always_comb begin
     instr_ex_out.mux2_sel = RS;
     instr_ex_out.alu_op = ADD_OP;
     instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-    instr_ex_out.load_store_width = 3'b110;
+    instr_ex_out.load_store_width = W;
     instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
     rs1_sel_out = 0;
     rs2_sel_out = 0;
@@ -301,4 +296,5 @@ always_comb begin
         end
     endcase
 end
+
 endmodule

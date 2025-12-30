@@ -15,37 +15,37 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_ex_stage(
-    input  logic              clk_in,
+module friscv_ex_stage (
+    input  logic           clk_in,
 
     // Stage control inputs
-    input  logic              rst_n_in,
-    input  logic              stage_stall_in,
-    input  logic              stage_flush_in,
+    input  logic           rst_n_in,
+    input  logic           stage_stall_in,
+    input  logic           stage_flush_in,
   
     // Inputs from ID stage 
-    input  addr_t             pc_in,
-    input  addr_t             pc_plus_4_in,
-    input  data_t             rs1_in,
-    input  data_t             rs2_in,
-    input  data_t             imm32_in,
-    input  reg_addr_t         rd_sel_in,
-    input  instr_ex_t         instr_ex_in,
+    input  addr_t          pc_in,
+    input  addr_t          pc_plus_4_in,
+    input  data_t          rs1_in,
+    input  data_t          rs2_in,
+    input  data_t          imm32_in,
+    input  reg_addr_t      rd_sel_in,
+    input  instr_ex_t      instr_ex_in,
 
     // Outputs to MEM stage 
-    output addr_t             pc_plus_4_out,
-    output data_t             alu_data_out,
-    output reg_addr_t         rd_sel_out,
-    output data_t             store_data_out,
-    output mem_instr_sel_t    mem_instr_sel_out,
-	output load_store_width_t load_store_width_out,
-    output wb_data_sel_t      wb_data_sel_out,
+    output addr_t          pc_plus_4_out,
+    output data_t          alu_data_out,
+    output reg_addr_t      rd_sel_out,
+    output data_t          store_data_out,
+    output mem_instr_sel_t mem_instr_sel_out,
+	output mem_width_t     load_store_width_out,
+    output wb_data_sel_t   wb_data_sel_out,
 
     // Outputs to control logic
     output logic              branch_ok_out
 );
 
-// Input registers, clk_in driven
+// Input registers
 addr_t     pc_buff;
 addr_t     pc_plus_4_buff;
 data_t     rs1_buff;
@@ -54,22 +54,23 @@ data_t     imm32_buff;
 reg_addr_t rd_sel_buff;
 instr_ex_t instr_ex_buff;
 
-// Duplicate detection: track PC and whether we forwarded to MEM
+// Duplicate detection
 addr_t last_captured_pc;
 logic  forwarded_to_mem;
 
+// ALU inputs
 data_t alu_input_a;
 data_t alu_input_b;
 
-branch_unit branch_unit(
-    .branch_jal_sel_in (instr_ex_buff.branch_jal_sel),
-    .branch_cond_in    (instr_ex_buff.branch_cond),
-    .src1_in           (rs1_buff),
-    .src2_in           (rs2_buff),
-    .branch_ok_out     (branch_ok_out)
+branch_unit branch_unit (
+    .branch_jal_sel_in ( instr_ex_buff.branch_jal_sel ),
+    .branch_cond_in    ( instr_ex_buff.branch_cond    ),
+    .src1_in           ( rs1_buff                     ),
+    .src2_in           ( rs2_buff                     ),
+    .branch_ok_out     ( branch_ok_out                )
 );
 
-// stage inputs buffering
+// Stage inputs buffering
 always_ff @(posedge clk_in) begin
     if (~rst_n_in) begin
         last_captured_pc <= 0;
@@ -77,11 +78,10 @@ always_ff @(posedge clk_in) begin
     end
     
     if (~stage_stall_in) begin
-        // Check if we're taking a branch THIS cycle (branch_ok_out is combinatorial from instr_ex_buff)
+        // Check if we're taking a branch THIS cycle
         // If so, ignore the instruction from ID since it's the wrong path
         // Also check for duplicate: same PC as before AND we didn't forward last time
         if (stage_flush_in || branch_ok_out || (pc_in == last_captured_pc && ~forwarded_to_mem)) begin
-            // Insert bubble - either hazard flush or duplicate detection
             pc_buff <= 0;
             pc_plus_4_buff <= 0;
             rs1_buff <= 0;
@@ -95,13 +95,11 @@ always_ff @(posedge clk_in) begin
                 mux2_sel: RS,
                 alu_op: ADD_OP,
                 mem_instr_sel: MEM_INSTR_NONE,
-                load_store_width: 3'b010,
+                load_store_width: W,
                 wb_data_sel: WB_DATA_SEL_ALU
             };
-            // Bubble inserted - didn't forward a real instruction
             forwarded_to_mem <= 0;
         end else begin
-            // Normal operation - accept from ID and track PC
             pc_buff <= pc_in;
             pc_plus_4_buff <= pc_plus_4_in;
             rs1_buff <= rs1_in;
@@ -109,8 +107,7 @@ always_ff @(posedge clk_in) begin
             imm32_buff <= imm32_in;
             rd_sel_buff <= rd_sel_in;
             instr_ex_buff <= instr_ex_in;
-            last_captured_pc <= pc_in;  // Remember this PC
-            // Real instruction forwarded
+            last_captured_pc <= pc_in;
             forwarded_to_mem <= 1;
         end
     end else begin
@@ -157,7 +154,7 @@ always_comb begin
     endcase
 end
 
-// store data positioning
+// Store data positioning
 always_comb begin
     case (instr_ex_buff.load_store_width)
         3'b000: begin   //B
