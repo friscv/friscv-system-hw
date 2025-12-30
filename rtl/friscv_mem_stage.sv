@@ -16,8 +16,9 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_mem_stage (
-    input  logic              clk_in,
-    input  logic              stage_stall_in,
+    input  logic           clk_in,
+    input  logic           stage_stall_in,
+    input  logic           rst_n_in,
 
     // Inputs from EX stage
     input  addr_t          pc_plus_4_in,
@@ -51,7 +52,6 @@ mem_instr_sel_t mem_instr_sel_buff;
 mem_width_t     load_store_width_buff;
 wb_data_sel_t   wb_data_sel_buff;
 
-// internal logic
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
 
@@ -61,28 +61,41 @@ logic r_load_data_valid;  // Flag indicating load data has been captured
 logic w_is_mem_instr;
 assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
 
-// stage inputs buffering
+// Stage inputs buffering
 // MEM stage always accepts data from EX stage
 // Bubbles are inserted by EX sending instructions with rd_sel=0
-always_ff @(posedge clk_in) begin
-    if (~stage_stall_in) begin
-        pc_plus_4_buff        <= pc_plus_4_in;
-        alu_data_buff         <= alu_data_in;
-        store_data_buff       <= store_data_in;
-        rd_sel_buff           <= rd_sel_in;
-        mem_instr_sel_buff    <= mem_instr_sel_in;
-        load_store_width_buff <= load_store_width_in;
-        wb_data_sel_buff      <= wb_data_sel_in;
-        r_mem_active          <= w_is_mem_instr;
-        r_load_data_valid     <= 1'b0;  // Clear on new instruction
+always_ff @(posedge clk_in or negedge rst_n_in) begin
+    if (~rst_n_in) begin
+        pc_plus_4_buff        <= '0;
+        alu_data_buff         <= '0;
+        store_data_buff       <= '0;
+        rd_sel_buff           <= '0;
+        mem_instr_sel_buff    <= MEM_INSTR_NONE;
+        load_store_width_buff <= W;
+        wb_data_sel_buff      <= WB_DATA_SEL_ALU;
+        r_mem_active          <= 1'b0;
+        r_load_data_valid     <= 1'b0;
+        load_data_buff        <= '0;
     end
-    
-    else if (r_mem_active && ~d_mem_wait_in) begin
-        r_mem_active <= 1'b0;
-        // Capture load data when load completes
-        if (mem_instr_sel_buff == MEM_INSTR_LOAD) begin
-            load_data_buff <= load_data;
-            r_load_data_valid <= 1'b1;
+    else begin
+        if (~stage_stall_in) begin
+            pc_plus_4_buff        <= pc_plus_4_in;
+            alu_data_buff         <= alu_data_in;
+            store_data_buff       <= store_data_in;
+            rd_sel_buff           <= rd_sel_in;
+            mem_instr_sel_buff    <= mem_instr_sel_in;
+            load_store_width_buff <= load_store_width_in;
+            wb_data_sel_buff      <= wb_data_sel_in;
+            r_mem_active          <= w_is_mem_instr;
+            r_load_data_valid     <= 1'b0;  // Clear on new instruction
+        end
+        else if (r_mem_active && ~d_mem_wait_in) begin
+            r_mem_active <= 1'b0;
+            // Capture load data when load completes
+            if (mem_instr_sel_buff == MEM_INSTR_LOAD) begin
+                load_data_buff <= load_data;
+                r_load_data_valid <= 1'b1;
+            end
         end
     end
 end
@@ -95,9 +108,10 @@ assign d_mem_wr_out = (mem_instr_sel_buff == MEM_INSTR_STORE);
 logic [31:0] store_data_replicated;
 always_comb begin
     unique case (load_store_width_buff)
-        B, BU: store_data_replicated = {4{store_data_buff[7:0]}};   // Replicate byte to all lanes
-        H, HU: store_data_replicated = {2{store_data_buff[15:0]}};  // Replicate halfword to both lanes  
-        W:     store_data_replicated = store_data_buff;             // Use full word
+        B, BU:   store_data_replicated = {4{store_data_buff[7:0]}};   // Replicate byte to all lanes
+        H, HU:   store_data_replicated = {2{store_data_buff[15:0]}};  // Replicate halfword to both lanes  
+        W:       store_data_replicated = store_data_buff;             // Use full word
+        default: store_data_replicated = store_data_buff;
     endcase
 end
 
@@ -106,9 +120,10 @@ always_comb begin
     if (d_mem_en_out) begin
         d_mem_size_out = load_store_width_buff;
         unique case (load_store_width_buff) 
-            B, BU: d_mem_addr_out = alu_data_buff;              
-            H, HU: d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
-            W:     d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:2], 2'b00};
+            B, BU:   d_mem_addr_out = alu_data_buff;              
+            H, HU:   d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
+            W:       d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:2], 2'b00};
+            default: d_mem_addr_out = alu_data_buff;
         endcase
     end else begin
         d_mem_size_out = W;
@@ -153,6 +168,9 @@ always_comb begin
             end
         end
         W: begin 
+            load_data = d_mem_data_in;
+        end
+        default: begin
             load_data = d_mem_data_in;
         end
     endcase

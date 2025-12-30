@@ -149,6 +149,7 @@ friscv_ex_stage ex_stage (
 
 friscv_mem_stage mem_stage (
     .clk_in              ( i_clk                   ),
+    .rst_n_in            ( i_rstn                  ),
     .stage_stall_in      ( stall_mem               ),
     .pc_plus_4_in        ( ex_pc_plus_4_out        ),
     .alu_data_in         ( ex_alu_data_out         ),

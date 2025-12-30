@@ -20,7 +20,7 @@ module friscv_core_complex (
     input  logic       i_rstn,
     output logic       o_end,
 
-    output logic [2:0] o_mem_size,
+    output mem_width_t o_mem_size,
     output addr_t      o_mem_addr,
     output data_t      o_mem_wdata,
     input  data_t      i_mem_rdata,
