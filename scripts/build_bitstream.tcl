@@ -38,7 +38,7 @@ puts "--- Block Design Generation Complete ---"
 
 puts "--- Starting Synthesis ---"
 reset_run synth_1
-launch_runs synth_1 -jobs 4
+launch_runs synth_1 -jobs [exec nproc]
 wait_on_run synth_1
 
 if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
@@ -48,7 +48,8 @@ if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
 
 puts "--- Starting Implementation & Bitstream ---"
 reset_run impl_1
-launch_runs impl_1 -to_step write_bitstream -jobs 4
+set_property STRATEGY Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
+launch_runs impl_1 -to_step write_bitstream -jobs [exec nproc]
 wait_on_run impl_1
 
 if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {

@@ -115,10 +115,14 @@ always_comb begin
     endcase
 end
 
-// Address alignment
+// Address and width enum conversion alignment
 always_comb begin
     if (d_mem_en_out) begin
-        d_mem_size_out = load_store_width_buff;
+        unique case (load_store_width_buff)
+            BU:      d_mem_size_out = B;
+            HU:      d_mem_size_out = H;
+            default: d_mem_addr_out = load_store_width_buff;
+        endcase
         unique case (load_store_width_buff) 
             B, BU:   d_mem_addr_out = alu_data_buff;              
             H, HU:   d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
