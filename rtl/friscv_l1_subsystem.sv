@@ -68,10 +68,10 @@ assign w_inst_req = i_inst_en && !r_inst_yield;
 assign w_data_req = i_data_en && !r_data_yield;
 
 round_robin_arbiter #(.PORTS(2)) l2_arbiter (
-    .i_clk       (i_clk),
-    .i_rstn      (i_rstn),
-    .i_req_vec   ({w_data_req, w_inst_req}),
-    .o_grant_vec ({w_data_grant, w_inst_grant})
+    .i_clk       ( i_clk                        ),
+    .i_rstn      ( i_rstn                       ),
+    .i_req_vec   ( {w_data_req,   w_inst_req}   ),
+    .o_grant_vec ( {w_data_grant, w_inst_grant} )
 );
 
 // Wait signal generation

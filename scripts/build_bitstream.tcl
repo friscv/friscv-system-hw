@@ -1,5 +1,13 @@
 set project_name "friscv-system-hw"
 set project_path "[pwd]/${project_name}/${project_name}.xpr"
+set overlay_path "[pwd]/overlay"
+
+puts "--- Clearing Overlay Directory: ${overlay_path} ---"
+if {[file exists ${overlay_path}]} {
+    file delete -force {*}[glob -nocomplain ${overlay_path}/*]
+} else {
+    file mkdir ${overlay_path}
+}
 
 puts "--- Opening Project: ${project_path} ---"
 open_project ${project_path}

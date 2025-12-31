@@ -32,15 +32,15 @@ logic [$clog2(WIDTH)-1:0] w_idx_left;
 logic w_valid_left;
 
 priority_encoder #(WIDTH, LSB) encoder_left (
-    .i_vec   (w_masked_left ),
-    .o_idx   (w_idx_left    ),
-    .o_valid (w_valid_left  )
+    .i_vec   ( w_masked_left ),
+    .o_idx   ( w_idx_left    ),
+    .o_valid ( w_valid_left  )
 );
 
 priority_encoder #(WIDTH, LSB) encoder_right (
-    .i_vec   (w_masked_right ),
-    .o_idx   (w_idx_right    ),
-    .o_valid (w_valid_right  )
+    .i_vec   ( w_masked_right ),
+    .o_idx   ( w_idx_right    ),
+    .o_valid ( w_valid_right  )
 );
 
 always_comb begin

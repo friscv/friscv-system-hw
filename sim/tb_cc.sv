@@ -1,10 +1,10 @@
 `timescale 1ns / 1ps
 
-module sim001_tb;
+module tb_cc;
 
 parameter CLK_PERIOD = 20;  // 20ns clock period (50MHz)
 parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
-parameter PROG_FILE = "../../../../../software/asm/prog.bin";  // Program binary file
+parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 
 parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter MEM_BASE = 32'h80000000;      // Memory base address
@@ -34,15 +34,15 @@ int mem_read_count;
 int mem_write_count;
 
 friscv_core_complex dut (
-    .i_clk(clk),
-    .i_rstn(rstn),
-    .o_end(end_signal),
-    .o_mem_size(mem_size),
-    .o_mem_addr(mem_addr),
-    .o_mem_wdata(mem_wdata),
-    .i_mem_rdata(mem_rdata),
-    .o_mem_rw(mem_rw),
-    .i_mem_wait(mem_wait)
+    .i_clk       ( clk        ),
+    .i_rstn      ( rstn       ),
+    .o_end       ( end_signal ),
+    .o_mem_size  ( mem_size   ),
+    .o_mem_addr  ( mem_addr   ),
+    .o_mem_wdata ( mem_wdata  ),
+    .i_mem_rdata ( mem_rdata  ),
+    .o_mem_rw    ( mem_rw     ),
+    .i_mem_wait  ( mem_wait   )
 );
 
 initial begin

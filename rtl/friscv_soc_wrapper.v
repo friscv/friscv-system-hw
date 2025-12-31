@@ -13,7 +13,9 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-module friscv_soc (
+// Pure Verilog wrapper for Vivado block design integration
+// The actual implementation is in friscv_soc.sv
+module friscv_soc_wrapper (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 i_clk CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF m_axi, ASSOCIATED_RESET i_rstn" *)
     input  wire i_clk,
@@ -102,53 +104,11 @@ module friscv_soc (
     input  wire [1:0] m_axi_rresp
 );
 
-// Synchronous reset
-reg r_rstn;
-
-always @(posedge i_clk) begin
-    r_rstn <= i_rstn;
-end
-
-// Host bus
-wire [2:0]  w_size;
-wire [31:0] w_phy_addr;
-wire [31:0] w_dram_addr;
-wire [31:0] w_wdata;
-wire [31:0] w_rdata;
-wire [1:0]  w_rw;
-wire        w_wait;
-
-// Core complex
-// Contains datapath + control unit
-friscv_core_complex cc_0 (
-    .i_clk       ( i_clk      ),
-    .i_rstn      ( r_rstn     ),
-    .o_end       ( o_end      ),
-    .o_mem_size  ( w_size     ),
-    .o_mem_addr  ( w_phy_addr ),
-    .o_mem_wdata ( w_wdata    ),
-    .i_mem_rdata ( w_rdata    ),
-    .o_mem_rw    ( w_rw       ),
-    .i_mem_wait  ( w_wait     )
-);
-
-friscv_address_translation address_unit (
-    .i_clk       ( i_clk       ),
-    .i_rstn      ( i_rstn      ),
-    .i_base_addr ( i_base_addr ),
-    .i_cpu_addr  ( w_phy_addr  ),
-    .o_dram_addr ( w_dram_addr )
-);
-
-friscv_axi_master axi_master (
+friscv_soc soc_inst (
     .i_clk          ( i_clk         ),
     .i_rstn         ( i_rstn        ),
-    .i_size         ( w_size        ),
-    .i_addr         ( w_dram_addr   ),
-    .i_wdata        ( w_wdata       ),
-    .o_rdata        ( w_rdata       ),
-    .i_rw           ( w_rw          ),
-    .o_wait         ( w_wait        ),
+    .o_end          ( o_end         ),
+    .i_base_addr    ( i_base_addr   ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

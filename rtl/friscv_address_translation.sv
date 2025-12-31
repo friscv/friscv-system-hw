@@ -27,8 +27,12 @@ module friscv_address_translation (
     output addr_t o_dram_addr
 );
 
-logic r_base_addr;
-assign o_dram_addr = (i_cpu_addr < i_base_addr) ? i_cpu_addr : i_cpu_addr - i_base_addr;
+addr_t r_base_addr;
+
+// Translation logic:
+// - Addresses below DRAM_BASE are MMIO, pass through unchanged
+// - Addresses >= DRAM_BASE are DRAM, translate by: (cpu_addr - DRAM_BASE) + base_addr
+assign o_dram_addr = (i_cpu_addr < DRAM_BASE) ? i_cpu_addr : (i_cpu_addr - DRAM_BASE) + r_base_addr;
 
 always_ff @(posedge i_clk) begin
     if (!i_rstn)

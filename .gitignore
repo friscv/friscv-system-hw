@@ -45,8 +45,8 @@ __pycache__/
 # Xilinx compiled files
 *.xclbin
 
-# Assembly build artifacts
-software/asm/*.o
-software/asm/*.elf
-software/asm/*.bin
-software/asm/*.dis
+# Test build artifacts
+test/*.o
+test/*.elf
+test/*.bin
+test/*.dis

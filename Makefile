@@ -59,6 +59,9 @@ bitstream:
 		fi \
 	fi
 
+	@echo "Removing generated XSA file..."
+	@rm -f $(CURDIR)/$(PROJECT_NAME).xsa
+
 	@echo "Build Complete! Files are ready in $(OVERLAY_DIR)"
 
 # Open project in GUI
