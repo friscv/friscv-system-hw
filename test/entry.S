@@ -9,7 +9,7 @@ _start:
     sw t0, 0(t1)
 
     # Write to result address
-    li t1, 0x80000400
+    li t1, 0x80000500
     sw t0, 0(t1)
 
     # Write to end address to halt

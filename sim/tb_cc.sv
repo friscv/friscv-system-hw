@@ -9,9 +9,9 @@ parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter MEM_BASE = 32'h80000000;      // Memory base address
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
-parameter RESULT_ADDR = 32'h80000400;   // Result address (MEM_BASE + 1K)
+parameter RESULT_ADDR = 32'h80000500;   // Result address (MEM_BASE + 1.25K)
 
-parameter int MEM_DELAY_CYCLES = 0;
+parameter int MEM_DELAY_CYCLES = 15;
 
 logic clk;
 logic rstn;
@@ -64,14 +64,9 @@ always_comb begin
                 if (mem_addr == GPIO_ADDR) begin
                     mem_rdata = gpio_reg;
                 end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
-                    logic [31:0] offset;
-                    offset = mem_addr - MEM_BASE;
-                    case (mem_size[1:0])
-                        2'b00: mem_rdata = {24'h0, memory[offset]};
-                        2'b01: mem_rdata = {16'h0, memory[offset+1], memory[offset]};
-                        2'b10: mem_rdata = {memory[offset+3], memory[offset+2], memory[offset+1], memory[offset]};
-                        default: mem_rdata = 32'h0;
-                    endcase
+                    logic [31:0] aligned_offset;
+                    aligned_offset = (mem_addr - MEM_BASE) & 32'hFFFFFFFC;
+                    mem_rdata = {memory[aligned_offset+3], memory[aligned_offset+2], memory[aligned_offset+1], memory[aligned_offset]};
                 end else begin
                     mem_rdata = 32'hDEADC0DE;
                 end

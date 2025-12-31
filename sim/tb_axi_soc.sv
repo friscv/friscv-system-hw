@@ -10,7 +10,7 @@ parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
 parameter DRAM_BASE = 32'h1585a000;     // Memory base address (Memory view)
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
-parameter RESULT_ADDR = 32'h80000400;   // Result address (CPU view)
+parameter RESULT_ADDR = 32'h80000500;   // Result address (CPU view)
 // AXI Base address for RAM is 0x0 because of translation
 
 logic clk;
@@ -225,7 +225,7 @@ always_ff @(posedge clk or negedge rstn) begin
             if (read_addr == GPIO_ADDR) begin
                 m_axi_rdata <= gpio_reg;
             end else if (read_addr >= DRAM_BASE && read_addr < DRAM_BASE + MEM_SIZE) begin
-                automatic logic [31:0] idx = read_addr - DRAM_BASE;
+                automatic logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
                 m_axi_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};
             end else begin
                 m_axi_rdata <= 32'hDEADC0DE;

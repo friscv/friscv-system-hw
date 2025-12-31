@@ -9,7 +9,7 @@
 _start:
     # Initialize base addresses
     lui x31, 0x80000      # Checkpoint base: 0x80000000
-    addi x31, x31, 0x400  # Offset to 0x80000400
+    addi x31, x31, 0x500  # Offset to 0x80000500
     lui x30, 0x40000      # Final result base: 0x40000000
     
     # Initialize accumulator and test counter
@@ -302,15 +302,88 @@ test15_pass:
     li x27, 0x23F8        # Expected accumulator
     bne x28, x27, test_fail
 
+# TEST 16: Byte/Half-word Rotation & Masking
+# Verify correct placement of bytes/halves within a word
+test16:
+    li x1, 0x89ABCDEF
+    sw x1, 84(x31)        # Store word
+    lbu x2, 84(x31)       # Load byte 0 (0xEF) - Little Endian
+    lbu x3, 85(x31)       # Load byte 1 (0xCD)
+    lbu x4, 86(x31)       # Load byte 2 (0xAB)
+    lbu x5, 87(x31)       # Load byte 3 (0x89)
+    
+    # Check sum: 0xEF + 0xCD + 0xAB + 0x89 = 0x2F0
+    add x6, x2, x3
+    add x6, x6, x4
+    add x6, x6, x5
+    li x7, 0x2F0
+    bne x6, x7, test_fail
+
+    # Check half-words
+    lhu x8, 84(x31)       # Load half 0 (0xCDEF)
+    lhu x9, 86(x31)       # Load half 1 (0x89AB)
+    li x10, 0xCDEF
+    bne x8, x10, test_fail
+    li x10, 0x89AB
+    bne x9, x10, test_fail
+
+test16_pass:
+    addi x28, x28, 0x101
+    sw x6, 88(x31)        # Checkpoint 21
+    addi x29, x29, 1
+    li x27, 0x24F9        # Expected accumulator (0x23F8 + 0x101)
+    bne x28, x27, test_fail
+
+# TEST 17: Back-to-back Memory Accesses
+# Stress test memory controller arbitration
+test17:
+    li x1, 0x11111111
+    li x2, 0x22222222
+    li x3, 0x33333333
+    
+    # Back-to-back stores
+    sw x1, 92(x31)
+    sw x2, 96(x31)
+    sw x3, 100(x31)
+    
+    # Back-to-back loads (immediately after stores)
+    lw x4, 92(x31)
+    lw x5, 96(x31)
+    lw x6, 100(x31)
+    
+    # Verify values
+    bne x1, x4, test_fail
+    bne x2, x5, test_fail
+    bne x3, x6, test_fail
+    
+    # Mixed Store-Load-Store-Load
+    addi x4, x4, 1        # 0x11111112
+    sw x4, 92(x31)
+    lw x7, 92(x31)
+    addi x7, x7, 1        # 0x11111113
+    sw x7, 92(x31)
+    lw x8, 92(x31)
+    
+    # Expected: x8 = 0x11111113
+    li x9, 0x11111113
+    bne x8, x9, test_fail
+
+test17_pass:
+    addi x28, x28, 0x102
+    sw x8, 104(x31)       # Checkpoint 22
+    addi x29, x29, 1
+    li x27, 0x25FB        # Expected accumulator (0x24F9 + 0x102)
+    bne x28, x27, test_fail
+
 # All tests passed! Compute final result
 all_tests_pass:
-    # Verify we ran all 15 tests
-    li x1, 15
+    # Verify we ran all 17 tests
+    li x1, 17
     bne x29, x1, test_fail
     
     # Compute final magic number from accumulator
-    # Expected accumulator = 0x111+0x222+0x333+0x444+0x555+0x666+0x777+0x088+0x099+0x0AA+0x0BB+0x0CC+0x0DD+0x0EE+0x0FF = 0x23F8
-    li x2, 0x23F8
+    # New Expected accumulator = 0x25FB
+    li x2, 0x25FB
     bne x28, x2, test_fail
     
     # Final result: AABBCCDD
