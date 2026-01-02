@@ -54,10 +54,6 @@ data_t     imm32_buff;
 reg_addr_t rd_sel_buff;
 instr_ex_t instr_ex_buff;
 
-// Duplicate detection
-addr_t last_captured_pc;
-logic  forwarded_to_mem;
-
 // ALU inputs
 data_t alu_input_a;
 data_t alu_input_b;
@@ -73,15 +69,11 @@ branch_unit branch_unit (
 // Stage inputs buffering
 always_ff @(posedge clk_in) begin
     if (~rst_n_in) begin
-        last_captured_pc <= 0;
-        forwarded_to_mem <= 1;
+        // Reset all buffers
     end
     
     if (~stage_stall_in) begin
-        // Check if we're taking a branch THIS cycle
-        // If so, ignore the instruction from ID since it's the wrong path
-        // Also check for duplicate: same PC as before AND we didn't forward last time
-        if (stage_flush_in || branch_ok_out || (pc_in == last_captured_pc && ~forwarded_to_mem)) begin
+        if (stage_flush_in || branch_ok_out) begin
             pc_buff <= 0;
             pc_plus_4_buff <= 0;
             rs1_buff <= 0;
@@ -98,7 +90,6 @@ always_ff @(posedge clk_in) begin
                 load_store_width: W,
                 wb_data_sel: WB_DATA_SEL_ALU
             };
-            forwarded_to_mem <= 0;
         end else begin
             pc_buff <= pc_in;
             pc_plus_4_buff <= pc_plus_4_in;
@@ -107,12 +98,7 @@ always_ff @(posedge clk_in) begin
             imm32_buff <= imm32_in;
             rd_sel_buff <= rd_sel_in;
             instr_ex_buff <= instr_ex_in;
-            last_captured_pc <= pc_in;
-            forwarded_to_mem <= 1;
         end
-    end else begin
-        // Stalled - didn't forward to MEM
-        forwarded_to_mem <= 0;
     end
 end
 

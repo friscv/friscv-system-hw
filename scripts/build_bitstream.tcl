@@ -4,7 +4,10 @@ set overlay_path "[pwd]/overlay"
 
 puts "--- Clearing Overlay Directory: ${overlay_path} ---"
 if {[file exists ${overlay_path}]} {
-    file delete -force {*}[glob -nocomplain ${overlay_path}/*]
+    set files [glob -nocomplain ${overlay_path}/*]
+    if {[llength $files] > 0} {
+        file delete -force {*}$files
+    }
 } else {
     file mkdir ${overlay_path}
 }

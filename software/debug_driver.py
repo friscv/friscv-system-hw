@@ -35,7 +35,7 @@ class DebugDriver:
     @base_addr.setter
     def base_addr(self, data: int) -> None:
         self._base = data
-        self.gpio_addr.write(data, 0xFF)
+        self.gpio_addr.write(data, 0xFFFFFFFF)
 
     def start(self) -> None:
         self.rstn = True

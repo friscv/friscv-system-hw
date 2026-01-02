@@ -227,7 +227,8 @@ proc create_root_design { parentCell } {
 
   # Create ports
   set end_signal_out [ create_bd_port -dir O end_signal_out ]
-  set leds_out [ create_bd_port -dir O -from 3 -to 0 leds_out ]
+  set led [ create_bd_port -dir O -from 3 -to 0 led ]
+  set rst_out [ create_bd_port -dir O -from 0 -to 0 rst_out ]
   set rst_pushbutton_in [ create_bd_port -dir I -from 0 -to 0 rst_pushbutton_in ]
   set sw_in [ create_bd_port -dir I -from 1 -to 0 sw_in ]
 
@@ -299,7 +300,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {70.000000} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
@@ -317,18 +318,26 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_TTC1_CLK2_PERIPHERAL_FREQMHZ {111.111115} \
     CONFIG.PCW_ACT_UART_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_WDT_PERIPHERAL_FREQMHZ {111.111115} \
-    CONFIG.PCW_CLK0_FREQ {70000000} \
+    CONFIG.PCW_CLK0_FREQ {10000000} \
     CONFIG.PCW_CLK1_FREQ {10000000} \
     CONFIG.PCW_CLK2_FREQ {10000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
     CONFIG.PCW_DDR_RAM_HIGHADDR {0x1FFFFFFF} \
     CONFIG.PCW_EN_CLK1_PORT {0} \
-    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {70} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {10} \
     CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
     CONFIG.PCW_UIPARAM_ACT_DDR_FREQ_MHZ {533.333374} \
     CONFIG.PCW_USE_S_AXI_HP0 {1} \
   ] $ps
+
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [list \
+    CONFIG.C_OPERATION {not} \
+    CONFIG.C_SIZE {1} \
+  ] $util_vector_logic_0
 
 
   # Create interface connections
@@ -343,7 +352,8 @@ proc create_root_design { parentCell } {
 
   # Create port connections
   connect_bd_net -net Op1_0_1 [get_bd_ports rst_pushbutton_in] [get_bd_pins invert_rst_btn/Op1]
-  connect_bd_net -net axi_gpio_0_gpio_io_o [get_bd_ports leds_out] [get_bd_pins friscv_gpio_0/gpio_io_o]
+  connect_bd_net -net friscv_gpio_0_gpio_io_o [get_bd_ports led] [get_bd_pins friscv_gpio_0/gpio_io_o]
+  connect_bd_net -net friscv_rstn_gen_Res [get_bd_pins friscv_gpio_0/s_axi_aresetn] [get_bd_pins friscv_interconnect/ARESETN] [get_bd_pins friscv_interconnect/M00_ARESETN] [get_bd_pins friscv_interconnect/M01_ARESETN] [get_bd_pins friscv_interconnect/S00_ARESETN] [get_bd_pins friscv_rstn_gen/Res] [get_bd_pins friscv_soc_wrapper/i_rstn] [get_bd_pins util_vector_logic_0/Op1]
   connect_bd_net -net friscv_soc_wrapper_0_o_end [get_bd_ports end_signal_out] [get_bd_pins friscv_soc_wrapper/o_end] [get_bd_pins gpio_debug/gpio2_io_i]
   connect_bd_net -net gpio2_io_i_0_1 [get_bd_ports sw_in] [get_bd_pins friscv_gpio_0/gpio2_io_i]
   connect_bd_net -net gpio_addr_ctrl_gpio_io_o [get_bd_pins friscv_soc_wrapper/i_base_addr] [get_bd_pins gpio_addr_ctrl/gpio_io_o]
@@ -351,7 +361,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins debug_interconnect/ARESETN] [get_bd_pins debug_interconnect/M00_ARESETN] [get_bd_pins debug_interconnect/M01_ARESETN] [get_bd_pins debug_interconnect/S00_ARESETN] [get_bd_pins gpio_addr_ctrl/s_axi_aresetn] [get_bd_pins gpio_debug/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
   connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins debug_interconnect/ACLK] [get_bd_pins debug_interconnect/M00_ACLK] [get_bd_pins debug_interconnect/M01_ACLK] [get_bd_pins debug_interconnect/S00_ACLK] [get_bd_pins friscv_gpio_0/s_axi_aclk] [get_bd_pins friscv_interconnect/ACLK] [get_bd_pins friscv_interconnect/M00_ACLK] [get_bd_pins friscv_interconnect/M01_ACLK] [get_bd_pins friscv_interconnect/S00_ACLK] [get_bd_pins friscv_soc_wrapper/i_clk] [get_bd_pins gpio_addr_ctrl/s_axi_aclk] [get_bd_pins gpio_debug/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins ps/FCLK_CLK0] [get_bd_pins ps/M_AXI_GP0_ACLK] [get_bd_pins ps/S_AXI_HP0_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins ps/FCLK_RESET0_N]
-  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins friscv_gpio_0/s_axi_aresetn] [get_bd_pins friscv_interconnect/ARESETN] [get_bd_pins friscv_interconnect/M00_ARESETN] [get_bd_pins friscv_interconnect/M01_ARESETN] [get_bd_pins friscv_interconnect/S00_ARESETN] [get_bd_pins friscv_rstn_gen/Res] [get_bd_pins friscv_soc_wrapper/i_rstn]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_ports rst_out] [get_bd_pins util_vector_logic_0/Res]
   connect_bd_net -net util_vector_logic_1_Res [get_bd_pins friscv_rstn_gen/Op2] [get_bd_pins invert_rst_btn/Res]
 
   # Create address segments
@@ -364,7 +374,6 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -376,4 +385,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
