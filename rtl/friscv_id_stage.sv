@@ -48,7 +48,7 @@ module friscv_id_stage (
 instr_op_t ir_buff;
 addr_t     pc_in_buff;
 addr_t     pc_plus_4_in_buff;
-data_t     regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
+data_t     regfile [REGISTER_NUM];
 imm_t      imm_sel;
 
 assign rs1_out = (rd_sel_in != 0 && rs1_sel_out == rd_sel_in) ? rd_data_in : regfile[rs1_sel_out];
