@@ -103,18 +103,6 @@ end
 assign d_mem_en_out = r_mem_active;
 assign d_mem_wr_out = (mem_instr_sel_buff == MEM_INSTR_STORE);
 
-// Store data replication for sub-word stores
-// Replicate the data across all byte lanes so byte/halfword stores work correctly
-logic [31:0] store_data_replicated;
-always_comb begin
-    unique case (load_store_width_buff)
-        B, BU:   store_data_replicated = {4{store_data_buff[7:0]}};   // Replicate byte to all lanes
-        H, HU:   store_data_replicated = {2{store_data_buff[15:0]}};  // Replicate halfword to both lanes  
-        W:       store_data_replicated = store_data_buff;             // Use full word
-        default: store_data_replicated = store_data_buff;
-    endcase
-end
-
 // Address and width enum conversion alignment
 always_comb begin
     if (d_mem_en_out) begin
@@ -135,7 +123,7 @@ always_comb begin
     end
 end
 
-assign d_mem_data_out = store_data_replicated;
+assign d_mem_data_out = store_data_buff;
 assign rd_sel_out = rd_sel_buff;
 
 // Load data expansion to 32b

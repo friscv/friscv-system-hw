@@ -21,7 +21,6 @@ module friscv_pipeline_control (
 
     output logic      rst_n_if_out,
     output logic      rst_n_id_out,
-    output logic      rst_n_ex_out,
     output logic      rst_id_wb_ok_out,
     
     // IF stage    
@@ -54,7 +53,7 @@ logic mem_stall, hazard_stall;
 
 always_ff @(negedge clk_in) begin
     if (~rst_n_cpu_in) begin
-        {rst_n_if_out, rst_n_id_out, rst_n_ex_out} <= '0;
+        {rst_n_if_out, rst_n_id_out} <= '0;
         {stall_if_out, stall_id_out, stall_ex_out, stall_mem_out} <= '0;
         flush_ex_out     <= 0;
         rst_id_wb_ok_out <= 0;
@@ -62,7 +61,6 @@ always_ff @(negedge clk_in) begin
     end else begin
         rst_n_if_out <= rst_if_id_in;
         rst_n_id_out <= rst_if_id_in;
-        rst_n_ex_out <= rst_ex_in;
 
         stall_if_out  <= mem_stall || hazard_stall;
         stall_id_out  <= mem_stall || hazard_stall;
@@ -77,11 +75,8 @@ end
 
 always_comb begin
     mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = ((ex_rd_sel_in  != 0) && ((id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in))) ||
-                   ((mem_rd_sel_in != 0) && ((id_rs1_sel_in == mem_rd_sel_in) || (id_rs2_sel_in == mem_rd_sel_in)));
-
+    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in));
     rst_if_id_in = rst_n_cpu_in && ~branch_ok_in;
-    rst_ex_in    = rst_n_cpu_in && ~branch_ok_in && ~hazard_stall;
 end
 
 endmodule

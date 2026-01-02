@@ -35,7 +35,7 @@ module friscv_core(
     input  logic       d_mem_wait_in
 );
 
-logic rst_n_if, rst_n_id, rst_n_ex;
+logic rst_n_if, rst_n_id;
 logic stall_if, stall_id, stall_ex, stall_mem, flush_ex;
 logic rst_id_wb_ok;
 
@@ -72,7 +72,6 @@ friscv_pipeline_control control_unit (
     .rst_n_cpu_in     ( i_rstn            ),
     .rst_n_if_out     ( rst_n_if          ),
     .rst_n_id_out     ( rst_n_id          ),
-    .rst_n_ex_out     ( rst_n_ex          ),
     .rst_id_wb_ok_out ( rst_id_wb_ok      ),
     .stall_if_out     ( stall_if          ),
     .stall_id_out     ( stall_id          ),
