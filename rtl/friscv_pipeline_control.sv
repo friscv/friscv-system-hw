@@ -47,8 +47,7 @@ module friscv_pipeline_control (
     input  logic      mem_wait_in
 );
 
-logic rst_if_id_in, rst_ex_in;
-logic src_is_ex_dest, src_is_mem_dest;
+logic rst_if_id_in;
 logic mem_stall, hazard_stall;
 
 always_ff @(negedge clk_in) begin
@@ -75,7 +74,7 @@ end
 
 always_comb begin
     mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in));
+    hazard_stall = ((ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in)));
     rst_if_id_in = rst_n_cpu_in && ~branch_ok_in;
 end
 
