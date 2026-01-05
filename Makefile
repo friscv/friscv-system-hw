@@ -84,6 +84,27 @@ clean:
 	@find bd/ -type d -empty -delete 2>/dev/null || true
 	@echo "Clean complete!"
 
+# Generate ZSBL ROM from software/zsbl.S
+.PHONY: zsbl-rom
+zsbl-rom:
+	@if [ ! -f "software/zsbl.S" ]; then \
+		echo "ERROR: software/zsbl.S not found"; \
+		exit 1; \
+	fi; \
+	echo "Generating ZSBL ROM from software/zsbl.S..."; \
+	python3 $(SCRIPTS_DIR)/gen_zsbl_rom.py "software/zsbl.S" "rtl/friscv_zsbl_rom.sv" --linker-script "software/zsbl_linker.ld" --start-addr 0x1000
+
+# Generate ZSBL ROM from test file
+.PHONY: zsbl-rom-%
+zsbl-rom-%:
+	@test_file="test/$*.S"; \
+	if [ ! -f "$$test_file" ]; then \
+		echo "ERROR: Test file not found: $$test_file"; \
+		exit 1; \
+	fi; \
+	echo "Generating ZSBL ROM from $$test_file..."; \
+	python3 $(SCRIPTS_DIR)/gen_zsbl_rom.py "$$test_file" "rtl/friscv_zsbl_rom.sv" --start-addr 0x1000
+
 # Deploy software and overlay to PYNQ board
 .PHONY: deploy
 deploy:
@@ -103,5 +124,6 @@ help:
 	@echo "  make open      - Open project in Vivado GUI"
 	@echo "  make clean     - Remove project directory"
 	@echo "  make bitstream - Build bitstream and copy to overlay/"
+	@echo "  make zsbl-rom-<test> - Generate ZSBL ROM from test/*.S (e.g., zsbl-rom-hazard)"
 	@echo "  make deploy    - Copy software and overlay directories to pynq"
 	@echo "  make help      - Show this help"
