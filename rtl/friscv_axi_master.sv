@@ -92,15 +92,15 @@ assign m_axi_wstrb = base_strb << byte_offset;
 
 always_comb begin
     case (r_size)
-        B, BU: size_mask = 32'h000000FF;
-        H, HU: size_mask = 32'h0000FFFF;
-        default:       size_mask = 32'hFFFFFFFF;
+        WIDTH_I8, WIDTH_U8:   size_mask = 32'h000000FF;
+        WIDTH_I16, WIDTH_U16: size_mask = 32'h0000FFFF;
+        default:              size_mask = 32'hFFFFFFFF;
     endcase
 
     case (r_size)
-        B, BU: base_strb = 4'b0001;
-        H, HU: base_strb = 4'b0011;
-        default:       base_strb = 4'b1111;
+        WIDTH_I8, WIDTH_U8:   base_strb = 4'b0001;
+        WIDTH_I16, WIDTH_U16: base_strb = 4'b0011;
+        default:              base_strb = 4'b1111;
     endcase
 end
 

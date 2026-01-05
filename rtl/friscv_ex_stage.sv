@@ -87,7 +87,7 @@ always_ff @(posedge clk_in) begin
                 mux2_sel: RS,
                 alu_op: ADD_OP,
                 mem_instr_sel: MEM_INSTR_NONE,
-                load_store_width: W,
+                load_store_width: WIDTH_I32,
                 wb_data_sel: WB_DATA_SEL_ALU
             };
         end else begin

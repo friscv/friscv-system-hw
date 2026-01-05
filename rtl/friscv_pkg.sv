@@ -59,11 +59,11 @@ package friscv_pkg;
 
 	// Load/Store instruction funct3
 	typedef enum logic [2:0] {
-		B  = 3'b000,
-		BU = 3'b100,
-		H  = 3'b001,
-		HU = 3'b101,
-		W  = 3'b010
+		WIDTH_I8  = 3'b000,
+		WIDTH_U8  = 3'b100,
+		WIDTH_I16 = 3'b001,
+		WIDTH_U16 = 3'b101,
+		WIDTH_I32 = 3'b010
 	} mem_width_t;
 
 	typedef struct packed {

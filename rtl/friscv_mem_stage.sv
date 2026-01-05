@@ -71,7 +71,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         store_data_buff       <= '0;
         rd_sel_buff           <= '0;
         mem_instr_sel_buff    <= MEM_INSTR_NONE;
-        load_store_width_buff <= W;
+        load_store_width_buff <= WIDTH_I32;
         wb_data_sel_buff      <= WB_DATA_SEL_ALU;
         r_mem_active          <= 1'b0;
         r_load_data_valid     <= 1'b0;
@@ -107,18 +107,18 @@ assign d_mem_wr_out = (mem_instr_sel_buff == MEM_INSTR_STORE);
 always_comb begin
     if (d_mem_en_out) begin
         unique case (load_store_width_buff)
-            BU:      d_mem_size_out = B;
-            HU:      d_mem_size_out = H;
-            default: d_mem_addr_out = load_store_width_buff;
+            WIDTH_U8:  d_mem_size_out = WIDTH_I8;
+            WIDTH_U16: d_mem_size_out = WIDTH_I16;
+            default:   d_mem_addr_out = load_store_width_buff;
         endcase
         unique case (load_store_width_buff) 
-            B, BU:   d_mem_addr_out = alu_data_buff;              
-            H, HU:   d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
-            W:       d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:2], 2'b00};
-            default: d_mem_addr_out = alu_data_buff;
+            WIDTH_I8, WIDTH_U8:   d_mem_addr_out = alu_data_buff;              
+            WIDTH_I16, WIDTH_U16: d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
+            WIDTH_I32:            d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:2], 2'b00};
+            default:              d_mem_addr_out = alu_data_buff;
         endcase
     end else begin
-        d_mem_size_out = W;
+        d_mem_size_out = WIDTH_I32;
         d_mem_addr_out = '0;
     end
 end
@@ -129,7 +129,7 @@ assign rd_sel_out = rd_sel_buff;
 // Load data expansion to 32b
 always_comb begin
     unique case (load_store_width_buff)
-        B: begin
+        WIDTH_I8: begin
             case (alu_data_buff[1:0]) 
                 2'b00:  load_data = {{24{d_mem_data_in[7]}},  d_mem_data_in[7:0]};
                 2'b01:  load_data = {{24{d_mem_data_in[15]}}, d_mem_data_in[15:8]};
@@ -137,7 +137,7 @@ always_comb begin
                 2'b11:  load_data = {{24{d_mem_data_in[31]}}, d_mem_data_in[31:24]};
             endcase
         end
-        BU: begin
+        WIDTH_U8: begin
             case (alu_data_buff[1:0]) 
                 2'b00:  load_data = {{24'h000000}, d_mem_data_in[7:0]};
                 2'b01:  load_data = {{24'h000000}, d_mem_data_in[15:8]};
@@ -145,21 +145,21 @@ always_comb begin
                 2'b11:  load_data = {{24'h000000}, d_mem_data_in[31:24]};
             endcase
         end
-        H: begin
+        WIDTH_I16: begin
             if (alu_data_buff[1]) begin
                 load_data = {{16{d_mem_data_in[31]}}, d_mem_data_in[31:16]};
             end else begin
                 load_data = {{16{d_mem_data_in[15]}}, d_mem_data_in[15:0]};
             end
         end
-        HU: begin
+        WIDTH_U16: begin
             if (alu_data_buff[1]) begin
                 load_data = {{16'h0000}, d_mem_data_in[31:16]};
             end else begin
                 load_data = {{16'h0000}, d_mem_data_in[15:0]};
             end
         end
-        W: begin 
+        WIDTH_I16: begin 
             load_data = d_mem_data_in;
         end
         default: begin

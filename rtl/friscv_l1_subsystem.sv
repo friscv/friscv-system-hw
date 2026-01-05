@@ -89,7 +89,7 @@ always_comb begin
     o_mem_addr = (w_data_grant) ? i_data_addr : (w_inst_grant) ? i_inst_addr : '0;
     
     // Use i_data_size if data has grant, else use Word
-    o_mem_size = (w_data_grant) ? i_data_size : W;
+    o_mem_size = (w_data_grant) ? i_data_size : WIDTH_I32;
 
     // Set write data if write-enabled master is granted
     o_mem_wdata = (w_data_grant) ? i_data_wdata : '0;

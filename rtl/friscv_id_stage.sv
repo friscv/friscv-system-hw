@@ -96,7 +96,7 @@ always_comb begin
     instr_ex_out.mux2_sel = RS;
     instr_ex_out.alu_op = ADD_OP;
     instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-    instr_ex_out.load_store_width = W;
+    instr_ex_out.load_store_width = WIDTH_I32;
     instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
     rs1_sel_out = 0;
     rs2_sel_out = 0;
