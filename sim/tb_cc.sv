@@ -11,7 +11,7 @@ parameter MEM_BASE = 32'h80000000;      // Memory base address
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
 parameter RESULT_ADDR = 32'h80000500;   // Result address (MEM_BASE + 1.25K)
 
-parameter int MEM_DELAY_CYCLES = 5;
+parameter int MEM_DELAY_CYCLES = 0;
 
 logic clk;
 logic rstn;

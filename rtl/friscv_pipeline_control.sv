@@ -74,7 +74,7 @@ end
 
 always_comb begin
     mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = ((ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in)));
+    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
     rst_if_id_in = rst_n_cpu_in && ~branch_ok_in;
 end
 

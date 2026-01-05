@@ -107,8 +107,8 @@ end
 // Invalid request detection
 logic misaligned_request;
 assign misaligned_request = (i_rw != RW_IDLE) && (
-    ((i_size == H || i_size == HU) && (i_addr[0] != 1'b0)) ||
-    ((i_size == W) && (i_addr[1:0] != 2'b00))
+    ((i_addr[0] != 1'b0) && (i_size == WIDTH_I16 || i_size == WIDTH_U16)) ||
+    ((i_addr[1:0] != 2'b00) && (i_size == WIDTH_I32))
 );
 
 // Constant assignments
