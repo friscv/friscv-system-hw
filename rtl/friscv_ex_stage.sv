@@ -42,7 +42,7 @@ module friscv_ex_stage (
     output wb_data_sel_t   wb_data_sel_out,
 
     // Outputs to control logic
-    output logic              branch_ok_out
+    output logic           branch_ok_out
 );
 
 // Input registers

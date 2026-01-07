@@ -47,35 +47,31 @@ module friscv_pipeline_control (
     input  logic      mem_wait_in
 );
 
-logic rst_if_id_in;
 logic mem_stall, hazard_stall;
 
-always_ff @(negedge clk_in) begin
-    if (~rst_n_cpu_in) begin
-        {rst_n_if_out, rst_n_id_out} <= '0;
-        {stall_if_out, stall_id_out, stall_ex_out, stall_mem_out} <= '0;
-        flush_ex_out     <= 0;
-        rst_id_wb_ok_out <= 0;
-        jump_branch_out  <= 0;
-    end else begin
-        rst_n_if_out <= rst_if_id_in;
-        rst_n_id_out <= rst_if_id_in;
-
-        stall_if_out  <= mem_stall || hazard_stall;
-        stall_id_out  <= mem_stall || hazard_stall;
-        stall_ex_out  <= mem_stall;
-        stall_mem_out <= mem_stall;
-        flush_ex_out  <= hazard_stall && ~mem_stall;
-
-        rst_id_wb_ok_out <= ~rst_if_id_in;
-        jump_branch_out  <= branch_ok_in;
-    end
-end
-
 always_comb begin
-    mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
-    rst_if_id_in = rst_n_cpu_in && ~branch_ok_in;
+    if (~rst_n_cpu_in) begin
+        {mem_stall, hazard_stall} = '0;
+        {stall_if_out, stall_id_out, stall_ex_out, stall_mem_out} = '0;
+        flush_ex_out  = 0;
+        {rst_n_if_out, rst_n_id_out} = '0;
+        rst_id_wb_ok_out = 0;
+        jump_branch_out  = 0;
+    end else begin
+        mem_stall    = if_wait_in || mem_wait_in;
+        hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+
+        stall_if_out  = mem_stall || hazard_stall;
+        stall_id_out  = mem_stall || hazard_stall;
+        stall_ex_out  = mem_stall;
+        stall_mem_out = mem_stall;
+        flush_ex_out  = hazard_stall && ~mem_stall;
+
+        rst_n_if_out = rst_n_cpu_in && ~branch_ok_in;
+        rst_n_id_out = rst_n_cpu_in && ~branch_ok_in;
+        rst_id_wb_ok_out = ~(rst_n_cpu_in && ~branch_ok_in);
+        jump_branch_out  = branch_ok_in;
+    end
 end
 
 endmodule
