@@ -44,7 +44,10 @@ if {[llength $segs] == 0} {
 }
 
 # 6. Generate Output Products
+puts "--- Forcing regeneration of all IP and BD products ---"
+reset_target all [get_files *.bd]
 generate_target all [get_files *.bd] -force
+export_ip_user_files -of_objects [get_files *.bd] -no_script -sync -force
 puts "--- Block Design Generation Complete ---"
 
 puts "--- Starting Synthesis ---"

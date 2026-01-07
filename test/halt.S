@@ -3,7 +3,7 @@
 
 _start:
     # Write pattern to GPIO to confirm execution
-    li t0, 0x1
+    li t0, 0xA
     li t1, 0x40000000
     sw t0, 0(t1)
     
