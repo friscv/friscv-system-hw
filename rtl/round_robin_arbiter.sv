@@ -49,20 +49,16 @@ always_comb begin
     w_next_has_grant = r_has_grant;
     w_next_grant_vec = '0;
 
-    // Hold current grant
     if (r_has_grant && i_req_vec[r_grant_idx]) begin
+        // Hold current grant
         w_next_grant_vec = PORTS'(1) << r_grant_idx;
-    end
-
-    // Switch to new grant
-    else if (w_enc_has_req) begin
+    end else if (w_enc_has_req) begin
+        // Switch to new grant
         w_next_grant_idx = w_enc_grant_idx;
         w_next_has_grant = 1;
         w_next_grant_vec = PORTS'(1) << w_enc_grant_idx;
-    end
-
-    // Idle
-    else begin
+    end else begin
+        // Idle
         w_next_has_grant = 0;
     end
 end
