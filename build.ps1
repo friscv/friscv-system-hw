@@ -70,8 +70,8 @@ switch ($Target) {
         
         # Clean specific IP files (simplified globbing)
         if (Test-Path "bd\design_1\ip\design_1_friscv_soc_wrapper_0") {
-            Get-ChildItem "bd\design_1\ip\design_1_friscv_soc_wrapper_0\*.dcp" -ErrorAction SilentlyContinue | Remove-Item
-            Get-ChildItem "bd\design_1\ip\design_1_friscv_soc_wrapper_0\synth\*.v" -ErrorAction SilentlyContinue | Remove-Item
+            Get-ChildItem "bd\design_1\ip\design_1_friscv_soc_wrapper_0\*.dcp" -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
+            Get-ChildItem "bd\design_1\ip\design_1_friscv_soc_wrapper_0\synth\*.v" -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
         }
         
         if (Test-Path "$PSScriptRoot\$ProjectName.xsa") { Remove-Item "$PSScriptRoot\$ProjectName.xsa" }
@@ -84,7 +84,7 @@ switch ($Target) {
         if (-not (Test-Path $OverlayDir)) { New-Item -ItemType Directory -Path $OverlayDir | Out-Null }
 
         # Copy .bit file
-        $BitFile = Get-ChildItem "$ProjectDir\$ProjectName.runs\impl_1" -Filter "*.bit" -Recurse | Select-Object -First 1
+        $BitFile = Get-ChildItem "$ProjectDir\$ProjectName.runs\impl_1" -Filter "*.bit" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($BitFile) {
             Copy-Item $BitFile.FullName -Destination "$OverlayDir\friscv.bit" -Force
             Write-Host "Copied bitstream to $OverlayDir\friscv.bit"
@@ -93,15 +93,20 @@ switch ($Target) {
         }
 
         # Handle .hwh file
-        $HwhFile = Get-ChildItem $ProjectDir -Filter "*.hwh" -Recurse | Select-Object -First 1
+        $HwhFile = Get-ChildItem $ProjectDir -Filter "*.hwh" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($HwhFile) {
             Copy-Item $HwhFile.FullName -Destination "$OverlayDir\friscv.hwh" -Force
         } else {
             Write-Warning ".hwh not found directly. Attempting to extract from XSA..."
             $XsaFile = "$PSScriptRoot\$ProjectName.xsa"
             if (Test-Path $XsaFile) {
-                Expand-Archive -Path $XsaFile -DestinationPath "$ScriptsDir\.xsa_tmp" -Force
-                $ExtractedHwh = Get-ChildItem "$ScriptsDir\.xsa_tmp" -Filter "*.hwh" -Recurse | Select-Object -First 1
+                # XSA files are ZIP archives, but need .zip extension for Expand-Archive
+                $TempZip = "$XsaFile.zip"
+                Copy-Item $XsaFile -Destination $TempZip -Force
+                Expand-Archive -Path $TempZip -DestinationPath "$ScriptsDir\.xsa_tmp" -Force
+                Remove-Item $TempZip -Force
+                
+                $ExtractedHwh = Get-ChildItem "$ScriptsDir\.xsa_tmp" -Filter "*.hwh" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
                 if ($ExtractedHwh) {
                     Copy-Item $ExtractedHwh.FullName -Destination "$OverlayDir\friscv.hwh" -Force
                     Write-Host "Extracted HWH from XSA."
@@ -118,8 +123,12 @@ switch ($Target) {
         $XsaFile = "$PSScriptRoot\$ProjectName.xsa"
         if (Test-Path $XsaFile) {
             Write-Host "Extracting ps7_init.tcl from XSA..."
-            Expand-Archive -Path $XsaFile -DestinationPath "$ScriptsDir\.ps_init_tmp" -Force
-            $PsInit = Get-ChildItem "$ScriptsDir\.ps_init_tmp" -Filter "ps7_init.tcl" -Recurse | Select-Object -First 1
+            $TempZip = "$XsaFile.zip"
+            Copy-Item $XsaFile -Destination $TempZip -Force
+            Expand-Archive -Path $TempZip -DestinationPath "$ScriptsDir\.ps_init_tmp" -Force
+            Remove-Item $TempZip -Force
+            
+            $PsInit = Get-ChildItem "$ScriptsDir\.ps_init_tmp" -Filter "ps7_init.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($PsInit) {
                 Copy-Item $PsInit.FullName -Destination "$ScriptsDir\ps7_init.tcl" -Force
                 Write-Host "Extracted ps7_init.tcl to $ScriptsDir\"
@@ -172,7 +181,35 @@ switch ($Target) {
         vivado -mode gui -nolog -nojournal "$ProjectDir\$ProjectName.xpr"
     }
 
+    "clean" {
+        Write-Host "=== CLEANING PROJECT ===" -ForegroundColor Yellow
+        
+        # Remove .Xil directory
+        $XilDir = Join-Path $PSScriptRoot ".Xil"
+        if (Test-Path $XilDir) {
+            Write-Host "Removing .Xil directory..."
+            Remove-Item $XilDir -Recurse -Force
+        }
+        
+        # Remove project directory
+        if (Test-Path $ProjectDir) {
+            Write-Host "Removing project directory..."
+            Remove-Item $ProjectDir -Recurse -Force
+        }
+        
+        # Clean generated block design files (keep only .tcl files)
+        Write-Host "Cleaning generated block design files..."
+        $BdDir = Join-Path $PSScriptRoot "bd"
+        if (Test-Path $BdDir) {
+            Get-ChildItem $BdDir -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -ne ".tcl" } | Remove-Item -Force -ErrorAction SilentlyContinue
+            # Remove empty directories
+            Get-ChildItem $BdDir -Recurse -Directory -ErrorAction SilentlyContinue | Sort-Object -Property FullName -Descending | Where-Object { (Get-ChildItem $_.FullName -ErrorAction SilentlyContinue).Count -eq 0 } | Remove-Item -Force -ErrorAction SilentlyContinue
+        }
+        
+        Write-Host "=== CLEAN COMPLETE ===" -ForegroundColor Green
+    }
+
     default {
-        Write-Error "Unknown target '$Target'. Available targets: project, bitstream, program, status, reset, load, run, open"
+        Write-Error "Unknown target '$Target'. Available targets: project, export-bd, bitstream, program, status, reset, load, run, open, clean"
     }
 }

@@ -50,9 +50,26 @@ generate_target all [get_files *.bd] -force
 export_ip_user_files -of_objects [get_files *.bd] -no_script -sync -force
 puts "--- Block Design Generation Complete ---"
 
+# Get number of CPU cores (cross-platform)
+proc get_cpu_count {} {
+    if {$::tcl_platform(platform) == "windows"} {
+        if {[info exists ::env(NUMBER_OF_PROCESSORS)]} {
+            return $::env(NUMBER_OF_PROCESSORS)
+        }
+    } else {
+        if {[catch {exec nproc} result] == 0} {
+            return $result
+        }
+    }
+    return 4
+}
+
+set num_jobs [get_cpu_count]
+puts "--- Using $num_jobs parallel jobs ---"
+
 puts "--- Starting Synthesis ---"
 reset_run synth_1
-launch_runs synth_1 -jobs [exec nproc]
+launch_runs synth_1 -jobs $num_jobs
 wait_on_run synth_1
 
 if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
@@ -63,7 +80,7 @@ if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
 puts "--- Starting Implementation & Bitstream ---"
 reset_run impl_1
 set_property STRATEGY Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
-launch_runs impl_1 -to_step write_bitstream -jobs [exec nproc]
+launch_runs impl_1 -to_step write_bitstream -jobs $num_jobs
 wait_on_run impl_1
 
 if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
