@@ -21,7 +21,11 @@ function Run-Vivado {
     param([string]$Script, [string[]]$Args)
     Write-Host "Running Vivado script: $Script" -ForegroundColor Cyan
     $validScriptPath = $Script -replace "\\", "/"
-    vivado -mode batch -nolog -nojournal -source $validScriptPath -tclargs $Args
+    if ($Args.Count -gt 0) {
+        & vivado -mode batch -nolog -nojournal -source $validScriptPath -tclargs @Args
+    } else {
+        & vivado -mode batch -nolog -nojournal -source $validScriptPath
+    }
 }
 
 # Helper wrapper for XSDB
@@ -32,7 +36,11 @@ function Run-XSDB {
     }
     Write-Host "Running XSDB script: $Script" -ForegroundColor Cyan
     $validScriptPath = $Script -replace "\\", "/"
-    xsdb $validScriptPath $Args
+    if ($Args.Count -gt 0) {
+        & xsdb $validScriptPath @Args
+    } else {
+        & xsdb $validScriptPath
+    }
 }
 
 switch ($Target) {
@@ -148,7 +156,10 @@ switch ($Target) {
             Write-Error "Bitstream not found. Run '.\build.ps1 -Target bitstream' first."
         }
         Write-Host "=== PROGRAMMING FPGA VIA JTAG ===" -ForegroundColor Green
-        Run-Vivado "$ScriptsDir\program_fpga.tcl" @($BitPath -replace "\\", "/")
+        $ScriptPath = ($ScriptsDir + "\program_fpga.tcl") -replace "\\", "/"
+        $BitstreamArg = $BitPath -replace "\\", "/"
+        Write-Host "Running Vivado script: $ScriptPath" -ForegroundColor Cyan
+        vivado -mode batch -nolog -nojournal -source $ScriptPath -tclargs $BitstreamArg
         Write-Host "FPGA programmed successfully!"
     }
 
@@ -168,7 +179,10 @@ switch ($Target) {
         }
         Write-Host "=== LOADING PROGRAM TO MEMORY ===" -ForegroundColor Green
         Write-Host "Binary: $ProgBin"
-        Run-XSDB "$ScriptsDir\load_program.tcl" @($ProgBin -replace "\\", "/", "0x0")
+        $ScriptPath = ($ScriptsDir + "\load_program.tcl") -replace "\\", "/"
+        $BinArg = $ProgBin -replace "\\", "/"
+        Write-Host "Running XSDB script: $ScriptPath" -ForegroundColor Cyan
+        & xsdb $ScriptPath $BinArg "0x0"
     }
 
     "run" {

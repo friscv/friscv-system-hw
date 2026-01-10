@@ -2,3 +2,4 @@
 *.hwh linguist-generated=true
 *.tcl linguist-vendored
 *.xdc linguist-vendored
+*.ps1 linguist-vendored
