@@ -2,7 +2,7 @@
 
 module tb_cc;
 
-parameter CLK_PERIOD = 20;  // 20ns clock period (50MHz)
+parameter CLK_PERIOD = 10;  // 10ns clock period (100MHz)
 parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
 parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 
