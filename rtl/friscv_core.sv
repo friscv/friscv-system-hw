@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_core(
+module friscv_core (
     input logic        i_clk,
     input logic        i_rstn,
     
@@ -49,6 +49,7 @@ reg_addr_t id_rs1_sel_out, id_rs2_sel_out, id_rd_sel_out;
 addr_t     id_pc_out, id_pc_plus_4_out;
 data_t     id_rs1_out, id_rs2_out, id_imm32_out;    
 instr_ex_t id_instr_ex_out;
+logic      id_illegal_inst;
 
 // EX stage signals
 addr_t          ex_pc_plus_4_out;
@@ -110,6 +111,7 @@ friscv_id_stage id_stage (
     .rst_id_wb_ok_in ( rst_id_wb_ok     ),
     .rs1_sel_out     ( id_rs1_sel_out   ),
     .rs2_sel_out     ( id_rs2_sel_out   ),
+    .illegal_inst    ( id_illegal_inst  ),
     .rd_sel_out      ( id_rd_sel_out    ),
     .pc_in           ( if_pc_out        ),
     .pc_plus_4_in    ( if_pc_plus_4_out ),

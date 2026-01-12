@@ -59,7 +59,7 @@ always_comb begin
         jump_branch_out  = 0;
     end else begin
         mem_stall    = if_wait_in || mem_wait_in;
-        hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+        hazard_stall = (ex_rd_sel_in != 0) && ( (id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in) );
 
         stall_if_out  = mem_stall || hazard_stall;
         stall_id_out  = mem_stall || hazard_stall;

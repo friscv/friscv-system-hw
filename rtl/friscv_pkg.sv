@@ -42,6 +42,7 @@ package friscv_pkg;
 
 	typedef logic [ADDR_WIDTH-1:0]    addr_t;
 	typedef logic [DATA_WIDTH-1:0]    data_t;
+	typedef logic [31:0]              inst_t;
 	typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
 	localparam addr_t RESET_VEC   = 32'h1000;

@@ -16,12 +16,12 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_zsbl_mux (
-    input  addr_t       i_addr,
-    input  logic        i_en,
-    input  logic [31:0] i_zsbl_data,
-    input  logic [31:0] i_mem_data,
-    output logic [31:0] o_data,
-    output logic        o_mem_en
+    input  addr_t i_addr,
+    input  logic  i_en,
+    input  inst_t i_zsbl_data,
+    input  inst_t i_mem_data,
+    output inst_t o_data,
+    output logic  o_mem_en
 );
 
 logic w_addr_is_zsbl;

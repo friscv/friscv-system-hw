@@ -58,7 +58,7 @@ instr_ex_t instr_ex_buff;
 data_t alu_input_a;
 data_t alu_input_b;
 
-branch_unit branch_unit (
+friscv_ex_stage_branch_unit branch_unit (
     .branch_jal_sel_in ( instr_ex_buff.branch_jal_sel ),
     .branch_cond_in    ( instr_ex_buff.branch_cond    ),
     .src1_in           ( rs1_buff                     ),
@@ -134,8 +134,8 @@ always_comb begin
         SLL_OP:  alu_data_out = alu_input_a << alu_input_b;
         SRL_OP:  alu_data_out = alu_input_a >> alu_input_b;
         SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b;
-        SLT_OP:  alu_data_out = ($signed(alu_input_a) < $signed(alu_input_b));
-        SLTU_OP: alu_data_out = (alu_input_a < alu_input_b);
+        SLT_OP:  alu_data_out = $signed(alu_input_a) < $signed(alu_input_b);
+        SLTU_OP: alu_data_out = alu_input_a < alu_input_b;
         default: alu_data_out = 0;
     endcase
 end

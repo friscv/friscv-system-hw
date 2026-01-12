@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module branch_unit (
+module friscv_ex_stage_branch_unit (
     input  branch_jal_sel_t branch_jal_sel_in,
     input  branch_cond_t    branch_cond_in,
     input  data_t           src1_in,

@@ -18,11 +18,11 @@ AUTO-GENERATED FROM: zsbl.S
 `include "friscv_pkg.sv"
 
 module friscv_zsbl_rom (
-    input  logic [15:0] i_addr,
-    output logic [31:0] o_data
+    input  addr_t i_addr,
+    output inst_t o_data
 );
 
-logic [31:0] mem [0:(ZSBL_ROM_SIZE/4)-1];
+inst_t mem [0:(ZSBL_ROM_SIZE/4)-1];
 localparam int unsigned ZSBL_PROG_WORDS = 2;
 
 logic [31:0] w_word_offset;

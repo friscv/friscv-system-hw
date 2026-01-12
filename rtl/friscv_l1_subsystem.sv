@@ -44,8 +44,15 @@ module friscv_l1_subsystem (
 );
 
 // Grant signals from arbiter
-logic w_data_grant;
 logic w_inst_grant;
+logic w_data_grant;
+
+// Detect transactions completed with zero delay
+logic w_inst_complete;
+logic w_data_complete;
+
+assign w_inst_complete = w_inst_grant && !i_mem_wait;
+assign w_data_complete = w_data_grant && !i_mem_wait;
 
 // When a master completes while the other is waiting, yield for one cycle
 logic r_inst_yield;
@@ -56,16 +63,29 @@ always_ff @(posedge i_clk) begin
         r_inst_yield <= 1'b0;
         r_data_yield <= 1'b0;
     end else begin
-        // Mark if inst master completed while data was waiting
-        r_inst_yield <= w_inst_grant && ~i_mem_wait && i_data_en;
-        r_data_yield <= w_data_grant && ~i_mem_wait && i_inst_en;
+        // Instruction Yield Logic
+        if (w_inst_complete && i_data_en) begin
+            // 1. If we are waiting AND blocking the data master, set the yield flag
+            r_inst_yield <= 1'b1;
+        end else if (!w_inst_grant) begin
+            // 2. Clear the flag only when the transaction finishes
+            r_inst_yield <= 1'b0;
+        end
+
+        // Data Yield Logic
+        if (w_data_complete && i_inst_en) begin
+            r_data_yield <= 1'b1;
+        end else if (!w_inst_grant) begin
+            r_data_yield <= 1'b0;
+        end
     end
 end
 
+
 // Drop request for one cycle after completion with contention
 logic w_inst_req, w_data_req;
-assign w_inst_req = i_inst_en && !r_inst_yield;
-assign w_data_req = i_data_en && !r_data_yield;
+assign w_inst_req = i_inst_en && ( !r_inst_yield || (w_inst_grant && i_mem_wait) );
+assign w_data_req = i_data_en && ( !r_data_yield || (w_data_grant && i_mem_wait) );
 
 round_robin_arbiter #(.PORTS(2)) l2_arbiter (
     .i_clk       ( i_clk                        ),

@@ -27,10 +27,12 @@ module friscv_id_stage (
     output reg_addr_t rs2_sel_out,
     output reg_addr_t rd_sel_out,
 
+    output logic      illegal_inst,
+
     // Inputs from IF stage
     input  addr_t     pc_in,
     input  addr_t     pc_plus_4_in,
-    input  data_t     ir_in,
+    input  inst_t     ir_in,
 
     // Outputs to EX stage
     output addr_t     pc_out,
@@ -42,7 +44,7 @@ module friscv_id_stage (
 
     // Inputs from WB stage    
     input  reg_addr_t rd_sel_in,
-    input  data_t     rd_data_in 
+    input  data_t     rd_data_in
 );
 
 instr_op_t ir_buff;
@@ -79,7 +81,7 @@ end
 always_comb begin
     case (imm_sel)
         I_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
-        I2_TYPE: imm32_out = {28'h0000000, ir_buff.b[24:20]};
+        I2_TYPE: imm32_out = {27'h0000000, ir_buff.b[24:20]};
         S_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:25], ir_buff.b[11:7]};
         B_TYPE:  imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
         U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
@@ -101,6 +103,7 @@ always_comb begin
     rs1_sel_out = 0;
     rs2_sel_out = 0;
     rd_sel_out  = 0;
+    illegal_inst = 1'b0;
 
     case (ir_buff.r.opcode)
         LOAD: begin
@@ -149,6 +152,7 @@ always_comb begin
                     case (ir_buff.r.funct7)
                         7'b0000000: instr_ex_out.alu_op = ADD_OP;
                         7'b0100000: instr_ex_out.alu_op = SUB_OP;
+                        default:    illegal_inst = 1'b1;
                     endcase
                 end
                 3'b001: instr_ex_out.alu_op = SLL_OP;
@@ -157,13 +161,9 @@ always_comb begin
                 3'b100: instr_ex_out.alu_op = XOR_OP;
                 3'b101: begin
                     case (ir_buff.r.funct7)
-                        7'b0000000: begin // srl
-                            instr_ex_out.alu_op = SRL_OP;
-                        end
-                        
-                        7'b0100000: begin // sra
-                            instr_ex_out.alu_op = SRA_OP;
-                        end
+                        7'b0000000: instr_ex_out.alu_op = SRL_OP;  // srl
+                        7'b0100000: instr_ex_out.alu_op = SRA_OP;  // sra
+                        default:    illegal_inst = 1'b1;
                     endcase
                 end
                 3'b110: instr_ex_out.alu_op = OR_OP;
@@ -197,12 +197,9 @@ always_comb begin
                 3'b101: begin
                     imm_sel = I2_TYPE;
                     case (ir_buff.r.funct7)
-                        7'b0000000: begin // srli
-                            instr_ex_out.alu_op = SRL_OP;
-                        end
-                        7'b0100000: begin // srai
-                            instr_ex_out.alu_op = SRA_OP;
-                        end 
+                        7'b0000000: instr_ex_out.alu_op = SRL_OP;  // srli
+                        7'b0100000: instr_ex_out.alu_op = SRA_OP;  // srai
+                        default:    illegal_inst = 1'b1;
                     endcase
                 end
             endcase
@@ -249,12 +246,13 @@ always_comb begin
             rd_sel_out  = 0;       
                 
             case (ir_buff.r.funct3)
-                3'b000: instr_ex_out.branch_cond = COND_EQ;
-                3'b001: instr_ex_out.branch_cond = COND_NE;
-                3'b100: instr_ex_out.branch_cond = COND_LT;
-                3'b101: instr_ex_out.branch_cond = COND_GE;
-                3'b110: instr_ex_out.branch_cond = COND_LTU;
-                3'b111: instr_ex_out.branch_cond = COND_GEU;
+                3'b000:  instr_ex_out.branch_cond = COND_EQ;
+                3'b001:  instr_ex_out.branch_cond = COND_NE;
+                3'b100:  instr_ex_out.branch_cond = COND_LT;
+                3'b101:  instr_ex_out.branch_cond = COND_GE;
+                3'b110:  instr_ex_out.branch_cond = COND_LTU;
+                3'b111:  instr_ex_out.branch_cond = COND_GEU;
+                default: illegal_inst = 1'b1;
             endcase
         end
         
@@ -293,6 +291,8 @@ always_comb begin
             rs1_sel_out = 0;
             rs2_sel_out = 0;
             rd_sel_out  = 0;
+
+            illegal_inst = 1'b1;
         end
     endcase
 end

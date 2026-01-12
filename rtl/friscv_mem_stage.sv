@@ -47,7 +47,7 @@ module friscv_mem_stage (
 addr_t          pc_plus_4_buff;
 addr_t          alu_data_buff;
 data_t          store_data_buff;
-data_t          rd_sel_buff;
+reg_addr_t      rd_sel_buff;
 mem_instr_sel_t mem_instr_sel_buff;
 mem_width_t     load_store_width_buff;
 wb_data_sel_t   wb_data_sel_buff;
@@ -109,7 +109,7 @@ always_comb begin
         unique case (load_store_width_buff)
             WIDTH_U8:  d_mem_size_out = WIDTH_I8;
             WIDTH_U16: d_mem_size_out = WIDTH_I16;
-            default:   d_mem_addr_out = load_store_width_buff;
+            default:   d_mem_size_out = load_store_width_buff;
         endcase
         unique case (load_store_width_buff) 
             WIDTH_I8, WIDTH_U8:   d_mem_addr_out = alu_data_buff;              
@@ -159,7 +159,7 @@ always_comb begin
                 load_data = {{16'h0000}, d_mem_data_in[15:0]};
             end
         end
-        WIDTH_I16: begin 
+        WIDTH_I32: begin
             load_data = d_mem_data_in;
         end
         default: begin

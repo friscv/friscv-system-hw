@@ -28,24 +28,24 @@ module friscv_core_complex (
     input  logic       i_mem_wait
 );
 
-logic        r_end_signal;
+logic       r_end_signal;
 
-addr_t       w_inst_addr;
-data_t       w_inst_data;
-data_t       w_inst_muxout_data;
-logic        w_inst_en;
-logic        w_inst_muxout_en;
-logic        w_inst_wait;
-logic        w_inst_wait_stalled;
-logic [31:0] w_zsbl_data;
+addr_t      w_inst_addr;
+data_t      w_inst_data;
+data_t      w_inst_muxout_data;
+logic       w_inst_en;
+logic       w_inst_muxout_en;
+logic       w_inst_wait;
+logic       w_inst_wait_stalled;
+inst_t      w_zsbl_data;
 
-addr_t       w_data_addr;
-data_t       w_data_wdata;
-data_t       w_data_rdata;
-logic        w_data_en;
-logic        w_data_wr;
-mem_width_t  w_data_size;
-logic        w_data_wait;
+addr_t      w_data_addr;
+data_t      w_data_wdata;
+data_t      w_data_rdata;
+logic       w_data_en;
+logic       w_data_wr;
+mem_width_t w_data_size;
+logic       w_data_wait;
 
 // End signal detection on write to END_ADDRESS
 always_ff @(posedge i_clk or negedge i_rstn) begin
@@ -112,8 +112,8 @@ friscv_l1_subsystem l1_subsystem (
 
 // Zero-stage bootloader
 friscv_zsbl_rom zsbl_rom (
-    .i_addr ( w_inst_addr[15:0] ),
-    .o_data ( w_zsbl_data       )
+    .i_addr ( w_inst_addr ),
+    .o_data ( w_zsbl_data )
 );
 
 friscv_zsbl_mux zsbl_mux (

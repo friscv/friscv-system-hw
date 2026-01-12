@@ -28,7 +28,7 @@ always_comb begin
 
     for (int i = 0; i < WIDTH; i++) begin
         if (i_vec[i]) begin
-            o_idx   = i;
+            o_idx   = $clog2(WIDTH)'(i);
             o_valid = 1;
             // Stop on lowest set bit if LSB has priority
             if (LSB) break;

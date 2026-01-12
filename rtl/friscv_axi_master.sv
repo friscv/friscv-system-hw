@@ -189,7 +189,6 @@ always_comb begin
             m_axi_bready = 1'b1;
             if (m_axi_bvalid) begin
                 w_next_state = S_IDLE;
-                o_wait = 1'b0;
             end
         end
         S_R_ADDR: begin
@@ -200,7 +199,6 @@ always_comb begin
             m_axi_rready = 1'b1;
             if (m_axi_rvalid) begin
                 w_next_state = S_IDLE;
-                o_wait = 1'b0;
             end
         end
     endcase

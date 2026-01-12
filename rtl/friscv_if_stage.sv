@@ -30,16 +30,16 @@ module friscv_if_stage (
     // Outputs to ID stage
     output addr_t pc_out,
     output addr_t pc_plus_4_out,
-    output data_t ir_out,
+    output inst_t ir_out,
 
     // Instruction memory interface
     output addr_t i_mem_addr_out,
-    input  data_t i_mem_data_in,
+    input  inst_t i_mem_data_in,
     output logic  i_mem_en_out
 );
 
 addr_t pc_reg;
-data_t ir_buff;  // Buffer for fetched instruction
+inst_t ir_buff;  // Buffer for fetched instruction
 
 // Set when we start a new fetch, cleared when wait goes low
 logic r_fetch_active;
