@@ -16,75 +16,46 @@ BIN = $(OUTPUT).bin
 DIS = $(OUTPUT).dis
 
 # Default target
-.PHONY: all entry tests blink poll halt jump arith hazard hazard_nops clean help
+.PHONY: all clean help
 
-all: entry
+all:
+	@echo "Usage: make <filename>.S"
+	@echo "Example: make jump.S"
 
 help:
-	@echo "Targets:"
-	@echo "  make entry   - Build entry.S (basic test)"
-	@echo "  make tests   - Build tests.S (full test suite)"
-	@echo "  make blink   - Build blink.S (LED blink demo)"
-	@echo "  make poll    - Build poll.S (poll switch -> LED)"
-	@echo "  make halt    - Build halt.S (minimal halt test)"
-	@echo "  make jump    - Build jump.S (single jump test)"
-	@echo "  make arith   - Build arith.S (arithmetic/logic test)"
-	@echo "  make hazard  - Build hazard.S (register hazard test)"
-	@echo "  make hazard_nops - Build hazard_nops.S (hazard test with NOPs)"
-	@echo "  make clean   - Remove build artifacts"
-
-entry: entry.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-tests: tests.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-blink: blink.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-poll: poll.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-halt: halt.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-jump: jump.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-arith: arith.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
+	@echo "Usage:"
+	@echo "  make <filename>.S   - Build any assembly file"
+	@echo "  Example: make tests.S"
 	@echo ""
-	@echo "Built arith.S -> $(BIN)"
-	@ls -la $(BIN)
-	@echo ""
-	@cat $(DIS)
+	@echo "  Produces: prog.elf, prog.bin, prog.dis"
+	@echo "  make clean          - Remove build artifacts"
 
-hazard: hazard.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
+# Generic rule to build any .S file (always rebuild)
+# Use filter to only match files that exist
+.PHONY: $(wildcard *.S)
+$(wildcard *.S):
+	@$(AS) $(ASFLAGS) -o $(basename $@).o $@ && \
+	$(LD) $(LDFLAGS) -o $(ELF) $(basename $@).o && \
+	$(OBJCOPY) -O binary $(ELF) $(BIN) && \
+	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS) && \
+	rm -f $(basename $@).o && \
+	echo "" && \
+	echo "Built $@ -> $(BIN), $(DIS)"
 
-hazard_nops: hazard_nops.o
-	$(LD) $(LDFLAGS) -o $(ELF) $<
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS)
-
-%.o: %.S
-	$(AS) $(ASFLAGS) -o $@ $<
+# Catch-all for .S files that don't exist yet
+%.S:
+	@if [ -f "$@" ]; then \
+		$(AS) $(ASFLAGS) -o $(basename $@).o $@ && \
+		$(LD) $(LDFLAGS) -o $(ELF) $(basename $@).o && \
+		$(OBJCOPY) -O binary $(ELF) $(BIN) && \
+		$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS) && \
+		rm -f $(basename $@).o && \
+		echo "" && \
+		echo "Built $@ -> $(BIN), $(DIS)"; \
+	else \
+		echo "Error: File $@ not found"; \
+		exit 1; \
+	fi
 
 clean:
 	rm -f *.o $(ELF) $(BIN) $(DIS)

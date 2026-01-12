@@ -106,13 +106,7 @@ in the root directory, or on Windows, by running
 Demo programs are provided as assembly files in the `test/` directory. You can build them on Linux or through WSL by running
 
 ```bash
-make <test_name>
-```
-
-in the `test/` directory. See all provided programs by running
-
-```bash
-make help
+make <test_name>.S
 ```
 
 Building a program will generate `prog.bin`, a binary file which can be loaded directly into memory and run, as well as its disassembly `prog.dis` for reference and debugging.
