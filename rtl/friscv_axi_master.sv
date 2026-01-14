@@ -132,6 +132,8 @@ assign m_axi_arlen   = 8'h00;
 assign m_axi_arlock  = 1'b0;
 assign m_axi_arqos   = 4'h0;
 
+assign o_wait = w_next_state != S_IDLE;
+
 // Clocked logic
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
@@ -155,7 +157,6 @@ end
 // State transition logic
 always_comb begin
     w_next_state  = r_state;
-    o_wait        = r_state != S_IDLE;
     m_axi_awvalid = 0;
     m_axi_wvalid  = 0;
     m_axi_wlast   = 0;
@@ -170,7 +171,6 @@ always_comb begin
                     w_next_state = S_IDLE;
                 end else begin
                     w_next_state = (i_rw == RW_WRITE) ? S_W_ADDR : S_R_ADDR;
-                    o_wait = 1'b1;
                 end
             end
         end

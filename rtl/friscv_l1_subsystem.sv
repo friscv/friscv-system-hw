@@ -43,85 +43,86 @@ module friscv_l1_subsystem (
     input  logic       i_mem_wait
 );
 
-// Grant signals from arbiter
-logic w_inst_grant;
-logic w_data_grant;
+// FSM States
+typedef enum logic [1:0] {
+    S_IDLE,
+    S_GRANT_INST,
+    S_GRANT_DATA
+} state_t;
 
-// Detect transactions completed with zero delay
-logic w_inst_complete;
-logic w_data_complete;
+state_t state, next_state;
+logic priority_flag; // 0=Inst, 1=Data
 
-assign w_inst_complete = w_inst_grant && !i_mem_wait;
-assign w_data_complete = w_data_grant && !i_mem_wait;
-
-// When a master completes while the other is waiting, yield for one cycle
-logic r_inst_yield;
-logic r_data_yield;
-
+// FSM Update
 always_ff @(posedge i_clk) begin
-    if (~i_rstn) begin
-        r_inst_yield <= 1'b0;
-        r_data_yield <= 1'b0;
+    if (!i_rstn) begin
+        state <= S_IDLE;
+        priority_flag <= 1'b0;
     end else begin
-        // Instruction Yield Logic
-        if (w_inst_complete && i_data_en) begin
-            // 1. If we are waiting AND blocking the data master, set the yield flag
-            r_inst_yield <= 1'b1;
-        end else if (!w_inst_grant) begin
-            // 2. Clear the flag only when the transaction finishes
-            r_inst_yield <= 1'b0;
-        end
-
-        // Data Yield Logic
-        if (w_data_complete && i_inst_en) begin
-            r_data_yield <= 1'b1;
-        end else if (!w_inst_grant) begin
-            r_data_yield <= 1'b0;
+        state <= next_state;
+        // Rotate priority on transaction completion
+        if (state != S_IDLE && next_state == S_IDLE) begin
+            priority_flag <= ~priority_flag;
         end
     end
 end
 
-
-// Drop request for one cycle after completion with contention
-logic w_inst_req, w_data_req;
-assign w_inst_req = i_inst_en && ( !r_inst_yield || (w_inst_grant && i_mem_wait) );
-assign w_data_req = i_data_en && ( !r_data_yield || (w_data_grant && i_mem_wait) );
-
-round_robin_arbiter #(.PORTS(2)) l2_arbiter (
-    .i_clk       ( i_clk                        ),
-    .i_rstn      ( i_rstn                       ),
-    .i_req_vec   ( {w_data_req,   w_inst_req}   ),
-    .o_grant_vec ( {w_data_grant, w_inst_grant} )
-);
-
-// Wait signal generation
-// Wait is high when:
-// 1. Master has a request but not granted, OR
-// 2. Master has a request and is granted but downstream is waiting
+// Next State Logic
 always_comb begin
-    o_inst_wait = i_inst_en && (!w_inst_grant || i_mem_wait);
-    o_data_wait = i_data_en && (!w_data_grant || i_mem_wait);
+    next_state = state;
+    unique case (state)
+        S_IDLE: begin
+            if (i_data_en && i_inst_en) begin
+                next_state = (priority_flag) ? S_GRANT_DATA : S_GRANT_INST;
+            end else if (i_data_en) begin
+                next_state = S_GRANT_DATA;
+            end else if (i_inst_en) begin
+                next_state = S_GRANT_INST;
+            end
+        end
+        S_GRANT_INST: begin
+            if (!i_mem_wait) next_state = S_IDLE;
+        end
+        S_GRANT_DATA: begin
+            if (!i_mem_wait) next_state = S_IDLE;
+        end
+    endcase
 end
 
-// Forward granted master to bus
+// Output Logic
 always_comb begin
-    // Use address of the granted master
-    o_mem_addr = (w_data_grant) ? i_data_addr : (w_inst_grant) ? i_inst_addr : '0;
-    
-    // Use i_data_size if data has grant, else use Word
-    o_mem_size = (w_data_grant) ? i_data_size : WIDTH_I32;
+    o_mem_addr  = '0;
+    o_mem_size  = WIDTH_I32;
+    o_mem_wdata = '0;
+    o_mem_rw    = RW_IDLE;
+    o_inst_wait = 1'b0;
+    o_data_wait = 1'b0;
 
-    // Set write data if write-enabled master is granted
-    o_mem_wdata = (w_data_grant) ? i_data_wdata : '0;
-
-    // Both masters can passively read data
-    o_inst_data  = i_mem_rdata;
-    o_data_rdata = i_mem_rdata;
-    
-    // Set operation based on grant and memory stage request
-    o_mem_rw = (w_data_grant &&  i_data_wr) ? RW_WRITE :
-               (w_data_grant && !i_data_wr) ? RW_READ  :
-               (w_inst_grant)               ? RW_READ  : RW_IDLE;
+    unique case (state)
+        S_IDLE: begin
+            // If requesting, insert wait cycle for arbitration
+            if (i_inst_en) o_inst_wait = 1'b1;
+            if (i_data_en) o_data_wait = 1'b1;
+        end
+        S_GRANT_INST: begin
+            o_mem_addr = i_inst_addr;
+            o_mem_size = WIDTH_I32;
+            o_mem_rw   = RW_READ;
+            o_inst_wait = i_mem_wait;
+            if (i_data_en) o_data_wait = 1'b1;
+        end
+        S_GRANT_DATA: begin
+            o_mem_addr  = i_data_addr;
+            o_mem_size  = i_data_size;
+            o_mem_wdata = i_data_wdata;
+            o_mem_rw    = i_data_wr ? RW_WRITE : RW_READ;
+            o_data_wait = i_mem_wait;
+            if (i_inst_en) o_inst_wait = 1'b1;
+        end
+    endcase
 end
+
+assign o_inst_data = i_mem_rdata;
+assign o_data_rdata = i_mem_rdata;
 
 endmodule
