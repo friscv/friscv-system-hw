@@ -64,8 +64,19 @@ always_comb begin
     pc_out = pc_reg;
     pc_plus_4_out = pc_reg + 4;
     i_mem_addr_out = pc_reg;
-    ir_out = r_fetch_active ? i_mem_data_in : ir_buff;
     i_mem_en_out = r_fetch_active;
+
+    // Gate the output with Wait/Active status
+    if (r_fetch_active) begin
+        // If fetching and waiting, output NOP to prevent garbage decoding
+        if (i_mem_wait_in)
+            ir_out = NOP;
+        else
+            ir_out = i_mem_data_in;
+    end else begin
+        // If not active, we are holding buffered data
+        ir_out = ir_buff;
+    end
 end
 
 endmodule

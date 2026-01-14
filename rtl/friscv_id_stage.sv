@@ -161,8 +161,8 @@ always_comb begin
                 3'b100: instr_ex_out.alu_op = XOR_OP;
                 3'b101: begin
                     case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SRL_OP;  // srl
-                        7'b0100000: instr_ex_out.alu_op = SRA_OP;  // sra
+                        7'b0000000: instr_ex_out.alu_op = SRL_OP;
+                        7'b0100000: instr_ex_out.alu_op = SRA_OP;
                         default:    illegal_inst = 1'b1;
                     endcase
                 end
@@ -197,8 +197,8 @@ always_comb begin
                 3'b101: begin
                     imm_sel = I2_TYPE;
                     case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SRL_OP;  // srli
-                        7'b0100000: instr_ex_out.alu_op = SRA_OP;  // srai
+                        7'b0000000: instr_ex_out.alu_op = SRL_OP;
+                        7'b0100000: instr_ex_out.alu_op = SRA_OP;
                         default:    illegal_inst = 1'b1;
                     endcase
                 end

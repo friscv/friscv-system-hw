@@ -38,7 +38,7 @@ package friscv_pkg;
 	
 	localparam int unsigned ZSBL_ROM_SIZE = 256;
 
-    localparam int unsigned NOP = 32'H00000013;  // addi x0,x0,0
+    localparam int unsigned NOP = 32'h00000013;  // addi x0,x0,0
 
 	typedef logic [ADDR_WIDTH-1:0]    addr_t;
 	typedef logic [DATA_WIDTH-1:0]    data_t;
