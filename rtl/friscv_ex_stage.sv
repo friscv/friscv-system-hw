@@ -131,11 +131,11 @@ always_comb begin
         AND_OP:  alu_data_out = alu_input_a & alu_input_b;
         OR_OP:   alu_data_out = alu_input_a | alu_input_b;
         XOR_OP:  alu_data_out = alu_input_a ^ alu_input_b;
-        SLL_OP:  alu_data_out = alu_input_a << alu_input_b;
-        SRL_OP:  alu_data_out = alu_input_a >> alu_input_b;
-        SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b;
-        SLT_OP:  alu_data_out = $signed(alu_input_a) < $signed(alu_input_b);
-        SLTU_OP: alu_data_out = alu_input_a < alu_input_b;
+        SLL_OP:  alu_data_out = alu_input_a << alu_input_b[4:0];
+        SRL_OP:  alu_data_out = alu_input_a >> alu_input_b[4:0];
+        SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b[4:0];
+        SLT_OP:  alu_data_out = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
+        SLTU_OP: alu_data_out = {31'b0, alu_input_a < alu_input_b};
         default: alu_data_out = 0;
     endcase
 end
