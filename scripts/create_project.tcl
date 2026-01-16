@@ -54,100 +54,139 @@ if {[file exists ${ip_dir}]} {
     }
 }
 
-# Create and configure block design
-set bd_tcl_file "${bd_dir}/design_1/design_1.tcl"
-if {[file exists ${bd_tcl_file}]} {
-    puts ""
-    puts "=========================================="
-    puts "Configuring Block Design"
-    puts "=========================================="
-    puts "Sourcing block design from ${bd_tcl_file}..."
+# Create and configure block designs
+puts ""
+puts "=========================================="
+puts "Configuring Block Designs"
+puts "=========================================="
+
+# Find all block design directories
+if {[file exists ${bd_dir}]} {
+    set bd_dirs [glob -nocomplain -type d ${bd_dir}/*]
     
-    # Source the block design TCL
-    source ${bd_tcl_file}
-    
-    # Get the block design name
-    set bd_name [current_bd_design]
-    puts "Block design name: ${bd_name}"
-    
-    # Regenerate layout
-    puts "Regenerating block design layout..."
-    regenerate_bd_layout
-    
-    # Save the block design (creates the .bd file)
-    puts "Saving block design..."
-    save_bd_design
-    
-    # Now get the .bd file
-    set bd_file [get_files ${bd_name}.bd]
-    
-    # Try to validate, but don't fail if there are errors
-    puts "Validating block design..."
-    if {[catch {validate_bd_design} validation_result]} {
-        puts ""
-        puts "WARNING: Block design validation failed:"
-        puts "----------------------------------------"
-        puts $validation_result
-        puts "----------------------------------------"
-        puts "Continuing anyway - fix errors in GUI before synthesis"
-        puts ""
-    } else {
-        puts "Block design validated successfully!"
-    }
-    
-    # Generate output products
-    puts "Generating output products..."
-    if {[catch {generate_target all ${bd_file}} gen_result]} {
-        puts "WARNING: Could not generate all output products:"
-        puts $gen_result
-        puts "Attempting to generate synthesis files only..."
-        if {[catch {generate_target {synthesis} ${bd_file}} synth_result]} {
-            puts "WARNING: Could not generate synthesis files either:"
-            puts $synth_result
+    if {[llength $bd_dirs] > 0} {
+        set top_bd_name "design_1"
+        set processed_designs [list]
+        
+        foreach bd_subdir $bd_dirs {
+            set bd_name [file tail ${bd_subdir}]
+            set bd_tcl_file "${bd_subdir}/${bd_name}.tcl"
+            
+            if {[file exists ${bd_tcl_file}]} {
+                puts ""
+                puts "Processing block design: ${bd_name}"
+                puts "----------------------------------------"
+                puts "Sourcing block design from ${bd_tcl_file}..."
+                
+                # Source the block design TCL
+                source ${bd_tcl_file}
+                
+                # Get the block design name
+                set current_bd [current_bd_design]
+                puts "Block design name: ${current_bd}"
+                
+                # Regenerate layout
+                puts "Regenerating block design layout..."
+                regenerate_bd_layout
+                
+                # Save the block design (creates the .bd file)
+                puts "Saving block design..."
+                save_bd_design
+                
+                # Now get the .bd file
+                set bd_file [get_files ${current_bd}.bd]
+                
+                # Try to validate, but don't fail if there are errors
+                puts "Validating block design..."
+                if {[catch {validate_bd_design} validation_result]} {
+                    puts ""
+                    puts "WARNING: Block design validation failed:"
+                    puts "----------------------------------------"
+                    puts $validation_result
+                    puts "----------------------------------------"
+                    puts "Continuing anyway - fix errors in GUI before synthesis"
+                    puts ""
+                } else {
+                    puts "Block design validated successfully!"
+                }
+                
+                # Generate output products
+                puts "Generating output products..."
+                if {[catch {generate_target all ${bd_file}} gen_result]} {
+                    puts "WARNING: Could not generate all output products:"
+                    puts $gen_result
+                    puts "Attempting to generate synthesis files only..."
+                    if {[catch {generate_target {synthesis} ${bd_file}} synth_result]} {
+                        puts "WARNING: Could not generate synthesis files either:"
+                        puts $synth_result
+                    }
+                } else {
+                    puts "Output products generated successfully"
+                }
+                
+                # Create HDL wrapper
+                puts "Creating HDL wrapper for block design..."
+                if {[catch {
+                    set wrapper_file [make_wrapper -files ${bd_file} -top]
+                    add_files -norecurse ${wrapper_file}
+                } wrapper_error]} {
+                    puts "ERROR: Failed to create HDL wrapper:"
+                    puts $wrapper_error
+                    puts ""
+                    puts "This usually means there are design errors that must be fixed."
+                    puts "Open the project and fix the block design, then try again."
+                    return -code error "HDL wrapper creation failed for ${bd_name}"
+                }
+                
+                lappend processed_designs ${current_bd}
+                puts "Block design ${bd_name} configured successfully"
+                
+            } else {
+                puts "WARNING: Block design TCL not found at ${bd_tcl_file}"
+            }
         }
+        
+        # Set design_1 wrapper as top (if it exists)
+        if {[lsearch $processed_designs ${top_bd_name}] != -1} {
+            puts ""
+            puts "Setting ${top_bd_name}_wrapper as top module..."
+            set_property top ${top_bd_name}_wrapper [current_fileset]
+            set_property top_auto_set 0 [current_fileset]
+            
+            # Update compile order
+            update_compile_order -fileset sources_1
+            
+            puts ""
+            puts "=========================================="
+            puts "Block Design Configuration Complete!"
+            puts "=========================================="
+            puts "Processed [llength $processed_designs] block design(s):"
+            foreach bd $processed_designs {
+                if {${bd} eq ${top_bd_name}} {
+                    puts "  * ${bd} (TOP)"
+                } else {
+                    puts "    ${bd}"
+                }
+            }
+            puts ""
+        } else {
+            puts ""
+            puts "WARNING: Top block design '${top_bd_name}' was not found!"
+            puts "Available designs: $processed_designs"
+            puts "You will need to set the top module manually."
+            puts ""
+        }
+        
     } else {
-        puts "Output products generated successfully"
+        puts "No block design directories found in ${bd_dir}"
     }
-    
-    # Create HDL wrapper
-    puts "Creating HDL wrapper for block design..."
-    if {[catch {
-        set wrapper_file [make_wrapper -files ${bd_file} -top]
-        add_files -norecurse ${wrapper_file}
-    } wrapper_error]} {
-        puts "ERROR: Failed to create HDL wrapper:"
-        puts $wrapper_error
-        puts ""
-        puts "This usually means there are design errors that must be fixed."
-        puts "Open the project and fix the block design, then try again."
-        return -code error "HDL wrapper creation failed"
-    }
-    
-    # Set wrapper as top and lock it
-    puts "Setting ${bd_name}_wrapper as top module..."
-    set_property top ${bd_name}_wrapper [current_fileset]
-    set_property top_auto_set 0 [current_fileset]
-    
-    # Update compile order
-    update_compile_order -fileset sources_1
-    
-    puts ""
-    puts "Block design configuration complete!"
-    puts "  Design: ${bd_name}"
-    puts "  Wrapper: ${bd_name}_wrapper (set as TOP)"
-    puts ""
-    
 } else {
-    puts ""
-    puts "WARNING: Block design TCL not found at ${bd_tcl_file}"
+    puts "Block design directory not found: ${bd_dir}"
     puts ""
     puts "To export your block design:"
     puts "  1. Open your block design in Vivado"
     puts "  2. File -> Export -> Export Block Design"
-    puts "  3. Save as: ${bd_tcl_file}"
-    puts ""
-    puts "Or use Tcl command:"
-    puts "  write_bd_tcl ${bd_tcl_file}"
+    puts "  3. Save to: ${bd_dir}/<design_name>/<design_name>.tcl"
     puts ""
 }
 
