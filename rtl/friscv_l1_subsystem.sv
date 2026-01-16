@@ -54,7 +54,7 @@ state_t state, next_state;
 logic priority_flag; // 0=Inst, 1=Data
 
 // FSM Update
-always_ff @(posedge i_clk) begin
+always_ff @(posedge i_clk or negedge i_rstn) begin
     if (!i_rstn) begin
         state <= S_IDLE;
         priority_flag <= 1'b0;
@@ -62,7 +62,7 @@ always_ff @(posedge i_clk) begin
         state <= next_state;
         // Rotate priority on transaction completion
         if (state != S_IDLE && next_state == S_IDLE) begin
-            priority_flag <= ~priority_flag;
+            priority_flag <= !priority_flag;
         end
     end
 end

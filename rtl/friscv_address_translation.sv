@@ -34,9 +34,10 @@ addr_t r_base_addr;
 // - Addresses >= DRAM_BASE are DRAM, translate by: (cpu_addr - DRAM_BASE) + base_addr
 assign o_dram_addr = (i_cpu_addr < DRAM_BASE) ? i_cpu_addr : (i_cpu_addr - DRAM_BASE) + r_base_addr;
 
-always_ff @(posedge i_clk) begin
-    if (!i_rstn)
+always_ff @(posedge i_clk or negedge i_rstn) begin
+    if (!i_rstn) begin
         r_base_addr <= i_base_addr;
+    end
 end
 
 endmodule

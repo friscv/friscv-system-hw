@@ -20,6 +20,7 @@ module friscv_if_stage (
 
     // Stage control inputs
     input  logic  rst_n_in,
+    input  logic  flush_in,
     input  logic  stage_stall_in,
     input  logic  jump_branch_in,
     input  logic  i_mem_wait_in,
@@ -39,24 +40,26 @@ module friscv_if_stage (
 );
 
 addr_t pc_reg;
-inst_t ir_buff;  // Buffer for fetched instruction
+inst_t ir_buff;
+logic  r_fetch_active;
 
-// Set when we start a new fetch, cleared when wait goes low
-logic r_fetch_active;
-
-always_ff @(posedge clk_in) begin
-    if (jump_branch_in) begin
-        pc_reg <= {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00};
+always_ff @(posedge clk_in or negedge rst_n_in) begin
+    if (!rst_n_in) begin
+        pc_reg         <= RESET_VEC;
         r_fetch_active <= 1'b1;
-    end else if (~rst_n_in) begin
-        pc_reg <= RESET_VEC;
-        r_fetch_active <= 1'b1;
-    end else if (~stage_stall_in) begin
-        pc_reg <= pc_plus_4_out;
-        r_fetch_active <= 1'b1;
-    end else if (r_fetch_active && ~i_mem_wait_in) begin
-        ir_buff <= i_mem_data_in;
-        r_fetch_active <= 1'b0;
+        ir_buff        <= NOP;
+    end else begin
+        if (flush_in || jump_branch_in) begin
+            pc_reg         <= jump_branch_in ? {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00} : RESET_VEC;
+            r_fetch_active <= 1'b1;
+            ir_buff        <= NOP;
+        end else if (!stage_stall_in) begin
+            pc_reg         <= pc_plus_4_out;
+            r_fetch_active <= 1'b1;
+        end else if (r_fetch_active && !i_mem_wait_in) begin
+            r_fetch_active <= 1'b0;
+            ir_buff        <= i_mem_data_in;
+        end 
     end
 end
 
@@ -66,15 +69,13 @@ always_comb begin
     i_mem_addr_out = pc_reg;
     i_mem_en_out = r_fetch_active;
 
-    // Gate the output with Wait/Active status
     if (r_fetch_active) begin
-        // If fetching and waiting, output NOP to prevent garbage decoding
-        if (i_mem_wait_in)
+        if (i_mem_wait_in) begin
             ir_out = NOP;
-        else
+        end else begin
             ir_out = i_mem_data_in;
+        end
     end else begin
-        // If not active, we are holding buffered data
         ir_out = ir_buff;
     end
 end

@@ -35,9 +35,8 @@ module friscv_core (
     input  logic       d_mem_wait_in
 );
 
-logic rst_n_if, rst_n_id;
+logic flush_if, flush_id;
 logic stall_if, stall_id, stall_ex, stall_mem, flush_ex;
-logic rst_id_wb_ok;
 
 // IF stage signals
 addr_t if_pc_out, if_pc_plus_4_out;
@@ -71,9 +70,8 @@ reg_addr_t wb_rd_sel_out;
 friscv_pipeline_control control_unit (
     .clk_in           ( i_clk             ),
     .rst_n_cpu_in     ( i_rstn            ),
-    .rst_n_if_out     ( rst_n_if          ),
-    .rst_n_id_out     ( rst_n_id          ),
-    .rst_id_wb_ok_out ( rst_id_wb_ok      ),
+    .flush_if_out     ( flush_if          ),
+    .flush_id_out     ( flush_id          ),
     .stall_if_out     ( stall_if          ),
     .stall_id_out     ( stall_id          ),
     .stall_ex_out     ( stall_ex          ),
@@ -91,7 +89,8 @@ friscv_pipeline_control control_unit (
 
 friscv_if_stage if_stage (
     .clk_in              ( i_clk             ),
-    .rst_n_in            ( rst_n_if          ),
+    .rst_n_in            ( i_rstn            ),
+    .flush_in            ( flush_if          ),
     .stage_stall_in      ( stall_if          ),
     .jump_branch_in      ( if_jump_branch_in ),
     .i_mem_wait_in       ( i_mem_wait_in     ),
@@ -106,9 +105,9 @@ friscv_if_stage if_stage (
 
 friscv_id_stage id_stage (
     .clk_in          ( i_clk            ),
-    .rst_n_in        ( rst_n_id         ),
+    .rst_n_in        ( i_rstn           ),
+    .flush_in        ( flush_if         ),
     .stage_stall_in  ( stall_id         ),
-    .rst_id_wb_ok_in ( rst_id_wb_ok     ),
     .rs1_sel_out     ( id_rs1_sel_out   ),
     .rs2_sel_out     ( id_rs2_sel_out   ),
     .illegal_inst    ( id_illegal_inst  ),

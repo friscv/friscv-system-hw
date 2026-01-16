@@ -65,7 +65,7 @@ assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
 // MEM stage always accepts data from EX stage
 // Bubbles are inserted by EX sending instructions with rd_sel=0
 always_ff @(posedge clk_in or negedge rst_n_in) begin
-    if (~rst_n_in) begin
+    if (!rst_n_in) begin
         pc_plus_4_buff        <= '0;
         alu_data_buff         <= '0;
         store_data_buff       <= '0;
@@ -78,7 +78,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         load_data_buff        <= '0;
     end
     else begin
-        if (~stage_stall_in) begin
+        if (!stage_stall_in) begin
             pc_plus_4_buff        <= pc_plus_4_in;
             alu_data_buff         <= alu_data_in;
             store_data_buff       <= store_data_in;
@@ -89,7 +89,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             r_mem_active          <= w_is_mem_instr;
             r_load_data_valid     <= 1'b0;  // Clear on new instruction
         end
-        else if (r_mem_active && ~d_mem_wait_in) begin
+        else if (r_mem_active && !d_mem_wait_in) begin
             r_mem_active <= 1'b0;
             // Capture load data when load completes
             if (mem_instr_sel_buff == MEM_INSTR_LOAD) begin
@@ -174,7 +174,7 @@ always_comb begin
         WB_DATA_SEL_PC_PLUS_4: rd_data_out = pc_plus_4_buff;
         WB_DATA_SEL_ALU:       rd_data_out = alu_data_buff;
         WB_DATA_SEL_MEM:       rd_data_out = r_load_data_valid ? load_data_buff : load_data;
-        default:               rd_data_out = 0;
+        default:               rd_data_out = '0;
     endcase
 end
 

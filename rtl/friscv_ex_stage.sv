@@ -67,19 +67,32 @@ friscv_ex_stage_branch_unit branch_unit (
 );
 
 // Stage inputs buffering
-always_ff @(posedge clk_in) begin
-    if (~rst_n_in) begin
-        // Reset all buffers
-    end
-    
-    if (~stage_stall_in) begin
+always_ff @(posedge clk_in or negedge rst_n_in) begin
+    if (!rst_n_in) begin
+        pc_buff <= '0;
+        pc_plus_4_buff <= '0;
+        rs1_buff <= '0;
+        rs2_buff <= '0;
+        imm32_buff <= '0;
+        rd_sel_buff <= '0;
+        instr_ex_buff <= '{
+            branch_jal_sel: BRANCH_JAL_NONE,
+            branch_cond: COND_EQ,
+            mux1_sel: RS,
+            mux2_sel: RS,
+            alu_op: ADD_OP,
+            mem_instr_sel: MEM_INSTR_NONE,
+            load_store_width: WIDTH_I32,
+            wb_data_sel: WB_DATA_SEL_ALU
+        };
+    end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
-            pc_buff <= 0;
-            pc_plus_4_buff <= 0;
-            rs1_buff <= 0;
-            rs2_buff <= 0;
-            imm32_buff <= 0;
-            rd_sel_buff <= 0;
+            pc_buff <= '0;
+            pc_plus_4_buff <= '0;
+            rs1_buff <= '0;
+            rs2_buff <= '0;
+            imm32_buff <= '0;
+            rd_sel_buff <= '0;
             instr_ex_buff <= '{
                 branch_jal_sel: BRANCH_JAL_NONE,
                 branch_cond: COND_EQ,
@@ -136,7 +149,7 @@ always_comb begin
         SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b[4:0];
         SLT_OP:  alu_data_out = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
         SLTU_OP: alu_data_out = {31'b0, alu_input_a < alu_input_b};
-        default: alu_data_out = 0;
+        default: alu_data_out = '0;
     endcase
 end
 
@@ -156,7 +169,7 @@ always_comb begin
             else                 store_data_out = {16'h0000, rs2_buff[15:0]};
         end
         3'b010:  store_data_out = rs2_buff; //W
-        default: store_data_out = 0;
+        default: store_data_out = '0;
     endcase
 end
 

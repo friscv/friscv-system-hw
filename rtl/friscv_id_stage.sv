@@ -20,8 +20,8 @@ module friscv_id_stage (
 
     // Stage control inputs
     input  logic      rst_n_in,
+    input  logic      flush_in,
     input  logic      stage_stall_in,
-    input  logic      rst_id_wb_ok_in,
 
     output reg_addr_t rs1_sel_out,
     output reg_addr_t rs2_sel_out,
@@ -60,21 +60,26 @@ assign pc_out = pc_in_buff;
 assign pc_plus_4_out = pc_plus_4_in_buff;
 
 // IF stage input buffers
-always_ff @(posedge clk_in) begin
-    if (~rst_n_in && ~rst_id_wb_ok_in) begin
+always_ff @(posedge clk_in or negedge rst_n_in) begin
+    if (!rst_n_in) begin
         regfile <= '{REGISTER_NUM{0}};
-    end else if (rd_sel_in != 0) begin
-        regfile[rd_sel_in] <= rd_data_in;
-    end
-    
-    if (~rst_n_in) begin
+        pc_in_buff <= '0;
+        pc_plus_4_in_buff <= '0;
         ir_buff <= NOP;
-        pc_in_buff <= 0;
-        pc_plus_4_in_buff <= 0;
-    end else if (~stage_stall_in) begin
-        ir_buff <= ir_in;
-        pc_in_buff <= pc_in;
-        pc_plus_4_in_buff <= pc_plus_4_in;
+    end else begin
+        if (rd_sel_in != 0) begin
+            regfile[rd_sel_in] <= rd_data_in;
+        end
+
+        if (flush_in) begin
+            ir_buff <= NOP;
+            pc_in_buff <= 0;
+            pc_plus_4_in_buff <= 0;
+        end else if (!stage_stall_in) begin
+            ir_buff <= ir_in;
+            pc_in_buff <= pc_in;
+            pc_plus_4_in_buff <= pc_plus_4_in;
+        end
     end
 end
 
@@ -86,7 +91,7 @@ always_comb begin
         B_TYPE:  imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
         U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
         J_TYPE:  imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
-        default: imm32_out = 0;
+        default: imm32_out = '0;
     endcase  
 end
 
@@ -100,9 +105,9 @@ always_comb begin
     instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
     instr_ex_out.load_store_width = WIDTH_I32;
     instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
-    rs1_sel_out = 0;
-    rs2_sel_out = 0;
-    rd_sel_out  = 0;
+    rs1_sel_out = '0;
+    rs2_sel_out = '0;
+    rd_sel_out  = '0;
     illegal_inst = 1'b0;
 
     case (ir_buff.r.opcode)
@@ -117,7 +122,7 @@ always_comb begin
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
-            rs2_sel_out = 0;
+            rs2_sel_out = '0;
             rd_sel_out  = ir_buff.r.rd;
         end
 
@@ -132,7 +137,7 @@ always_comb begin
             imm_sel = S_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
             rs2_sel_out = ir_buff.r.rs2;
-            rd_sel_out  = 0;
+            rd_sel_out  = '0;
         end
 
         ALOP: begin

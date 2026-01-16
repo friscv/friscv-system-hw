@@ -135,7 +135,7 @@ assign m_axi_arqos   = 4'h0;
 assign o_wait = w_next_state != S_IDLE;
 
 // Clocked logic
-always_ff @(posedge i_clk) begin
+always_ff @(posedge i_clk or negedge i_rstn) begin
     if (!i_rstn) begin
         r_rw <= RW_IDLE;
         r_state <= S_IDLE;
@@ -157,12 +157,12 @@ end
 // State transition logic
 always_comb begin
     w_next_state  = r_state;
-    m_axi_awvalid = 0;
-    m_axi_wvalid  = 0;
-    m_axi_wlast   = 0;
-    m_axi_bready  = 0;
-    m_axi_arvalid = 0;
-    m_axi_rready  = 0;
+    m_axi_awvalid = 1'b0;
+    m_axi_wvalid  = 1'b0;
+    m_axi_wlast   = 1'b0;
+    m_axi_bready  = 1'b0;
+    m_axi_arvalid = 1'b0;
+    m_axi_rready  = 1'b0;
 
     unique case (r_state)
         S_IDLE: begin
@@ -175,7 +175,7 @@ always_comb begin
             end
         end
         S_W_ADDR: begin
-            m_axi_awvalid = 1;
+            m_axi_awvalid = 1'b1;
             w_next_state  = (m_axi_awready) ? S_W_DATA : S_W_ADDR;
         end
         S_W_DATA: begin
@@ -192,7 +192,7 @@ always_comb begin
             end
         end
         S_R_ADDR: begin
-            m_axi_arvalid = 1;
+            m_axi_arvalid = 1'b1;
             w_next_state  = (m_axi_arready) ? S_R_DATA :  S_R_ADDR;
         end
         S_R_DATA: begin

@@ -12,13 +12,13 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="880.001 ns"></ZoomEndTime>
-      <Cursor1Time time="880.000 ns"></Cursor1Time>
+      <ZoomStartTime time="280.539 ns"></ZoomStartTime>
+      <ZoomEndTime time="488.306 ns"></ZoomEndTime>
+      <Cursor1Time time="3,150.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="332"></NameColumnWidth>
-      <ValueColumnWidth column_width="152"></ValueColumnWidth>
+      <ValueColumnWidth column_width="145"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="21" />
    <wvobject type="logic" fp_name="/tb_cc/rstn">
@@ -110,6 +110,18 @@
          <obj_property name="CustomSignalColor">#00FFFF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
+      <wvobject type="array" fp_name="/tb_cc/dut/l1_subsystem/state">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/i_mem_wait">
+         <obj_property name="ElementShortName">i_mem_wait</obj_property>
+         <obj_property name="ObjectShortName">i_mem_wait</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/priority_flag">
+         <obj_property name="ElementShortName">priority_flag</obj_property>
+         <obj_property name="ObjectShortName">priority_flag</obj_property>
+      </wvobject>
       <wvobject type="group" fp_name="group146">
          <obj_property name="label">I Mem</obj_property>
          <obj_property name="DisplayName">label</obj_property>
@@ -124,12 +136,6 @@
             <obj_property name="ElementShortName">o_inst_wait</obj_property>
             <obj_property name="ObjectShortName">o_inst_wait</obj_property>
             <obj_property name="CustomSignalColor">#FFA500</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/w_inst_grant">
-            <obj_property name="ElementShortName">w_inst_grant</obj_property>
-            <obj_property name="ObjectShortName">w_inst_grant</obj_property>
-            <obj_property name="CustomSignalColor">#00FF7F</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
@@ -147,12 +153,6 @@
             <obj_property name="ElementShortName">o_data_wait</obj_property>
             <obj_property name="ObjectShortName">o_data_wait</obj_property>
             <obj_property name="CustomSignalColor">#FFA500</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/w_data_grant">
-            <obj_property name="ElementShortName">w_data_grant</obj_property>
-            <obj_property name="ObjectShortName">w_data_grant</obj_property>
-            <obj_property name="CustomSignalColor">#00FF7F</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>

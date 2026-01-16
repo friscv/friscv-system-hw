@@ -66,14 +66,6 @@ module friscv_soc (
     input  logic [1:0]  m_axi_rresp
 );
 
-// Synchronous reset
-logic r_rstn;
-
-always_ff @(posedge i_clk) begin
-    r_rstn <= i_rstn;
-end
-
-// Host bus
 mem_width_t  w_size;
 logic [31:0] w_phy_addr;
 logic [31:0] w_dram_addr;
@@ -82,11 +74,9 @@ logic [31:0] w_rdata;
 rw_cmd_t     w_rw;
 logic        w_wait;
 
-// Core complex
-// Contains datapath + control unit
 friscv_core_complex cc_0 (
     .i_clk       ( i_clk      ),
-    .i_rstn      ( r_rstn     ),
+    .i_rstn      ( i_rstn     ),
     .o_end       ( o_end      ),
     .o_mem_size  ( w_size     ),
     .o_mem_addr  ( w_phy_addr ),

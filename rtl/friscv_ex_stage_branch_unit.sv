@@ -45,19 +45,19 @@ always_comb begin
         BRANCH_INSTR: begin
             case (branch_cond_in)     
                 COND_EQ:  branch_ok_out = z;
-                COND_NE:  branch_ok_out = ~z;
+                COND_NE:  branch_ok_out = !z;
                 COND_LT:  branch_ok_out = n ^ v;
-                COND_GE:  branch_ok_out = ~(n ^ v);
-                COND_LTU: branch_ok_out = ~c;
+                COND_GE:  branch_ok_out = !(n ^ v);
+                COND_LTU: branch_ok_out = !c;
                 COND_GEU: branch_ok_out = c;
-                default:  branch_ok_out = 0;
+                default:  branch_ok_out = 1'b0;
             endcase
         end
         JAL_INSTR: begin
             branch_ok_out = 1;
         end
         default: begin
-            branch_ok_out = 0;
+            branch_ok_out = 1'b0;
         end
     endcase
 end
