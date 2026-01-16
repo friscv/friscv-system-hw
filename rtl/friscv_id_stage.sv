@@ -109,6 +109,7 @@ always_comb begin
     rs2_sel_out = '0;
     rd_sel_out  = '0;
     illegal_inst = 1'b0;
+    imm_sel = I_TYPE;
 
     case (ir_buff.r.opcode)
         LOAD: begin

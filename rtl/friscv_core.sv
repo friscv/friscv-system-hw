@@ -63,10 +63,6 @@ logic           ex_branch_ok_out;
 data_t     mem_rd_data_out;
 reg_addr_t mem_rd_sel_out;
 
-// WB stage signals
-data_t     wb_rd_data_out;
-reg_addr_t wb_rd_sel_out;
-
 friscv_pipeline_control control_unit (
     .clk_in           ( i_clk             ),
     .rst_n_cpu_in     ( i_rstn            ),
@@ -121,8 +117,8 @@ friscv_id_stage id_stage (
     .rs2_out         ( id_rs2_out       ),
     .imm32_out       ( id_imm32_out     ),
     .instr_ex_out    ( id_instr_ex_out  ),
-    .rd_sel_in       ( wb_rd_sel_out    ),
-    .rd_data_in      ( wb_rd_data_out   )
+    .rd_sel_in       ( mem_rd_sel_out   ),
+    .rd_data_in      ( mem_rd_data_out  )
 );
 
 friscv_ex_stage ex_stage (
@@ -167,13 +163,6 @@ friscv_mem_stage mem_stage (
     .d_mem_wr_out        ( d_mem_wr_out            ),
     .d_mem_size_out      ( d_mem_size_out          ),
     .d_mem_wait_in       ( d_mem_wait_in           )
-);
-
-friscv_wb_stage wb_stage (
-    .rd_data_in  ( mem_rd_data_out ),
-    .rd_sel_in   ( mem_rd_sel_out  ),
-    .rd_data_out ( wb_rd_data_out  ),
-    .rd_sel_out  ( wb_rd_sel_out   )
 );
 
 endmodule
