@@ -115,7 +115,7 @@ assign misaligned_request = (i_rw != RW_IDLE) && (
 assign o_rdata       = (m_axi_rvalid && m_axi_rready) ? m_axi_rdata : r_rdata;
 assign m_axi_awaddr  = r_addr;
 assign m_axi_awsize  = r_size;
-assign m_axi_awcache = 4'b0000;
+assign m_axi_awcache = 4'b0011;
 assign m_axi_awprot  = 3'b000;
 assign m_axi_awburst = 2'b01; 
 assign m_axi_awlen   = 8'h00;
@@ -125,7 +125,7 @@ assign m_axi_awqos   = 4'h0;
 assign m_axi_wdata   = r_wdata;
 assign m_axi_araddr  = r_addr;
 assign m_axi_arsize  = r_size;
-assign m_axi_arcache = 4'b0000;
+assign m_axi_arcache = 4'b0011;
 assign m_axi_arprot  = 3'b000;
 assign m_axi_arburst = 2'b01;
 assign m_axi_arlen   = 8'h00;

@@ -77,6 +77,37 @@ Development on Linux and Windows is supported. See the appropriate guide below.
 
 </details>
 
+### Quick Start
+
+To get started right away, run these commands on Linux:
+
+```bash
+# Create the project
+make
+# Build a program
+cd test
+make count_fast.S
+cd ..
+# Run the program (with board connected and turned on)
+make go
+```
+
+Or these commands on Windows:
+
+In WSL:
+
+```bash
+cd test
+make count_fast.S
+```
+
+And then in Powershell:
+
+```powershell
+.\build.ps1
+.\build.ps1 -Target go
+```
+
 ## Building the Bitstream
 
 The bitstream is provided in the `overlay/` directory and should be built from the source files exactly as they are in the repository. The bitstream only needs to be rebuilt if changes have been made to the RTL design (`rtl/`), block design (`bd/`), or constraints (`constraints/`).
@@ -113,10 +144,25 @@ Building a program will generate `prog.bin`, a binary file which can be loaded d
 
 ## Running Programs Using XSDB
 
-XSDB (Xilinx System Debugger) can be used to load and start programs with ARM inactive during runtime. Before loading and running a program, it needs to be compiled and/or assembled to `test/prog.bin`.
-
 > [!NOTE]
 > Again, both Linux and Windows is supported. First the Linux command will be shown, then Windows.
+
+XSDB (Xilinx System Debugger) can be used to load and start programs with ARM inactive during runtime. Before loading and running a program, it needs to be compiled and/or assembled to `test/prog.bin`.
+
+> [!IMPORTANT]
+> FRISC-V cannot be reset externally after it was released from reset for the first time after programming the FPGA. That is because DDR must be retrained after each reset. **Before running another program, turn the board off and program it again.**
+
+**Programming the FPGA:**
+
+To load the bitstream into the FPGA, run:
+
+```bash
+make program
+```
+
+```powershell
+.\build.ps1 -Target program
+```
 
 **Loading a program:**
 
@@ -128,18 +174,6 @@ make load
 
 ```powershell
 .\build.ps1 -Target bitstream
-```
-
-**Reading memory:**
-
-Memory addresses starting at `0x8000_0000` can be read to check if a program has loaded correctly.
-
-```bash
-make status
-```
-
-```powershell
-.\build.ps1 -Target status
 ```
 
 **Starting execution:**
@@ -164,4 +198,16 @@ make reset
 
 ```powershell
 .\build.ps1 -Target reset
+```
+
+**Programming and running:**
+
+It is possible to program the board, load `prog.bin` and start execution with a single command.
+
+```bash
+make go
+```
+
+```powershell
+.\build.ps1 -Target go
 ```

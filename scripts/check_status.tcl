@@ -14,12 +14,8 @@ if {[file exists $script_dir/ps7_init.tcl]} {
 configparams force-mem-accesses 1
 
 # Read reset register
-set reset_val [mrd -value 0x41210000]
+set reset_val [mrd -value 0x41200000]
 puts "Reset register: $reset_val"
-
-# Read base address register
-set base_addr [mrd -value 0x41200000]
-puts "Base address register: 0x[format %08X $base_addr]"
 
 # Read first few instructions from DDR memory at address 0x0
 puts "\nFirst instructions at 0x0:"
@@ -27,16 +23,6 @@ if {[catch {mrd 0x0 16} result]} {
     puts "ERROR reading memory at 0x0: $result"
 } else {
     puts $result
-}
-
-# If base address is set, try reading from there too
-if {$base_addr != 0} {
-    puts "\nFirst instructions at base address 0x[format %08X $base_addr]:"
-    if {[catch {mrd $base_addr 16} result]} {
-        puts "ERROR reading memory at 0x[format %08X $base_addr]: $result"
-    } else {
-        puts $result
-    }
 }
 
 disconnect

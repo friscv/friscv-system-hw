@@ -2,6 +2,7 @@
 .global _start
 
 _start:
+    nop
     # Seed value to walk through x1..x31
     li x1, 0x12345678
 
@@ -39,8 +40,12 @@ _start:
 
     # Store final value to GPIO at 0x40000000
     lui t0, 0x40000
+    nop
+    nop
     sw x31, 0(t0)
 
     # Signal completion at 0x50000000
     lui t1, 0x50000
+    nop
+    nop
     sw x0, 0(t1)

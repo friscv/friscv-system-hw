@@ -18,9 +18,7 @@ Version info is listed in friscv_pkg.sv
 module friscv_soc (
     input  logic        i_clk,
     input  logic        i_rstn,
-
     output logic        o_end,
-    input  logic [31:0] i_base_addr,
 
     // AXI4 Master Write Address Channel
     output logic        m_axi_awvalid,
@@ -74,6 +72,8 @@ logic [31:0] w_rdata;
 rw_cmd_t     w_rw;
 logic        w_wait;
 
+assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
+
 friscv_core_complex cc_0 (
     .i_clk       ( i_clk      ),
     .i_rstn      ( i_rstn     ),
@@ -84,14 +84,6 @@ friscv_core_complex cc_0 (
     .i_mem_rdata ( w_rdata    ),
     .o_mem_rw    ( w_rw       ),
     .i_mem_wait  ( w_wait     )
-);
-
-friscv_address_translation address_unit (
-    .i_clk       ( i_clk       ),
-    .i_rstn      ( i_rstn      ),
-    .i_base_addr ( i_base_addr ),
-    .i_cpu_addr  ( w_phy_addr  ),
-    .o_dram_addr ( w_dram_addr )
 );
 
 friscv_axi_master axi_master (

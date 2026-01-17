@@ -17,10 +17,7 @@ if {[file exists $script_dir/ps7_init.tcl]} {
 configparams force-mem-accesses 1
 
 # Hold in reset
-mwr 0x41210000 0x0
-
-# Set base address
-mwr 0x41200000 $ddr_base
+mwr 0x41200000 0x0
 
 # Get file size to determine how much memory to zero
 set file_size [file size $bin_file]

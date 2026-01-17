@@ -168,11 +168,6 @@ switch ($Target) {
         Run-XSDB "$ScriptsDir\check_status.tcl"
     }
 
-    "reset" {
-        Write-Host "=== RESETTING FRISC-V CORE ===" -ForegroundColor Green
-        Run-XSDB "$ScriptsDir\hold_reset.tcl"
-    }
-
     "load" {
         if (-not (Test-Path $ProgBin)) {
             Write-Error "Binary file '$ProgBin' not found."
@@ -188,6 +183,12 @@ switch ($Target) {
     "run" {
         Write-Host "=== RELEASING FRISC-V CORE FROM RESET ===" -ForegroundColor Green
         Run-XSDB "$ScriptsDir\release_reset.tcl"
+    }
+
+    "go" {
+        & $PSCommandPath -Target program -ProgBin $ProgBin
+        & $PSCommandPath -Target load -ProgBin $ProgBin
+        & $PSCommandPath -Target run -ProgBin $ProgBin
     }
 
     "open" {
@@ -224,6 +225,6 @@ switch ($Target) {
     }
 
     default {
-        Write-Error "Unknown target '$Target'. Available targets: project, export-bd, bitstream, program, status, reset, load, run, open, clean"
+        Write-Error "Unknown target '$Target'. Available targets: project, export-bd, bitstream, program, status, load, run, go, open, clean"
     }
 }

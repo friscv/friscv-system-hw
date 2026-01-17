@@ -14,7 +14,7 @@ if {[file exists $script_dir/ps7_init.tcl]} {
 configparams force-mem-accesses 1
 
 # Release reset
-mwr 0x41210000 0x1
+mwr 0x41200000 0x1
 
 puts "FRISC-V running"
 

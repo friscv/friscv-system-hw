@@ -121,12 +121,6 @@ status:
 	@echo "=== CHECKING FPGA STATUS ==="
 	$(XSDB) $(SCRIPTS_DIR)/check_status.tcl
 
-# Hold FRISC-V core in reset
-.PHONY: reset
-reset:
-	@echo "=== RESETTING FRISC-V CORE ==="
-	$(XSDB) $(SCRIPTS_DIR)/hold_reset.tcl
-
 # Load program to memory
 .PHONY: load
 load:
@@ -144,6 +138,10 @@ load:
 run:
 	@echo "=== RELEASING FRISC-V CORE FROM RESET ==="
 	$(XSDB) $(SCRIPTS_DIR)/release_reset.tcl
+
+# Program FPGA, load prog.bin, and run
+.PHONY: go
+go: program load run
 
 # Open project in GUI
 .PHONY: open
@@ -209,7 +207,6 @@ help:
 	@echo "  make program               - Program FPGA directly via JTAG (USB cable)"
 	@echo ""
 	@echo "  make status                - Check FPGA status"
-	@echo "  make halt                  - Hold FRISC-V core in reset"
 	@echo "  make load                  - Load software/prog.bin to address 0x0"
 	@echo "  make run                   - Release FRISC-V core from reset"
 	@echo ""

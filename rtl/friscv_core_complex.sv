@@ -57,8 +57,6 @@ always_ff @(posedge i_clk or negedge i_rstn) begin
 end
 
 assign o_end = r_end_signal;
-
-// Stall instruction fetch when end signal is high
 assign w_inst_wait_stalled = w_inst_wait || r_end_signal;
 
 friscv_core cpu_0 (
@@ -81,7 +79,6 @@ friscv_core cpu_0 (
     .d_mem_wait_in  ( w_data_wait         )
 );
 
-// Contains the hart's fabric arbiter and L1I/L1D caches
 friscv_l1_subsystem l1_subsystem (
     .i_clk        ( i_clk            ),
     .i_rstn       ( i_rstn           ),

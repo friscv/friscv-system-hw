@@ -20,6 +20,7 @@ v 0.2.0     Matej Grzunov, Duje Strunje, 2022_06, pipeline debug, ALU debug, ini
 v 0.5.0		Mario Kovac, 2024_05, memory debug & update, system update
 v 0.9.0     Petra Kelkovic, Luka Kokic, 2024_06, cpu & system verification, external debug interface, PC & ARM SW, External IO board connections
 v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 official
+v 2.0.0     Emil Popovic, 2026_01, AXI interface, combinatorial control unit, automation scripts
 
 */
 
@@ -45,9 +46,10 @@ package friscv_pkg;
 	typedef logic [31:0]              inst_t;
 	typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
-	localparam addr_t RESET_VEC   = 32'h1000;
-	localparam addr_t END_ADDRESS = 32'h50000000;
-	localparam addr_t DRAM_BASE   = 32'h80000000;
+	localparam addr_t RESET_VEC     = 32'h1000;
+	localparam addr_t END_ADDRESS   = 32'h50000000;
+	localparam addr_t DRAM_BASE     = 32'h80000000;
+	localparam addr_t DRAM_START_AT = 32'h0;
 
 	typedef enum logic [2:0] {
 		I_TYPE  = 3'b000,

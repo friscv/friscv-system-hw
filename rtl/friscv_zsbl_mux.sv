@@ -26,9 +26,7 @@ module friscv_zsbl_mux (
 
 logic w_addr_is_zsbl;
 assign w_addr_is_zsbl = (i_addr >= RESET_VEC && i_addr < RESET_VEC + ZSBL_ROM_SIZE);
-
 assign o_data = w_addr_is_zsbl ? i_zsbl_data : i_mem_data;
-
 assign o_mem_en = i_en && !w_addr_is_zsbl;
 
 endmodule

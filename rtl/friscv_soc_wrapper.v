@@ -16,16 +16,13 @@ Version info is listed in friscv_pkg.sv
 // Pure Verilog wrapper for Vivado block design integration
 // The actual implementation is in friscv_soc.sv
 module friscv_soc_wrapper (
-    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 i_clk CLK" *)
-    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF m_axi, ASSOCIATED_RESET i_rstn" *)
-    input  wire i_clk,
-
-    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 i_rstn RST" *)
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 aclk CLK" *)
+    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF m_axi, ASSOCIATED_RESET aresetn" *)
+    input  wire aclk,
+    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 aresetn RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
-    input  wire i_rstn,
-
-    output wire o_end,
-    input  wire [31:0] i_base_addr,
+    input  wire aresetn,
+    output wire done,
 
     // AXI4 Master Write Address Channel
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWVALID" *)
@@ -105,10 +102,9 @@ module friscv_soc_wrapper (
 );
 
 friscv_soc soc_inst (
-    .i_clk          ( i_clk         ),
-    .i_rstn         ( i_rstn        ),
-    .o_end          ( o_end         ),
-    .i_base_addr    ( i_base_addr   ),
+    .i_clk          ( aclk          ),
+    .i_rstn         ( aresetn       ),
+    .o_end          ( done          ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),
