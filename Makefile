@@ -130,8 +130,8 @@ load:
 	fi
 	@echo "=== LOADING PROGRAM TO MEMORY ==="
 	@echo "Binary: test/prog.bin"
-	@echo "Address: 0x0"
-	$(XSDB) $(SCRIPTS_DIR)/load_program.tcl test/prog.bin 0x0
+	@echo "Address: 0x00100000"
+	$(XSDB) $(SCRIPTS_DIR)/load_program.tcl test/prog.bin 0x00100000
 
 # Release FRISC-V core from reset
 .PHONY: run
@@ -207,7 +207,7 @@ help:
 	@echo "  make program               - Program FPGA directly via JTAG (USB cable)"
 	@echo ""
 	@echo "  make status                - Check FPGA status"
-	@echo "  make load                  - Load software/prog.bin to address 0x0"
+	@echo "  make load                  - Load software/prog.bin to address 0x00100000"
 	@echo "  make run                   - Release FRISC-V core from reset"
 	@echo ""
 	@echo "  make help                  - Show this help"

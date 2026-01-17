@@ -49,7 +49,7 @@ package friscv_pkg;
 	localparam addr_t RESET_VEC     = 32'h1000;
 	localparam addr_t END_ADDRESS   = 32'h50000000;
 	localparam addr_t DRAM_BASE     = 32'h80000000;
-	localparam addr_t DRAM_START_AT = 32'h0;
+	localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000
 
 	typedef enum logic [2:0] {
 		I_TYPE  = 3'b000,

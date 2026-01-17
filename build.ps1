@@ -76,7 +76,6 @@ switch ($Target) {
             if (Test-Path $d) { Remove-Item $d -Recurse -Force }
         }
         
-        # Clean specific IP files (simplified globbing)
         if (Test-Path "bd\design_1\ip\design_1_friscv_soc_wrapper_0") {
             Get-ChildItem "bd\design_1\ip\design_1_friscv_soc_wrapper_0\*.dcp" -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
             Get-ChildItem "bd\design_1\ip\design_1_friscv_soc_wrapper_0\synth\*.v" -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
@@ -177,7 +176,7 @@ switch ($Target) {
         $ScriptPath = ($ScriptsDir + "\load_program.tcl") -replace "\\", "/"
         $BinArg = $ProgBin -replace "\\", "/"
         Write-Host "Running XSDB script: $ScriptPath" -ForegroundColor Cyan
-        & xsdb $ScriptPath $BinArg "0x0"
+        & xsdb $ScriptPath $BinArg "0x00100000"
     }
 
     "run" {

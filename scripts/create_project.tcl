@@ -8,15 +8,43 @@ set ip_dir "${origin_dir}/ip"
 set bd_dir "${origin_dir}/bd"
 set sim_dir "${origin_dir}/sim"
 
-# Device part for PYNQ-Z2
+# Device configuration for PYNQ-Z2
 set part "xc7z020clg400-1"
+set board_part "tul.com.tw:pynq-z2:part0:1.0"
 
 # Close any open project
 catch {close_project}
 
-# Create project
+# Try to create project with board first, fall back to part if board not available
 puts "Creating project ${project_name} in ${project_dir}..."
-create_project ${project_name} ${project_dir} -part ${part} -force
+puts "Attempting to use PYNQ-Z2 board files..."
+
+# Check if board part is available
+set board_available 0
+if {[catch {
+    set available_boards [get_board_parts]
+    if {[lsearch -exact $available_boards $board_part] != -1} {
+        set board_available 1
+    }
+}]} {
+    # get_board_parts failed, board repository may not be set up
+    set board_available 0
+}
+
+if {$board_available} {
+    puts "✓ PYNQ-Z2 board files found!"
+    puts "Creating project with board: ${board_part}"
+    create_project ${project_name} ${project_dir} -part ${part} -force
+    set_property board_part ${board_part} [current_project]
+} else {
+    puts "✗ PYNQ-Z2 board files not found"
+    puts "Creating project with part only: ${part}"
+    puts ""
+    puts "NOTE: To use board files, install them with:"
+    puts "  See INSTALL_BOARD_FILES.md for instructions"
+    puts ""
+    create_project ${project_name} ${project_dir} -part ${part} -force
+}
 
 # Set project properties
 set_property target_language Verilog [current_project]
