@@ -238,7 +238,7 @@ proc create_root_design { parentCell } {
   # Create instance: axi_uartlite_0, and set properties
   set axi_uartlite_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uartlite:2.0 axi_uartlite_0 ]
   set_property -dict [list \
-    CONFIG.C_BAUDRATE {110} \
+    CONFIG.C_BAUDRATE {115200} \
     CONFIG.C_S_AXI_ACLK_FREQ_HZ {125000000} \
   ] $axi_uartlite_0
 
@@ -858,6 +858,8 @@ proc create_root_design { parentCell } {
   # Create address segments
   assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc_wrapper/m_axi] [get_bd_addr_segs axi_uartlite_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc_wrapper/m_axi] [get_bd_addr_segs friscv_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces friscv_soc_wrapper/m_axi] [get_bd_addr_segs processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM] -force
+  assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs gpio_aresetn/S_AXI/Reg] -force
 
 
   # Restore current instance
