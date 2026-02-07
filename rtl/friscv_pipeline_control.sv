@@ -49,26 +49,18 @@ module friscv_pipeline_control (
 logic mem_stall, hazard_stall;
 
 always_comb begin
-    if (!rst_n_cpu_in) begin
-        {mem_stall, hazard_stall} = '0;
-        {stall_if_out, stall_id_out, stall_ex_out, stall_mem_out} = '0;
-        flush_ex_out  = 0;
-        {flush_if_out, flush_id_out} = '0;
-        jump_branch_out  = 0;
-    end else begin
-        mem_stall    = if_wait_in || mem_wait_in;
-        hazard_stall = ex_rd_sel_in != 0 && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+    mem_stall    = if_wait_in || mem_wait_in;
+    hazard_stall = ex_rd_sel_in != 0 && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
 
-        stall_if_out  = mem_stall || hazard_stall;
-        stall_id_out  = mem_stall || hazard_stall;
-        stall_ex_out  = mem_stall;
-        stall_mem_out = mem_stall;
-        flush_ex_out  = hazard_stall && !mem_stall;
+    stall_if_out  = mem_stall || hazard_stall;
+    stall_id_out  = mem_stall || hazard_stall;
+    stall_ex_out  = mem_stall;
+    stall_mem_out = mem_stall;
+    flush_ex_out  = hazard_stall && !mem_stall;
 
-        flush_if_out = branch_ok_in;
-        flush_id_out = branch_ok_in;
-        jump_branch_out  = branch_ok_in;
-    end
+    flush_if_out = branch_ok_in;
+    flush_id_out = branch_ok_in;
+    jump_branch_out  = branch_ok_in;
 end
 
 endmodule

@@ -87,11 +87,6 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         };
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
-            pc_buff <= '0;
-            pc_plus_4_buff <= '0;
-            rs1_buff <= '0;
-            rs2_buff <= '0;
-            imm32_buff <= '0;
             rd_sel_buff <= '0;
             instr_ex_buff <= '{
                 branch_jal_sel: BRANCH_JAL_NONE,

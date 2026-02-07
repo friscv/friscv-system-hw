@@ -72,7 +72,11 @@ logic [31:0] w_rdata;
 rw_cmd_t     w_rw;
 logic        w_wait;
 
-assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
+if (DRAM_BASE == 32'h8000_0000) begin
+    assign w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
+end else begin
+    assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
+end
 
 friscv_core_complex cc_0 (
     .i_clk       ( i_clk      ),

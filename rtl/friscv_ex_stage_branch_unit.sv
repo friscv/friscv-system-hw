@@ -23,23 +23,17 @@ module friscv_ex_stage_branch_unit (
     output logic            branch_ok_out
 );
 
-data_t gen, prop, carry;
-logic  n, z, c, v;  // Negative, Zero, Carry, Overflow
+logic [DATA_WIDTH:0] w_sub;
+logic  n, z, c, v;
 
-genvar i;
-generate
-    for (i = 0; i < DATA_WIDTH; i++) begin
-        assign gen[i]   = src1_in[i] & ~src2_in[i];
-        assign prop[i]  = src1_in[i] | ~src2_in[i];
-        assign carry[i] = (i == 0) ? gen[i] | prop[i] : gen[i] | (prop[i] & carry[i-1]);
-    end
-endgenerate
+// src1 + ~src2 + 1 = src1 - src2, infers CARRY4 chain
+assign w_sub = {1'b0, src1_in} + {1'b0, ~src2_in} + (DATA_WIDTH+1)'(1);
 
 always_comb begin
-    n = src1_in[DATA_WIDTH-1] ^ ~src2_in[DATA_WIDTH-1] ^ carry[DATA_WIDTH-2];
+    n = w_sub[DATA_WIDTH-1];
     z = (src1_in == src2_in);
-    c = carry[DATA_WIDTH-1];
-    v = carry[DATA_WIDTH-1] ^ carry[DATA_WIDTH-2];
+    c = w_sub[DATA_WIDTH];
+    v = (src1_in[DATA_WIDTH-1] ^ src2_in[DATA_WIDTH-1]) & (src1_in[DATA_WIDTH-1] ^ w_sub[DATA_WIDTH-1]);
 
     case (branch_jal_sel_in)
         BRANCH_INSTR: begin

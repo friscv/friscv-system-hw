@@ -84,7 +84,6 @@ logic [31:0] r_addr;
 data_t r_wdata, r_rdata;
 
 // Data width and alignment
-data_t size_mask;
 logic [DATA_WIDTH/8-1:0] base_strb;
 logic [$clog2(DATA_WIDTH/8)-1:0] byte_offset;
 assign byte_offset = r_addr[$clog2(DATA_WIDTH/8)-1:0];
@@ -92,24 +91,11 @@ assign m_axi_wstrb = base_strb << byte_offset;
 
 always_comb begin
     case (r_size)
-        WIDTH_I8, WIDTH_U8:   size_mask = 32'h000000FF;
-        WIDTH_I16, WIDTH_U16: size_mask = 32'h0000FFFF;
-        default:              size_mask = 32'hFFFFFFFF;
-    endcase
-
-    case (r_size)
         WIDTH_I8, WIDTH_U8:   base_strb = 4'b0001;
         WIDTH_I16, WIDTH_U16: base_strb = 4'b0011;
         default:              base_strb = 4'b1111;
     endcase
 end
-
-// Invalid request detection
-logic misaligned_request;
-assign misaligned_request = (i_rw != RW_IDLE) && (
-    ((i_addr[0] != 1'b0) && (i_size == WIDTH_I16 || i_size == WIDTH_U16)) ||
-    ((i_addr[1:0] != 2'b00) && (i_size == WIDTH_I32))
-);
 
 // Constant assignments
 assign o_rdata       = (m_axi_rvalid && m_axi_rready) ? m_axi_rdata : r_rdata;
@@ -132,6 +118,7 @@ assign m_axi_arlen   = 8'h00;
 assign m_axi_arlock  = 1'b0;
 assign m_axi_arqos   = 4'h0;
 
+//assign o_wait = r_state != S_IDLE || (i_rw != RW_IDLE);
 assign o_wait = w_next_state != S_IDLE;
 
 // Clocked logic
@@ -167,11 +154,7 @@ always_comb begin
     unique case (r_state)
         S_IDLE: begin
             if (i_rw == RW_WRITE || i_rw == RW_READ) begin
-                if (misaligned_request) begin
-                    w_next_state = S_IDLE;
-                end else begin
-                    w_next_state = (i_rw == RW_WRITE) ? S_W_ADDR : S_R_ADDR;
-                end
+                w_next_state = (i_rw == RW_WRITE) ? S_W_ADDR : S_R_ADDR;
             end
         end
         S_W_ADDR: begin
