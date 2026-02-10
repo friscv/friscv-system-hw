@@ -105,8 +105,7 @@ localparam int unsigned ZSBL_PROG_WORDS = {num_words};
 logic [31:0] w_word_offset;
 assign w_word_offset = (i_addr - RESET_VEC) >> 2;
 
-assign o_data = (i_addr >= RESET_VEC && w_word_offset < (ZSBL_ROM_SIZE/4)) ?
-                mem[w_word_offset] : 32'hDEADC0DE;
+assign o_data = (i_addr >= RESET_VEC && w_word_offset < (ZSBL_ROM_SIZE/4)) ? mem[w_word_offset] : NOP;
 
 initial begin
     // Auto-generated program at RESET_VEC ({start_addr})
