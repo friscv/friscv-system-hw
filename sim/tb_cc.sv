@@ -9,6 +9,7 @@ parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter MEM_BASE = 32'h80000000;      // Memory base address
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
+parameter UART_ADDR = 32'h40600000;     // UART address
 parameter RESULT_ADDR = 32'h80000500;   // Result address (MEM_BASE + 1.25K)
 
 parameter int MEM_DELAY_CYCLES = 0;
@@ -61,8 +62,11 @@ always_comb begin
         end else begin
             // Delay satisfied, provide data for reads
             if (mem_rw == 2'b10) begin  // RW_READ
-                if (mem_addr == GPIO_ADDR) begin
-                    mem_rdata = gpio_reg;
+                if (mem_addr >= GPIO_ADDR && mem_addr < (GPIO_ADDR + 32'h20)) begin
+                    mem_rdata = 32'h0;  // Boot mode 0: DRAM direct jump
+                end else if (mem_addr >= UART_ADDR && mem_addr < (UART_ADDR + 32'h20)) begin
+                    // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
+                    mem_rdata = (mem_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
                 end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                     logic [31:0] aligned_offset;
                     aligned_offset = (mem_addr - MEM_BASE) & 32'hFFFFFFFC;
@@ -91,6 +95,8 @@ always_ff @(posedge clk or negedge rstn) begin
                     if (mem_addr == GPIO_ADDR) begin
                         gpio_reg <= mem_wdata;
                         $display("[%0t] GPIO write: 0x%08h", $time, mem_wdata);
+                    end else if (mem_addr == (UART_ADDR + 32'h4)) begin
+                        $write("%c", mem_wdata[7:0]);
                     end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                         logic [31:0] offset;
                         offset = mem_addr - MEM_BASE;

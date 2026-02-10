@@ -10,6 +10,7 @@ parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
 parameter DRAM_BASE = 32'h00100000;     // Memory base address (Memory view)
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
+parameter UART_ADDR = 32'h40600000;     // UART address
 parameter RESULT_ADDR = 32'h80000500;   // Result address (CPU view)
 // AXI Base address for RAM is 0x0 because of translation
 
@@ -181,6 +182,8 @@ always_ff @(posedge clk or negedge rstn) begin
                 if (m_axi_wstrb[2]) gpio_reg[23:16] <= m_axi_wdata[23:16];
                 if (m_axi_wstrb[3]) gpio_reg[31:24] <= m_axi_wdata[31:24];
                 $display("[%0t] GPIO write: 0x%08h", $time, m_axi_wdata);
+            end else if (write_addr == (UART_ADDR + 32'h4)) begin
+                $write("%c", m_axi_wdata[7:0]);
             end else if (write_addr >= DRAM_BASE && write_addr < DRAM_BASE + MEM_SIZE) begin
                 automatic logic [31:0] idx = write_addr - DRAM_BASE;
                 if (m_axi_wstrb[0]) memory[idx+0] <= m_axi_wdata[7:0];
@@ -221,8 +224,11 @@ always_ff @(posedge clk or negedge rstn) begin
             m_axi_rlast <= 1;
             m_axi_rresp <= 2'b00;
             
-            if (read_addr == GPIO_ADDR) begin
-                m_axi_rdata <= gpio_reg;
+            if (read_addr >= GPIO_ADDR && read_addr < (GPIO_ADDR + 32'h20)) begin
+                m_axi_rdata <= 32'h0;  // Boot mode 0: DRAM direct jump
+            end else if (read_addr >= UART_ADDR && read_addr < (UART_ADDR + 32'h20)) begin
+                // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
+                m_axi_rdata <= (read_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
             end else if (read_addr >= DRAM_BASE && read_addr < DRAM_BASE + MEM_SIZE) begin
                 automatic logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
                 m_axi_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};

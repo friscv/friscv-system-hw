@@ -173,6 +173,16 @@ zsbl-rom:
 	echo "Generating ZSBL ROM from software/zsbl.S..."; \
 	python3 $(SCRIPTS_DIR)/gen_zsbl_rom.py "software/zsbl.S" "rtl/friscv_zsbl_rom.sv" --linker-script "software/zsbl_linker.ld" --start-addr 0x1000
 
+# Generate simulation ZSBL ROM (smaller stack, SIMULATION defined)
+.PHONY: zsbl-sim
+zsbl-sim:
+	@if [ ! -f "software/zsbl.S" ]; then \
+		echo "ERROR: software/zsbl.S not found"; \
+		exit 1; \
+	fi; \
+	echo "Generating simulation ZSBL ROM from software/zsbl.S..."; \
+	python3 $(SCRIPTS_DIR)/gen_zsbl_rom.py "software/zsbl.S" "rtl/friscv_zsbl_rom.sv" --start-addr 0x1000 --sim
+
 # Generate ZSBL ROM from test file (uses ZSBL linker at 0x1000)
 .PHONY: zsbl-rom-%
 zsbl-rom-%:
@@ -201,6 +211,7 @@ help:
 	@echo "  make clean     - Remove project directory"
 	@echo ""
 	@echo "  make zsbl-rom              - Generate bootloader ROM from software/zsbl.S"
+	@echo "  make zsbl-sim              - Generate simulation ROM (smaller stack)"
 	@echo "  make zsbl-rom-<test>       - Generate ROM from test/<test>.S (e.g., zsbl-rom-halt)"
 	@echo ""
 	@echo "  make bitstream             - Build bitstream (includes ROM)"

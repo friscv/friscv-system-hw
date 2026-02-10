@@ -37,7 +37,7 @@ package friscv_pkg;
 	localparam int unsigned REG_SEL_WIDTH = 5;
 	localparam int unsigned REGISTER_NUM  = 32;
 	
-	localparam int unsigned ZSBL_ROM_SIZE = 256;
+	localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
 
     localparam int unsigned NOP = 32'h00000013;  // addi x0,x0,0
 

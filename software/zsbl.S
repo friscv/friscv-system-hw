@@ -6,7 +6,7 @@
 .equ UART_BASE, 0x40600000
 .equ HALT_ADDR, 0x50000000
 
-.equ GPIO_SWITCHES, 0x4
+.equ GPIO_SWITCHES, 0x8
 .equ GPIO_BTN_OFFSET, 0x0
 .equ GPIO_BTN_BIT, 0x10
 
@@ -17,6 +17,7 @@
 
 .equ UART_RST, 0x3
 .equ UART_SR_RX_VALID, 0x01
+.equ UART_SR_TX_EMPTY, 0x04
 .equ UART_SR_TX_FULL, 0x08
 
 .equ XMODEM_START, 'C'
@@ -29,43 +30,47 @@
 .equ MODE_WAIT, 0x3
 
 _start:
-    li sp, 0x80000100          # Initialize stack pointer
-
-    la a0, ready_msg
-    call uart_puts             # Print ready message
+.ifdef SIMULATION
+    li sp, 0x80000800          # Top of 2KiB sim DRAM (MEM_BASE + MEM_SIZE)
+.else
+    li sp, 0x81000000          # Top of stack in hardware (1MB above DRAM base)
+.endif
 
     li t2, UART_BASE
-    li t0, UART_RST            # UART reset signal
-    sw t0, UART_CTRL(t2)       # Reset UART by writing to control register
-    sw zero, UART_CTRL(t2)     # Clear UART reset
+    li t0, UART_RST            # Reset TX and RX FIFOs
+    sw t0, UART_CTRL(t2)
+    sw zero, UART_CTRL(t2)     # Release reset
+
+    la a0, ready_msg
+    call uart_puts
 
     li s1, GPIO_BASE
-    lw s0, GPIO_SWITCHES(s1)   # Read boot mode from switches
+    lw s0, GPIO_SWITCHES(s1)   # Read boot mode from switches (GPIO2_DATA)
 
-    bnez s0, .skip_direct_jump # Check if boot mode is 0 (boot from DRAM)
+    bnez s0, .skip_direct_jump # mode 0 = boot from DRAM
     la a0, dram_msg
     call uart_puts
-    j execute_loaded           # Jump to DRAM if boot mode is 0
+    j execute_loaded
     .skip_direct_jump:
 
-    li t1, MODE_UART           # Check if boot mode is 1 (boot from UART)
+    li t1, MODE_UART           # mode 1 = UART (xmodem) boot
     bne s0, t1, .skip_uart
     la a0, uart_msg
     call uart_puts
     call uart_boot
-    j .try_sd                  # Try SD boot if UART boot fails
+    j .try_sd
     .skip_uart:
 
-    li t1, MODE_SD             # Check if boot mode is 2 (boot from SD card)
+    li t1, MODE_SD             # mode 2 = SD card boot
     bne s0, t1, .skip_sd
     .try_sd:
     la a0, sd_msg
     call uart_puts
     call sd_boot
-    j .try_wait                # Try wait mode if SD boot fails
+    j .try_wait
     .skip_sd:
 
-    li t1, MODE_WAIT           # Check if boot mode is 3 (wait for button mode)
+    li t1, MODE_WAIT           # mode 3 = wait for button press
     bne s0, t1, .invalid_mode
     .try_wait:
     la a0, wait_msg
@@ -76,13 +81,13 @@ _start:
     j execute_loaded
 
     .invalid_mode:
-        li t0, HALT_ADDR       # Hardware halt if invalid boot mode
-        sw zero, (t0)          # Write to HALT_ADDR to halt
-        j .invalid_mode        # Hang if hardware halt fails
+        li t0, HALT_ADDR
+        sw zero, (t0)
+        j .invalid_mode
 
 # ----- Jump to DRAM to execute loaded code -----
 execute_loaded:
-    li t0, DRAM_BASE           # Jump to DRAM base address where code is loaded
+    li t0, DRAM_BASE
     jalr zero, t0
 
 # -----------------------------------------------------------------------------
@@ -111,15 +116,19 @@ uart_getc:
 uart_puts:
     addi sp, sp, -4            # Save ra
     sw ra, 0(sp)
-    mv t2, a0                  # Free up a0 for uart_putc calls
+    mv t2, a0                  # t2 = string pointer
     1:  lbu a0, (t2)
         beqz a0, 2f            # Return if null terminator
         call uart_putc
         addi t2, t2, 1
         j 1b
     2:
+    li t2, UART_BASE           # Wait until TX FIFO is fully drained
+    3:  lw t0, UART_STATUS(t2)
+        andi t0, t0, UART_SR_TX_EMPTY
+        beqz t0, 3b
     lw ra, 0(sp)               # Restore ra
-    addi sp, sp, 4             # Restore stack pointer
+    addi sp, sp, 4
     ret
 
 # -----------------------------------------------------------------------------
@@ -156,7 +165,7 @@ uart_boot:
             addi s0, s0, 1
             addi t1, t1, -1
             bnez t1, 1b
-        
+
         call uart_getc         # CRC high byte (ignored)
         call uart_getc         # CRC low byte (ignored)
 
@@ -165,7 +174,7 @@ uart_boot:
 
         addi s1, s1, 1
         j .wait_packet
-    
+
     .transfer_done:
     li a0, XMODEM_ACK
     call uart_putc
@@ -177,8 +186,6 @@ uart_boot:
 
 sd_boot:
     # Placeholder for SD card loading code
-    # This should read data from SD card and write it to DRAM
-    # For now, we just return
     ret
 
 # -----------------------------------------------------------------------------
