@@ -34,7 +34,7 @@ addr_t      w_inst_addr;
 data_t      w_inst_data;
 logic       w_inst_en;
 logic       w_inst_wait;
-logic       w_inst_wait_stalled;
+logic       w_stall_if;
 inst_t      w_zsbl_data;
 
 addr_t      w_data_addr;
@@ -53,6 +53,10 @@ rw_cmd_t    w_l2_rw;
 data_t      w_l2_rdata;
 logic       w_l2_wait;
 
+assign o_mem_size  = w_l2_size;
+assign o_mem_addr  = w_l2_addr;
+assign o_mem_wdata = w_l2_wdata;
+
 // End signal detection on write to END_ADDRESS
 always_ff @(posedge i_clk or negedge i_rstn) begin
     if (!i_rstn) begin
@@ -63,26 +67,26 @@ always_ff @(posedge i_clk or negedge i_rstn) begin
 end
 
 assign o_end = r_end_signal;
-assign w_inst_wait_stalled = w_inst_wait || r_end_signal;
+assign w_stall_if = w_inst_wait || r_end_signal;
 
 friscv_core cpu_0 (
-    .i_clk          ( i_clk               ),
-    .i_rstn         ( i_rstn              ),
+    .i_clk          ( i_clk        ),
+    .i_rstn         ( i_rstn       ),
 
     // Instruction Memory Interface
-    .i_mem_addr_out ( w_inst_addr         ),
-    .i_mem_data_in  ( w_inst_data         ),
-    .i_mem_en_out   ( w_inst_en           ),
-    .i_mem_wait_in  ( w_inst_wait_stalled ),
+    .i_mem_addr_out ( w_inst_addr  ),
+    .i_mem_data_in  ( w_inst_data  ),
+    .i_mem_en_out   ( w_inst_en    ),
+    .i_mem_wait_in  ( w_stall_if   ),
 
     // Data memory interface
-    .d_mem_addr_out ( w_data_addr         ),
-    .d_mem_data_out ( w_data_wdata        ),
-    .d_mem_data_in  ( w_data_rdata        ),
-    .d_mem_en_out   ( w_data_en           ),
-    .d_mem_wr_out   ( w_data_wr           ),
-    .d_mem_size_out ( w_data_size         ),
-    .d_mem_wait_in  ( w_data_wait         )
+    .d_mem_addr_out ( w_data_addr  ),
+    .d_mem_data_out ( w_data_wdata ),
+    .d_mem_data_in  ( w_data_rdata ),
+    .d_mem_en_out   ( w_data_en    ),
+    .d_mem_wr_out   ( w_data_wr    ),
+    .d_mem_size_out ( w_data_size  ),
+    .d_mem_wait_in  ( w_data_wait  )
 );
 
 friscv_l1_subsystem l1_subsystem (
@@ -113,25 +117,28 @@ friscv_l1_subsystem l1_subsystem (
     .i_mem_wait   ( w_l2_wait    )
 );
 
-// Zero-stage bootloader ROM — addressed by the unified L2 bus
-friscv_zsbl_rom zsbl_rom (
-    .i_addr ( w_l2_addr   ),
-    .o_data ( w_zsbl_data )
-);
+// Optional zero-stage bootloader ROM
+if (ZSBL_ROM_SIZE_BYTES > 0) begin
+    friscv_zsbl_rom zsbl_rom (
+        .i_addr ( w_inst_addr ),
+        .o_data ( w_zsbl_data )
+    );
 
-// Intercept reads in the ROM address window before they reach AXI
-logic w_l2_is_rom;
-assign w_l2_is_rom = (w_l2_addr >= RESET_VEC) &&
-                     (w_l2_addr <  RESET_VEC + ZSBL_ROM_SIZE_BYTES) &&
-                     (w_l2_rw == RW_READ);
+    logic w_l2_is_rom;
+    // Intercept reads in the ROM address window before they reach AXI
+    assign w_l2_is_rom = (w_l2_addr >= RESET_VEC) &&
+                         (w_l2_addr < RESET_VEC + ZSBL_ROM_SIZE_BYTES) &&
+                         (w_l2_rw == RW_READ);
 
-assign w_l2_rdata = w_l2_is_rom ? w_zsbl_data : i_mem_rdata;
-assign w_l2_wait  = w_l2_is_rom ? 1'b0        : i_mem_wait;
+    assign w_l2_rdata = w_l2_is_rom ? w_zsbl_data : i_mem_rdata;
+    assign w_l2_wait  = w_l2_is_rom ? 1'b0        : i_mem_wait;
+    assign o_mem_rw   = w_l2_is_rom ? RW_IDLE     : w_l2_rw;
 
-// AXI outputs: suppress the external request for ROM reads
-assign o_mem_addr  = w_l2_addr;
-assign o_mem_size  = w_l2_size;
-assign o_mem_wdata = w_l2_wdata;
-assign o_mem_rw    = w_l2_is_rom ? RW_IDLE : w_l2_rw;
+end else begin
+    // No ROM, pass through all reads/writes to AXI
+    assign w_l2_rdata = i_mem_rdata;
+    assign w_l2_wait  = i_mem_wait;
+    assign o_mem_rw   = w_l2_rw;
+end
 
 endmodule

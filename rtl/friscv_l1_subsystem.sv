@@ -105,9 +105,9 @@ always_comb begin
             if (i_data_en) o_data_wait = 1'b1;
         end
         S_GRANT_INST: begin
-            o_mem_addr = i_inst_addr;
-            o_mem_size = WIDTH_I32;
-            o_mem_rw   = RW_READ;
+            o_mem_addr  = i_inst_addr;
+            o_mem_size  = WIDTH_I32;
+            o_mem_rw    = RW_READ;
             o_inst_wait = i_mem_wait;
             if (i_data_en) o_data_wait = 1'b1;
         end
@@ -122,7 +122,7 @@ always_comb begin
     endcase
 end
 
-assign o_inst_data = i_mem_rdata;
+assign o_inst_data  = i_mem_rdata;
 assign o_data_rdata = i_mem_rdata;
 
 endmodule

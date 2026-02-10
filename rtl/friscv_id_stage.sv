@@ -85,12 +85,12 @@ end
 always_comb begin
     case (imm_sel)
         I_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
-        I2_TYPE: imm32_out = {27'h0000000, ir_buff.b[24:20]};
+        I2_TYPE: imm32_out = {27'h0, ir_buff.b[24:20]};
         S_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:25], ir_buff.b[11:7]};
         B_TYPE:  imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
         U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
         J_TYPE:  imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
-        default: imm32_out = '0;
+        default: imm32_out = 32'h0;
     endcase  
 end
 
@@ -104,9 +104,9 @@ always_comb begin
     instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
     instr_ex_out.load_store_width = WIDTH_I32;
     instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
-    rs1_sel_out = '0;
-    rs2_sel_out = '0;
-    rd_sel_out  = '0;
+    rs1_sel_out = 5'b0;
+    rs2_sel_out = 5'b0;
+    rd_sel_out  = 5'b0;
     illegal_inst = 1'b0;
     imm_sel = I_TYPE;
 
@@ -122,7 +122,7 @@ always_comb begin
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
-            rs2_sel_out = '0;
+            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
 
@@ -137,7 +137,7 @@ always_comb begin
             imm_sel = S_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
             rs2_sel_out = ir_buff.r.rs2;
-            rd_sel_out  = '0;
+            rd_sel_out  = 5'b0;
         end
 
         ALOP: begin
@@ -219,8 +219,8 @@ always_comb begin
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = U_TYPE;
-            rs1_sel_out = 0;
-            rs2_sel_out = 0;
+            rs1_sel_out = 5'b0;
+            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
         
@@ -233,8 +233,8 @@ always_comb begin
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = U_TYPE;
-            rs1_sel_out = 0;
-            rs2_sel_out = 0;
+            rs1_sel_out = 5'b0;
+            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
         
@@ -248,7 +248,7 @@ always_comb begin
             imm_sel = B_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
             rs2_sel_out = ir_buff.r.rs2;
-            rd_sel_out  = 0;       
+            rd_sel_out  = 5'b0;       
                 
             case (ir_buff.r.funct3)
                 3'b000:  instr_ex_out.branch_cond = COND_EQ;
@@ -271,7 +271,7 @@ always_comb begin
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
-            rs2_sel_out = 0;
+            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
         
@@ -284,8 +284,8 @@ always_comb begin
             instr_ex_out.wb_data_sel = WB_DATA_SEL_PC_PLUS_4;
 
             imm_sel = J_TYPE;
-            rs1_sel_out = 0;
-            rs2_sel_out = 0;
+            rs1_sel_out = 5'b0;
+            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
 
@@ -293,9 +293,9 @@ always_comb begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
 
-            rs1_sel_out = 0;
-            rs2_sel_out = 0;
-            rd_sel_out  = 0;
+            rs1_sel_out = 5'b0;
+            rs2_sel_out = 5'b0;
+            rd_sel_out  = 5'b0;
 
             illegal_inst = 1'b1;
         end

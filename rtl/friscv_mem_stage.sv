@@ -139,10 +139,10 @@ always_comb begin
         end
         WIDTH_U8: begin
             case (alu_data_buff[1:0]) 
-                2'b00:  load_data = {{24'h000000}, d_mem_data_in[7:0]};
-                2'b01:  load_data = {{24'h000000}, d_mem_data_in[15:8]};
-                2'b10:  load_data = {{24'h000000}, d_mem_data_in[23:16]};
-                2'b11:  load_data = {{24'h000000}, d_mem_data_in[31:24]};
+                2'b00:  load_data = {{24'h0}, d_mem_data_in[7:0]};
+                2'b01:  load_data = {{24'h0}, d_mem_data_in[15:8]};
+                2'b10:  load_data = {{24'h0}, d_mem_data_in[23:16]};
+                2'b11:  load_data = {{24'h0}, d_mem_data_in[31:24]};
             endcase
         end
         WIDTH_I16: begin
@@ -154,9 +154,9 @@ always_comb begin
         end
         WIDTH_U16: begin
             if (alu_data_buff[1]) begin
-                load_data = {{16'h0000}, d_mem_data_in[31:16]};
+                load_data = {{16'h0}, d_mem_data_in[31:16]};
             end else begin
-                load_data = {{16'h0000}, d_mem_data_in[15:0]};
+                load_data = {{16'h0}, d_mem_data_in[15:0]};
             end
         end
         WIDTH_I32: begin
@@ -168,13 +168,13 @@ always_comb begin
     endcase
 end
 
-// output selection
+// Output selection
 always_comb begin
     case (wb_data_sel_buff)
         WB_DATA_SEL_PC_PLUS_4: rd_data_out = pc_plus_4_buff;
         WB_DATA_SEL_ALU:       rd_data_out = alu_data_buff;
         WB_DATA_SEL_MEM:       rd_data_out = r_load_data_valid ? load_data_buff : load_data;
-        default:               rd_data_out = '0;
+        default:               rd_data_out = 32'h0;
     endcase
 end
 

@@ -69,12 +69,12 @@ friscv_ex_stage_branch_unit branch_unit (
 // Stage inputs buffering
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
-        pc_buff <= '0;
-        pc_plus_4_buff <= '0;
-        rs1_buff <= '0;
-        rs2_buff <= '0;
-        imm32_buff <= '0;
-        rd_sel_buff <= '0;
+        pc_buff <= 32'h0;
+        pc_plus_4_buff <= 32'h0;
+        rs1_buff <= 32'h0;
+        rs2_buff <= 32'h0;
+        imm32_buff <= 32'h0;
+        rd_sel_buff <= 5'b0;
         instr_ex_buff <= '{
             branch_jal_sel: BRANCH_JAL_NONE,
             branch_cond: COND_EQ,
@@ -87,7 +87,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         };
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
-            rd_sel_buff <= '0;
+            rd_sel_buff <= 5'b0;
             instr_ex_buff <= '{
                 branch_jal_sel: BRANCH_JAL_NONE,
                 branch_cond: COND_EQ,
@@ -153,15 +153,15 @@ always_comb begin
     case (instr_ex_buff.load_store_width)
         3'b000: begin   //B
             case (alu_data_out[1:0]) 
-                2'b00: store_data_out = {24'h000000, rs2_buff[7:0]};
-                2'b01: store_data_out = {16'h0000, rs2_buff[7:0], 8'h00};
-                2'b10: store_data_out = {8'h00, rs2_buff[7:0], 16'h0000};
-                2'b11: store_data_out = {rs2_buff[7:0], 24'h000000};
+                2'b00: store_data_out = {24'h0, rs2_buff[7:0]};
+                2'b01: store_data_out = {16'h0, rs2_buff[7:0], 8'h0};
+                2'b10: store_data_out = {8'h0, rs2_buff[7:0], 16'h0};
+                2'b11: store_data_out = {rs2_buff[7:0], 24'h0};
             endcase
         end
         3'b001: begin   //H
-            if (alu_data_out[1]) store_data_out = {rs2_buff[15:0], 16'h0000};
-            else                 store_data_out = {16'h0000, rs2_buff[15:0]};
+            if (alu_data_out[1]) store_data_out = {rs2_buff[15:0], 16'h0};
+            else                 store_data_out = {16'h0, rs2_buff[15:0]};
         end
         3'b010:  store_data_out = rs2_buff; //W
         default: store_data_out = '0;

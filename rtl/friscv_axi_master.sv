@@ -118,7 +118,6 @@ assign m_axi_arlen   = 8'h00;
 assign m_axi_arlock  = 1'b0;
 assign m_axi_arqos   = 4'h0;
 
-//assign o_wait = r_state != S_IDLE || (i_rw != RW_IDLE);
 assign o_wait = w_next_state != S_IDLE;
 
 // Clocked logic

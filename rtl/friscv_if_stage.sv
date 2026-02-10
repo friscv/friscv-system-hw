@@ -50,7 +50,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         ir_buff        <= NOP;
     end else begin
         if (flush_in || jump_branch_in) begin
-            pc_reg         <= jump_branch_in ? {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b00} : RESET_VEC;
+            pc_reg         <= jump_branch_in ? {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b0} : RESET_VEC;
             r_fetch_active <= 1'b1;
             ir_buff        <= NOP;
         end else if (!stage_stall_in) begin

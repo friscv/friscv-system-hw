@@ -29,6 +29,10 @@ v 2.0.0     Emil Popovic, 2026_01, AXI interface, combinatorial control unit, au
 
 package friscv_pkg;
 
+	// --- Configurable parameter definitions start ---
+	localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
+	// --- Configurable parameter definitions end ---
+
 	localparam int unsigned XLEN = 32;
 	
 	localparam int unsigned ADDR_WIDTH = XLEN;
@@ -36,8 +40,6 @@ package friscv_pkg;
 	
 	localparam int unsigned REG_SEL_WIDTH = 5;
 	localparam int unsigned REGISTER_NUM  = 32;
-	
-	localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
 
     localparam int unsigned NOP = 32'h00000013;  // addi x0,x0,0
 
@@ -46,9 +48,10 @@ package friscv_pkg;
 	typedef logic [31:0]              inst_t;
 	typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
-	localparam addr_t RESET_VEC     = 32'h1000;
+	localparam addr_t ZSBL_BASE     = 32'h1000;
 	localparam addr_t END_ADDRESS   = 32'h50000000;
 	localparam addr_t DRAM_BASE     = 32'h80000000;
+	localparam addr_t RESET_VEC     = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;
 	localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000
 
 	typedef enum logic [2:0] {
