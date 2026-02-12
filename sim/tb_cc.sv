@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`define SIMULATION_MODE
 
 module tb_cc;
 
