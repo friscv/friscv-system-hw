@@ -117,22 +117,36 @@ friscv_l1_subsystem l1_subsystem (
     .i_mem_wait   ( w_l2_wait    )
 );
 
-// Optional zero-stage bootloader ROM
 if (ZSBL_ROM_SIZE_BYTES > 0) begin
     friscv_zsbl_rom zsbl_rom (
+        .i_clk  ( i_clk       ),
         .i_addr ( w_inst_addr ),
         .o_data ( w_zsbl_data )
     );
 
     logic w_l2_is_rom;
+    addr_t r_rom_addr_prev;
+    
     // Intercept reads in the ROM address window before they reach AXI
     assign w_l2_is_rom = (w_l2_addr >= RESET_VEC) &&
                          (w_l2_addr < RESET_VEC + ZSBL_ROM_SIZE_BYTES) &&
                          (w_l2_rw == RW_READ);
 
+    // ROM has 1 cycle latency
+    // Only update when we detect a new address change
+    always_ff @(posedge i_clk or negedge i_rstn) begin
+        if (!i_rstn) begin
+            r_rom_addr_prev <= '0;
+        end else if (w_l2_is_rom && (w_l2_addr != r_rom_addr_prev)) begin
+            r_rom_addr_prev <= w_l2_addr;
+        end else if (!w_l2_is_rom) begin
+            r_rom_addr_prev <= '0;
+        end
+    end
+
     assign w_l2_rdata = w_l2_is_rom ? w_zsbl_data : i_mem_rdata;
-    assign w_l2_wait  = w_l2_is_rom ? 1'b0        : i_mem_wait;
-    assign o_mem_rw   = w_l2_is_rom ? RW_IDLE     : w_l2_rw;
+    assign w_l2_wait  = (w_l2_is_rom && (w_l2_addr != r_rom_addr_prev)) ? 1'b1 : i_mem_wait;
+    assign o_mem_rw   = w_l2_is_rom ? RW_IDLE : w_l2_rw;
 
 end else begin
     // No ROM, pass through all reads/writes to AXI

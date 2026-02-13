@@ -39,7 +39,7 @@ module friscv_if_stage (
     output logic  i_mem_en_out
 );
 
-addr_t pc_reg;
+(* max_fanout = 50 *) addr_t pc_reg;
 inst_t ir_buff;
 logic  r_fetch_active;
 

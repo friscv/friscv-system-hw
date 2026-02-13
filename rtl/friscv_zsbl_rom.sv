@@ -18,17 +18,31 @@ AUTO-GENERATED FROM: zsbl.S
 `include "friscv_pkg.sv"
 
 module friscv_zsbl_rom (
+    input  logic  i_clk,
     input  addr_t i_addr,
     output inst_t o_data
 );
 
-inst_t mem [0:(ZSBL_ROM_SIZE_BYTES/4)-1];
+(* ram_style = "block" *) inst_t mem [0:(ZSBL_ROM_SIZE_BYTES/4)-1];
 localparam int unsigned ZSBL_PROG_WORDS = 128;
 
 logic [31:0] w_word_offset;
-assign w_word_offset = (i_addr - RESET_VEC) >> 2;
+logic        w_valid;
+inst_t       r_data;
 
-assign o_data = (i_addr >= RESET_VEC && w_word_offset < (ZSBL_ROM_SIZE_BYTES/4)) ? mem[w_word_offset] : NOP;
+assign w_word_offset = (i_addr - RESET_VEC) >> 2;
+assign w_valid = (i_addr >= RESET_VEC && w_word_offset < (ZSBL_ROM_SIZE_BYTES/4));
+
+// Registered read for BRAM inference
+always_ff @(posedge i_clk) begin
+    if (w_valid) begin
+        r_data <= mem[w_word_offset];
+    end else begin
+        r_data <= NOP;
+    end
+end
+
+assign o_data = r_data;
 
 initial begin
     // Auto-generated program at RESET_VEC (0x1000)

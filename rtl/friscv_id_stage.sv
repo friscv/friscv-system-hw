@@ -47,14 +47,15 @@ module friscv_id_stage (
     input  data_t     rd_data_in
 );
 
+(* ram_style = "register" *) data_t regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
+
 instr_op_t ir_buff;
 addr_t     pc_in_buff;
 addr_t     pc_plus_4_in_buff;
-data_t     regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
 imm_t      imm_sel;
 
-assign rs1_out = (rs1_sel_out == 0) ? 32'h0 : (rs1_sel_out == rd_sel_in) ? rd_data_in : regfile[rs1_sel_out];
-assign rs2_out = (rs2_sel_out == 0) ? 32'h0 : (rs2_sel_out == rd_sel_in) ? rd_data_in : regfile[rs2_sel_out];
+assign rs1_out = (rd_sel_in != 0 && rs1_sel_out == rd_sel_in) ? rd_data_in : regfile[rs1_sel_out];
+assign rs2_out = (rd_sel_in != 0 && rs2_sel_out == rd_sel_in) ? rd_data_in : regfile[rs2_sel_out];
 
 assign pc_out = pc_in_buff;
 assign pc_plus_4_out = pc_plus_4_in_buff;
