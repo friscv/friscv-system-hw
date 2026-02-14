@@ -55,7 +55,7 @@ wb_data_sel_t   wb_data_sel_buff;
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
 
-logic r_mem_active;
+(* MAX_FANOUT = 8 *) logic r_mem_active;
 logic r_load_data_valid;  // Flag indicating load data has been captured
 
 logic w_is_mem_instr;

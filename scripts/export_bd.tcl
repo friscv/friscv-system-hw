@@ -28,10 +28,20 @@ foreach bd_file $bd_files {
     puts "  To:   ${export_path}"
     
     open_bd_design $bd_file
-    
+
+    # Validate design before exporting
+    puts "  Validating ${bd_name}..."
+    set valid [validate_bd_design]
+    if {!$valid} {
+        puts "  ERROR: Validation failed for ${bd_name}, skipping export"
+        close_bd_design [get_bd_designs $bd_name]
+        continue
+    }
+    puts "  ✓ Validation passed"
+
     # Create directory if needed
     file mkdir [file dirname $export_path]
-    
+
     # Export to TCL
     write_bd_tcl -force $export_path
     

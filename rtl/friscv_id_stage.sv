@@ -47,7 +47,7 @@ module friscv_id_stage (
     input  data_t     rd_data_in
 );
 
-(* ram_style = "register" *) data_t regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
+data_t regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
 
 instr_op_t ir_buff;
 addr_t     pc_in_buff;

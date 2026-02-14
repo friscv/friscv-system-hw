@@ -30,7 +30,7 @@ v 2.0.0     Emil Popovic, 2026_01, AXI interface, combinatorial control unit, au
 package friscv_pkg;
 
 	// --- Configurable parameter definitions start ---
-	localparam int unsigned ZSBL_ROM_SIZE_BYTES = 0;
+	localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
 	// --- Configurable parameter definitions end ---
 
 	localparam int unsigned XLEN = 32;

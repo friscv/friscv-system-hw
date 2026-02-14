@@ -120,7 +120,7 @@ friscv_l1_subsystem l1_subsystem (
 if (ZSBL_ROM_SIZE_BYTES > 0) begin
     friscv_zsbl_rom zsbl_rom (
         .i_clk  ( i_clk       ),
-        .i_addr ( w_inst_addr ),
+        .i_addr ( w_l2_addr   ),
         .o_data ( w_zsbl_data )
     );
 
