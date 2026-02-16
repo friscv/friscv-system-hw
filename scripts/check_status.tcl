@@ -11,9 +11,9 @@ if {[file exists $script_dir/ps7_init.tcl]} {
 
 configparams force-mem-accesses 1
 
-puts "\nFirst instructions at 0x0:"
-if {[catch {mrd 0x0 16} result]} {
-    puts "ERROR reading memory at 0x0: $result"
+puts "\nFirst instructions at 0x00100000:"
+if {[catch {mrd 0x00100000 16} result]} {
+    puts "ERROR reading memory at 0x00100000: $result"
 } else {
     puts $result
 }

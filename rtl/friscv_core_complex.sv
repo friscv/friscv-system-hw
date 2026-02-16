@@ -145,7 +145,7 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
     end
 
     assign w_l2_rdata = w_l2_is_rom ? w_zsbl_data : i_mem_rdata;
-    assign w_l2_wait  = (w_l2_is_rom && (w_l2_addr != r_rom_addr_prev)) ? 1'b1 : i_mem_wait;
+    assign w_l2_wait  = w_l2_is_rom ? (w_l2_addr != r_rom_addr_prev) : i_mem_wait;
     assign o_mem_rw   = w_l2_is_rom ? RW_IDLE : w_l2_rw;
 
 end else begin

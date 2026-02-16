@@ -74,6 +74,8 @@ logic        w_wait;
 
 if (DRAM_BASE == 32'h8000_0000) begin
     assign w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
+end else if (DRAM_BASE == 32'h0) begin
+    assign w_dram_addr = w_phy_addr + DRAM_START_AT;
 end else begin
     assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
 end

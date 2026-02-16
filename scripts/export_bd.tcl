@@ -32,7 +32,7 @@ foreach bd_file $bd_files {
     # Validate design before exporting
     puts "  Validating ${bd_name}..."
     set valid [validate_bd_design]
-    if {!$valid} {
+    if {$valid ne "" && $valid != 0} {
         puts "  ERROR: Validation failed for ${bd_name}, skipping export"
         close_bd_design [get_bd_designs $bd_name]
         continue

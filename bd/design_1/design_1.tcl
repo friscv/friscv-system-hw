@@ -129,8 +129,11 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
-xilinx.com:ip:axi_uartlite:2.0\
+xilinx.com:ip:xlconcat:2.1\
+xilinx.com:ip:xlslice:1.0\
 xilinx.com:ip:axi_gpio:2.0\
+xilinx.com:ip:axi_uartlite:2.0\
+xilinx.com:ip:util_reduced_logic:2.0\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:processing_system7:5.5\
 xilinx.com:ip:util_vector_logic:2.0\
@@ -228,6 +231,7 @@ proc create_root_design { parentCell } {
 
 
   # Create ports
+  set btns_in [ create_bd_port -dir I -from 3 -to 0 btns_in ]
   set done_out [ create_bd_port -dir O done_out ]
   set led [ create_bd_port -dir O -from 3 -to 0 led ]
   set rst_out [ create_bd_port -dir O -from 0 -to 0 rst_out ]
@@ -235,49 +239,80 @@ proc create_root_design { parentCell } {
   set uart_rx [ create_bd_port -dir I uart_rx ]
   set uart_tx [ create_bd_port -dir O uart_tx ]
 
-  # Create instance: axi_uartlite_0, and set properties
-  set axi_uartlite_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uartlite:2.0 axi_uartlite_0 ]
-  set_property -dict [list \
-    CONFIG.C_BAUDRATE {115200} \
-    CONFIG.C_S_AXI_ACLK_FREQ_HZ {111111115} \
-  ] $axi_uartlite_0
-
+  # Create instance: concat_rstn, and set properties
+  set concat_rstn [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_rstn ]
 
   # Create instance: debug_interconnect, and set properties
   set debug_interconnect [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 debug_interconnect ]
   set_property CONFIG.NUM_MI {1} $debug_interconnect
 
 
-  # Create instance: friscv_gpio_0, and set properties
-  set friscv_gpio_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 friscv_gpio_0 ]
+  # Create instance: extract_btns, and set properties
+  set extract_btns [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 extract_btns ]
+  set_property -dict [list \
+    CONFIG.DIN_FROM {2} \
+    CONFIG.DIN_WIDTH {4} \
+  ] $extract_btns
+
+
+  # Create instance: extract_extern_rst, and set properties
+  set extract_extern_rst [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 extract_extern_rst ]
+  set_property -dict [list \
+    CONFIG.DIN_FROM {3} \
+    CONFIG.DIN_TO {3} \
+    CONFIG.DIN_WIDTH {4} \
+  ] $extract_extern_rst
+
+
+  # Create instance: friscv_soc, and set properties
+  set block_name friscv_soc_wrapper
+  set block_cell_name friscv_soc
+  if { [catch {set friscv_soc [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $friscv_soc eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: fv_gpio_0, and set properties
+  set fv_gpio_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 fv_gpio_0 ]
   set_property -dict [list \
     CONFIG.C_ALL_INPUTS_2 {1} \
     CONFIG.C_ALL_OUTPUTS {1} \
     CONFIG.C_GPIO2_WIDTH {2} \
     CONFIG.C_GPIO_WIDTH {4} \
     CONFIG.C_IS_DUAL {1} \
-  ] $friscv_gpio_0
+  ] $fv_gpio_0
 
 
-  # Create instance: friscv_interconnect, and set properties
-  set friscv_interconnect [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 friscv_interconnect ]
+  # Create instance: fv_gpio_1, and set properties
+  set fv_gpio_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 fv_gpio_1 ]
+  set_property -dict [list \
+    CONFIG.C_ALL_INPUTS {1} \
+    CONFIG.C_GPIO_WIDTH {3} \
+    CONFIG.C_IS_DUAL {0} \
+  ] $fv_gpio_1
+
+
+  # Create instance: fv_interconnect, and set properties
+  set fv_interconnect [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 fv_interconnect ]
   set_property -dict [list \
     CONFIG.ENABLE_ADVANCED_OPTIONS {0} \
-    CONFIG.NUM_MI {3} \
-  ] $friscv_interconnect
+    CONFIG.NUM_MI {4} \
+    CONFIG.S00_HAS_DATA_FIFO {2} \
+    CONFIG.STRATEGY {2} \
+  ] $fv_interconnect
 
 
-  # Create instance: friscv_soc_wrapper, and set properties
-  set block_name friscv_soc_wrapper
-  set block_cell_name friscv_soc_wrapper
-  if { [catch {set friscv_soc_wrapper [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $friscv_soc_wrapper eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
+  # Create instance: fv_uartlite_0, and set properties
+  set fv_uartlite_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uartlite:2.0 fv_uartlite_0 ]
+  set_property -dict [list \
+    CONFIG.C_BAUDRATE {115200} \
+    CONFIG.C_S_AXI_ACLK_FREQ_HZ {125000000} \
+  ] $fv_uartlite_0
+
+
   # Create instance: gpio_aresetn, and set properties
   set gpio_aresetn [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 gpio_aresetn ]
   set_property -dict [list \
@@ -285,6 +320,11 @@ proc create_root_design { parentCell } {
     CONFIG.C_GPIO_WIDTH {1} \
     CONFIG.C_IS_DUAL {0} \
   ] $gpio_aresetn
+
+
+  # Create instance: merge_rstn_vec, and set properties
+  set merge_rstn_vec [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_reduced_logic:2.0 merge_rstn_vec ]
+  set_property CONFIG.C_SIZE {2} $merge_rstn_vec
 
 
   # Create instance: proc_sys_reset_0, and set properties
@@ -300,7 +340,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.096154} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {125.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {111.111115} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {125.000000} \
     CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
@@ -325,10 +365,12 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_APU_CLK_RATIO_ENABLE {6:2:1} \
     CONFIG.PCW_APU_PERIPHERAL_FREQMHZ {650} \
     CONFIG.PCW_CAN0_PERIPHERAL_CLKSRC {External} \
+    CONFIG.PCW_CAN0_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_CAN1_PERIPHERAL_CLKSRC {External} \
+    CONFIG.PCW_CAN1_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_CAN_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_CAN_PERIPHERAL_VALID {0} \
-    CONFIG.PCW_CLK0_FREQ {111111115} \
+    CONFIG.PCW_CLK0_FREQ {125000000} \
     CONFIG.PCW_CLK1_FREQ {10000000} \
     CONFIG.PCW_CLK2_FREQ {10000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
@@ -428,7 +470,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_FCLK2_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_FCLK3_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_FCLK_CLK0_BUF {TRUE} \
-    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {110} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {125} \
     CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA2_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA3_PERIPHERAL_FREQMHZ {50} \
@@ -439,10 +481,13 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1} \
     CONFIG.PCW_GPIO_MIO_GPIO_IO {MIO} \
     CONFIG.PCW_GPIO_PERIPHERAL_ENABLE {0} \
+    CONFIG.PCW_I2C0_PERIPHERAL_ENABLE {0} \
+    CONFIG.PCW_I2C1_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_I2C_RESET_ENABLE {1} \
     CONFIG.PCW_I2C_RESET_POLARITY {Active Low} \
     CONFIG.PCW_IMPORT_BOARD_PRESET {None} \
     CONFIG.PCW_INCLUDE_ACP_TRANS_CHECK {0} \
+    CONFIG.PCW_IRQ_F2P_MODE {DIRECT} \
     CONFIG.PCW_MIO_0_IOTYPE {LVCMOS 3.3V} \
     CONFIG.PCW_MIO_0_PULLUP {enabled} \
     CONFIG.PCW_MIO_0_SLEW {slow} \
@@ -656,6 +701,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_PCAP_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_PCAP_PERIPHERAL_FREQMHZ {200} \
     CONFIG.PCW_PERIPHERAL_BOARD_PRESET {part0} \
+    CONFIG.PCW_PJTAG_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_PLL_BYPASSMODE_ENABLE {0} \
     CONFIG.PCW_PRESET_BANK0_VOLTAGE {LVCMOS 3.3V} \
     CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 1.8V} \
@@ -699,19 +745,26 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_SPI_PERIPHERAL_VALID {0} \
     CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
     CONFIG.PCW_S_AXI_HP0_ID_WIDTH {6} \
+    CONFIG.PCW_S_AXI_HP1_DATA_WIDTH {64} \
+    CONFIG.PCW_S_AXI_HP2_DATA_WIDTH {64} \
+    CONFIG.PCW_S_AXI_HP3_DATA_WIDTH {64} \
     CONFIG.PCW_TPIU_PERIPHERAL_CLKSRC {External} \
+    CONFIG.PCW_TRACE_INTERNAL_WIDTH {2} \
+    CONFIG.PCW_TRACE_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_TTC0_CLK0_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_TTC0_CLK0_PERIPHERAL_DIVISOR0 {1} \
     CONFIG.PCW_TTC0_CLK1_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_TTC0_CLK1_PERIPHERAL_DIVISOR0 {1} \
     CONFIG.PCW_TTC0_CLK2_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_TTC0_CLK2_PERIPHERAL_DIVISOR0 {1} \
+    CONFIG.PCW_TTC0_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_TTC1_CLK0_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_TTC1_CLK0_PERIPHERAL_DIVISOR0 {1} \
     CONFIG.PCW_TTC1_CLK1_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_TTC1_CLK1_PERIPHERAL_DIVISOR0 {1} \
     CONFIG.PCW_TTC1_CLK2_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_TTC1_CLK2_PERIPHERAL_DIVISOR0 {1} \
+    CONFIG.PCW_TTC1_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_UART0_BASEADDR {0xE0000000} \
     CONFIG.PCW_UART0_BAUD_RATE {115200} \
     CONFIG.PCW_UART0_GRP_FULL_ENABLE {0} \
@@ -822,7 +875,16 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_VALUE_SILVERSION {3} \
     CONFIG.PCW_WDT_PERIPHERAL_CLKSRC {CPU_1X} \
     CONFIG.PCW_WDT_PERIPHERAL_DIVISOR0 {1} \
+    CONFIG.PCW_WDT_PERIPHERAL_ENABLE {0} \
   ] $processing_system7_0
+
+
+  # Create instance: rst_to_rstn, and set properties
+  set rst_to_rstn [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 rst_to_rstn ]
+  set_property -dict [list \
+    CONFIG.C_OPERATION {not} \
+    CONFIG.C_SIZE {1} \
+  ] $rst_to_rstn
 
 
   # Create instance: util_vector_logic_0, and set properties
@@ -834,31 +896,39 @@ proc create_root_design { parentCell } {
 
 
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_interconnect_0_M01_AXI [get_bd_intf_pins friscv_gpio_0/S_AXI] [get_bd_intf_pins friscv_interconnect/M01_AXI]
+  connect_bd_intf_net -intf_net axi_interconnect_0_M01_AXI [get_bd_intf_pins fv_gpio_0/S_AXI] [get_bd_intf_pins fv_interconnect/M01_AXI]
   connect_bd_intf_net -intf_net debug_interconnect_M00_AXI [get_bd_intf_pins debug_interconnect/M00_AXI] [get_bd_intf_pins gpio_aresetn/S_AXI]
-  connect_bd_intf_net -intf_net friscv_interconnect_M00_AXI [get_bd_intf_pins friscv_interconnect/M00_AXI] [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
-  connect_bd_intf_net -intf_net friscv_interconnect_M02_AXI [get_bd_intf_pins axi_uartlite_0/S_AXI] [get_bd_intf_pins friscv_interconnect/M02_AXI]
-  connect_bd_intf_net -intf_net friscv_soc_wrapper_0_m_axi [get_bd_intf_pins friscv_interconnect/S00_AXI] [get_bd_intf_pins friscv_soc_wrapper/m_axi]
+  connect_bd_intf_net -intf_net friscv_interconnect_M00_AXI [get_bd_intf_pins fv_interconnect/M00_AXI] [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
+  connect_bd_intf_net -intf_net friscv_interconnect_M02_AXI [get_bd_intf_pins fv_interconnect/M02_AXI] [get_bd_intf_pins fv_uartlite_0/S_AXI]
+  connect_bd_intf_net -intf_net friscv_soc_wrapper_0_m_axi [get_bd_intf_pins friscv_soc/m_axi] [get_bd_intf_pins fv_interconnect/S00_AXI]
+  connect_bd_intf_net -intf_net fv_interconnect_M03_AXI [get_bd_intf_pins fv_gpio_1/S_AXI] [get_bd_intf_pins fv_interconnect/M03_AXI]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins debug_interconnect/S00_AXI] [get_bd_intf_pins processing_system7_0/M_AXI_GP0]
 
   # Create port connections
-  connect_bd_net -net axi_uartlite_0_tx [get_bd_ports uart_tx] [get_bd_pins axi_uartlite_0/tx]
-  connect_bd_net -net friscv_gpio_0_gpio_io_o [get_bd_ports led] [get_bd_pins friscv_gpio_0/gpio_io_o]
-  connect_bd_net -net friscv_rstn_gen_Res [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins friscv_gpio_0/s_axi_aresetn] [get_bd_pins friscv_interconnect/ARESETN] [get_bd_pins friscv_interconnect/M00_ARESETN] [get_bd_pins friscv_interconnect/M01_ARESETN] [get_bd_pins friscv_interconnect/M02_ARESETN] [get_bd_pins friscv_interconnect/S00_ARESETN] [get_bd_pins friscv_soc_wrapper/aresetn] [get_bd_pins gpio_aresetn/gpio_io_o] [get_bd_pins util_vector_logic_0/Op1]
-  connect_bd_net -net friscv_soc_wrapper_o_end [get_bd_ports done_out] [get_bd_pins friscv_soc_wrapper/done]
-  connect_bd_net -net gpio2_io_i_0_1 [get_bd_ports sw_in] [get_bd_pins friscv_gpio_0/gpio2_io_i]
+  connect_bd_net -net Din_0_1 [get_bd_ports btns_in] [get_bd_pins extract_btns/Din] [get_bd_pins extract_extern_rst/Din]
+  connect_bd_net -net axi_uartlite_0_tx [get_bd_ports uart_tx] [get_bd_pins fv_uartlite_0/tx]
+  connect_bd_net -net concat_rstn_dout [get_bd_pins concat_rstn/dout] [get_bd_pins merge_rstn_vec/Op1]
+  connect_bd_net -net extract_btns_Dout [get_bd_pins extract_btns/Dout] [get_bd_pins fv_gpio_1/gpio_io_i]
+  connect_bd_net -net extract_extern_rst_Dout [get_bd_pins extract_extern_rst/Dout] [get_bd_pins rst_to_rstn/Op1]
+  connect_bd_net -net friscv_gpio_0_gpio_io_o [get_bd_ports led] [get_bd_pins fv_gpio_0/gpio_io_o]
+  connect_bd_net -net friscv_soc_wrapper_o_end [get_bd_ports done_out] [get_bd_pins friscv_soc/done]
+  connect_bd_net -net gpio2_io_i_0_1 [get_bd_ports sw_in] [get_bd_pins fv_gpio_0/gpio2_io_i]
+  connect_bd_net -net gpio_aresetn_gpio_io_o [get_bd_pins concat_rstn/In0] [get_bd_pins gpio_aresetn/gpio_io_o]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins debug_interconnect/ARESETN] [get_bd_pins debug_interconnect/M00_ARESETN] [get_bd_pins debug_interconnect/S00_ARESETN] [get_bd_pins gpio_aresetn/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins axi_uartlite_0/s_axi_aclk] [get_bd_pins debug_interconnect/ACLK] [get_bd_pins debug_interconnect/M00_ACLK] [get_bd_pins debug_interconnect/S00_ACLK] [get_bd_pins friscv_gpio_0/s_axi_aclk] [get_bd_pins friscv_interconnect/ACLK] [get_bd_pins friscv_interconnect/M00_ACLK] [get_bd_pins friscv_interconnect/M01_ACLK] [get_bd_pins friscv_interconnect/M02_ACLK] [get_bd_pins friscv_interconnect/S00_ACLK] [get_bd_pins friscv_soc_wrapper/aclk] [get_bd_pins gpio_aresetn/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins debug_interconnect/ACLK] [get_bd_pins debug_interconnect/M00_ACLK] [get_bd_pins debug_interconnect/S00_ACLK] [get_bd_pins friscv_soc/aclk] [get_bd_pins fv_gpio_0/s_axi_aclk] [get_bd_pins fv_gpio_1/s_axi_aclk] [get_bd_pins fv_interconnect/ACLK] [get_bd_pins fv_interconnect/M00_ACLK] [get_bd_pins fv_interconnect/M01_ACLK] [get_bd_pins fv_interconnect/M02_ACLK] [get_bd_pins fv_interconnect/M03_ACLK] [get_bd_pins fv_interconnect/S00_ACLK] [get_bd_pins fv_uartlite_0/s_axi_aclk] [get_bd_pins gpio_aresetn/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins processing_system7_0/FCLK_RESET0_N]
-  connect_bd_net -net rx_0_1 [get_bd_ports uart_rx] [get_bd_pins axi_uartlite_0/rx]
+  connect_bd_net -net rx_0_1 [get_bd_ports uart_rx] [get_bd_pins fv_uartlite_0/rx]
   connect_bd_net -net util_vector_logic_0_Res [get_bd_ports rst_out] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net util_vector_logic_1_Res [get_bd_pins friscv_soc/aresetn] [get_bd_pins fv_gpio_0/s_axi_aresetn] [get_bd_pins fv_gpio_1/s_axi_aresetn] [get_bd_pins fv_interconnect/ARESETN] [get_bd_pins fv_interconnect/M00_ARESETN] [get_bd_pins fv_interconnect/M01_ARESETN] [get_bd_pins fv_interconnect/M02_ARESETN] [get_bd_pins fv_interconnect/M03_ARESETN] [get_bd_pins fv_interconnect/S00_ARESETN] [get_bd_pins fv_uartlite_0/s_axi_aresetn] [get_bd_pins merge_rstn_vec/Res] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net util_vector_logic_2_Res [get_bd_pins concat_rstn/In1] [get_bd_pins rst_to_rstn/Res]
 
   # Create address segments
-  assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc_wrapper/m_axi] [get_bd_addr_segs axi_uartlite_0/S_AXI/Reg] -force
-  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc_wrapper/m_axi] [get_bd_addr_segs friscv_gpio_0/S_AXI/Reg] -force
-  assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces friscv_soc_wrapper/m_axi] [get_bd_addr_segs processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM] -force
+  assign_bd_address -offset 0x40010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_1/S_AXI/Reg] -force
+  assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_uartlite_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM] -force
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs gpio_aresetn/S_AXI/Reg] -force
 
 

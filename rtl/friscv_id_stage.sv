@@ -123,7 +123,6 @@ always_comb begin
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
-            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
 
@@ -138,7 +137,6 @@ always_comb begin
             imm_sel = S_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
             rs2_sel_out = ir_buff.r.rs2;
-            rd_sel_out  = 5'b0;
         end
 
         ALOP: begin
@@ -186,7 +184,6 @@ always_comb begin
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
-            rs2_sel_out = 0;
             rd_sel_out  = ir_buff.r.rd;
         
             case (ir_buff.r.funct3)
@@ -220,8 +217,6 @@ always_comb begin
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = U_TYPE;
-            rs1_sel_out = 5'b0;
-            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
         
@@ -234,8 +229,6 @@ always_comb begin
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
 
             imm_sel = U_TYPE;
-            rs1_sel_out = 5'b0;
-            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
         
@@ -249,7 +242,6 @@ always_comb begin
             imm_sel = B_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
             rs2_sel_out = ir_buff.r.rs2;
-            rd_sel_out  = 5'b0;       
                 
             case (ir_buff.r.funct3)
                 3'b000:  instr_ex_out.branch_cond = COND_EQ;
@@ -272,7 +264,6 @@ always_comb begin
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
-            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
         
@@ -285,19 +276,10 @@ always_comb begin
             instr_ex_out.wb_data_sel = WB_DATA_SEL_PC_PLUS_4;
 
             imm_sel = J_TYPE;
-            rs1_sel_out = 5'b0;
-            rs2_sel_out = 5'b0;
             rd_sel_out  = ir_buff.r.rd;
         end
 
         default: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-            instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-
-            rs1_sel_out = 5'b0;
-            rs2_sel_out = 5'b0;
-            rd_sel_out  = 5'b0;
-
             illegal_inst = 1'b1;
         end
     endcase
