@@ -14,14 +14,8 @@ if { ![file exists $bitstream_path] } {
     exit 1
 }
 
-puts "=========================================="
-puts "Programming FPGA with: $bitstream_path"
-puts "=========================================="
-
-# Open hardware manager
 open_hw_manager
 
-# Connect to hardware server (localhost)
 connect_hw_server -allow_non_jtag
 
 # Auto-detect and open target
@@ -70,9 +64,6 @@ program_hw_devices $fpga_device
 
 # Verify
 refresh_hw_device $fpga_device
-puts "=========================================="
-puts "Programming complete!"
-puts "=========================================="
 
 # Cleanup
 close_hw_target
