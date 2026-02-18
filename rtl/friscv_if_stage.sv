@@ -17,16 +17,14 @@ Version info is listed in friscv_pkg.sv
 
 module friscv_if_stage (
     input  logic  clk_in,
-
-    // Stage control inputs
     input  logic  rst_n_in,
+
+    // Stage control signals
     input  logic  flush_in,
     input  logic  stage_stall_in,
-    input  logic  jump_branch_in,
     input  logic  i_mem_wait_in,
-
-    // Inputs from EX stage
-    input  addr_t jump_branch_addr_in,
+    input  logic  jump_ok_in,
+    input  addr_t jump_target_in,
  
     // Outputs to ID stage
     output addr_t pc_out,
@@ -49,8 +47,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         r_fetch_active <= 1'b1;
         ir_buff        <= NOP;
     end else begin
-        if (flush_in || jump_branch_in) begin
-            pc_reg         <= jump_branch_in ? {jump_branch_addr_in[ADDR_WIDTH-1:2], 2'b0} : RESET_VEC;
+        if (flush_in || jump_ok_in) begin
+            pc_reg         <= jump_ok_in ? {jump_target_in[ADDR_WIDTH-1:2], 2'b0} : RESET_VEC;
             r_fetch_active <= 1'b1;
             ir_buff        <= NOP;
         end else if (!stage_stall_in) begin

@@ -23,7 +23,7 @@ module friscv_zsbl_rom (
     output inst_t o_data
 );
 
-(* ram_style = "block" *) inst_t mem [0:(ZSBL_ROM_SIZE_BYTES/4)-1];
+(* ram_style = "block" *) inst_t mem [ZSBL_ROM_SIZE_BYTES/4];
 localparam int unsigned ZSBL_PROG_WORDS = 144;
 
 logic [31:0] w_word_offset;

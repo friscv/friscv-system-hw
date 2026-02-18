@@ -17,15 +17,19 @@ Version info is listed in friscv_pkg.sv
 
 module friscv_id_stage (
     input  logic      clk_in,
-
-    // Stage control inputs
     input  logic      rst_n_in,
+
+    // Stage control signals
     input  logic      flush_in,
     input  logic      stage_stall_in,
 
+    // Outputs to control logic
     output reg_addr_t rs1_sel_out,
     output reg_addr_t rs2_sel_out,
     output reg_addr_t rd_sel_out,
+
+    output logic      jal_ok_out,
+    output addr_t     jal_target_out,
 
     output logic      illegal_inst,
 
@@ -62,18 +66,22 @@ addr_t     pc_in_buff;
 addr_t     pc_plus_4_in_buff;
 imm_t      imm_sel;
 
+// MEM-EX forwarding
 assign rs1_out = (rd_sel_in != 0 && rs1_sel_out == rd_sel_in) ? rd_data_in : regfile[rs1_sel_out];
 assign rs2_out = (rd_sel_in != 0 && rs2_sel_out == rd_sel_in) ? rd_data_in : regfile[rs2_sel_out];
 
 assign pc_out = pc_in_buff;
 assign pc_plus_4_out = pc_plus_4_in_buff;
 
-// IF stage input buffers
+// ============================================================
+// Input capture
+// ============================================================
+
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
         // Do not reset regfile to synthesize as distributed RAM
-        pc_in_buff <= '0;
-        pc_plus_4_in_buff <= '0;
+        pc_in_buff <= 32'h0;
+        pc_plus_4_in_buff <= 32'h0;
         ir_buff <= NOP;
     end else begin
         if (rd_sel_in != 0) begin
@@ -82,8 +90,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 
         if (flush_in) begin
             ir_buff <= NOP;
-            pc_in_buff <= '0;
-            pc_plus_4_in_buff <= '0;
+            pc_in_buff <= 32'h0;
+            pc_plus_4_in_buff <= 32'h0;
         end else if (!stage_stall_in) begin
             ir_buff <= ir_in;
             pc_in_buff <= pc_in;
@@ -91,6 +99,10 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         end
     end
 end
+
+// ============================================================
+// Immediate generation
+// ============================================================
 
 always_comb begin
     case (imm_sel)
@@ -103,6 +115,44 @@ always_comb begin
         default: imm32_out = 32'h0;
     endcase
 end
+
+// ============================================================
+// Early JAL/JALR
+// ============================================================
+
+always_comb begin
+    if (ENABLE_EARLY_JAL_JALR) begin
+        addr_t jal_target_base;
+        data_t jal_imm;
+        jal_target_base = 32'h0;
+        jal_imm = 32'h0;
+
+        case (ir_buff.r.opcode)
+            JALR: begin
+                jal_ok_out = 1'b1;
+                jal_target_base = (rd_sel_in != 0 && ir_buff.r.rs1 == rd_sel_in) ? rd_data_in : regfile[ir_buff.r.rs1];
+                jal_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};  // I-type immediate
+                jal_target_out = (jal_target_base + jal_imm) & ~32'h1;
+            end
+            JAL: begin
+                jal_ok_out = 1'b1;
+                jal_imm = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};  // J-type immediate
+                jal_target_out = pc_in_buff + jal_imm;
+            end
+            default: begin
+                jal_ok_out = 1'b0;
+                jal_target_out = 32'h0;
+            end
+        endcase
+    end else begin
+        jal_ok_out = 1'b0;
+        jal_target_out = 32'h0;
+    end
+end
+
+// ============================================================
+// Instruction decoding
+// ============================================================
 
 always_comb begin
     // Set signals to have no side effect by default

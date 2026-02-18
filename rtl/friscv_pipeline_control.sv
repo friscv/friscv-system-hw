@@ -16,30 +16,29 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_pipeline_control (
-    input  logic      clk_in,
-    input  logic      rst_n_cpu_in,
-
+    // Control signals
     output logic      flush_if_out,
     output logic      flush_id_out,
-    
-    // IF stage    
+    output logic      flush_ex_out,
     output logic      stall_if_out,
     output logic      stall_id_out,
     output logic      stall_ex_out,
     output logic      stall_mem_out,
-    output logic      flush_ex_out,
-    output logic      jump_branch_out,
+
+    // IF stage    
+    output logic      jump_ok_out,
+    output addr_t     jump_target_out,
 
     // ID stage
     input  reg_addr_t id_rs1_sel_in,
     input  reg_addr_t id_rs2_sel_in,
+    input  logic      jal_ok_in,
+    input  addr_t     jal_target_in,
 
     // EX stage   
     input  reg_addr_t ex_rd_sel_in,
     input  logic      branch_ok_in,
-
-    // MEM stage
-    input  reg_addr_t mem_rd_sel_in,
+    input  addr_t     branch_target_in,
 
     // Memory wait signals
     input  logic      if_wait_in,
@@ -48,19 +47,28 @@ module friscv_pipeline_control (
 
 logic mem_stall, hazard_stall;
 
+// Early JAL/JALR must be suppressed when
+//  1) EX cannot capture the decoded instruction (mem_stall) or
+//  2) JALR's rs1 has a data hazard with EX (hazard_stall)
+logic effective_jal;
+
 always_comb begin
     mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = ex_rd_sel_in != 0 && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+
+    effective_jal = jal_ok_in && !mem_stall && !hazard_stall;
 
     stall_if_out  = mem_stall || hazard_stall;
     stall_id_out  = mem_stall || hazard_stall;
     stall_ex_out  = mem_stall;
     stall_mem_out = mem_stall;
-    flush_ex_out  = hazard_stall && !mem_stall;
 
-    flush_if_out = branch_ok_in;
-    flush_id_out = branch_ok_in;
-    jump_branch_out  = branch_ok_in;
+    flush_if_out = branch_ok_in || effective_jal;
+    flush_id_out = branch_ok_in || effective_jal;
+    flush_ex_out = hazard_stall && !mem_stall;
+
+    jump_ok_out     = branch_ok_in || effective_jal;
+    jump_target_out = (branch_ok_in) ? branch_target_in : jal_target_in;
 end
 
 endmodule

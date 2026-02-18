@@ -925,9 +925,9 @@ proc create_root_design { parentCell } {
   connect_bd_net -net util_vector_logic_2_Res [get_bd_pins concat_rstn/In1] [get_bd_pins rst_to_rstn/Res]
 
   # Create address segments
+  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x40010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_1/S_AXI/Reg] -force
   assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_uartlite_0/S_AXI/Reg] -force
-  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM] -force
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs gpio_aresetn/S_AXI/Reg] -force
 

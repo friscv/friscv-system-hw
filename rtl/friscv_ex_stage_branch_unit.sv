@@ -48,7 +48,11 @@ always_comb begin
             endcase
         end
         JAL_INSTR: begin
-            branch_ok_out = 1'b1;
+            if (ENABLE_EARLY_JAL_JALR) begin
+                branch_ok_out = 1'b0;
+            end else begin
+                branch_ok_out = 1'b1;
+            end
         end
         default: begin
             branch_ok_out = 1'b0;

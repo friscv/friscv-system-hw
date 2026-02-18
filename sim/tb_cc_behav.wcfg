@@ -12,28 +12,28 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="3.048333 us"></ZoomStartTime>
-      <ZoomEndTime time="21.338334 us"></ZoomEndTime>
-      <Cursor1Time time="18.290000 us"></Cursor1Time>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="18.100001 us"></ZoomEndTime>
+      <Cursor1Time time="18.100000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="332"></NameColumnWidth>
-      <ValueColumnWidth column_width="131"></ValueColumnWidth>
+      <ValueColumnWidth column_width="124"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="21" />
-   <wvobject type="logic" fp_name="/tb_cc/rstn">
+   <wvobject fp_name="/tb_cc/rstn" type="logic">
       <obj_property name="ElementShortName">rstn</obj_property>
       <obj_property name="ObjectShortName">rstn</obj_property>
       <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/tb_cc/end_signal">
+   <wvobject fp_name="/tb_cc/end_signal" type="logic">
       <obj_property name="ElementShortName">end_signal</obj_property>
       <obj_property name="ObjectShortName">end_signal</obj_property>
       <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_cc/cycle_count">
+   <wvobject fp_name="/tb_cc/cycle_count" type="array">
       <obj_property name="ElementShortName">cycle_count[31:0]</obj_property>
       <obj_property name="ObjectShortName">cycle_count[31:0]</obj_property>
       <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
@@ -41,115 +41,115 @@
       <obj_property name="CustomSignalColor">#A0A0A4</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="divider419" type="divider">
+   <wvobject type="divider" fp_name="divider419">
       <obj_property name="label">External</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#FF0000</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group407">
+   <wvobject fp_name="group407" type="group">
       <obj_property name="label">External Memory</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/clk">
+      <wvobject fp_name="/tb_cc/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/mem_addr">
+      <wvobject fp_name="/tb_cc/mem_addr" type="array">
          <obj_property name="ElementShortName">mem_addr[31:0]</obj_property>
          <obj_property name="ObjectShortName">mem_addr[31:0]</obj_property>
          <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/o_mem_size">
+      <wvobject fp_name="/tb_cc/dut/o_mem_size" type="array">
          <obj_property name="ElementShortName">o_mem_size[2:0]</obj_property>
          <obj_property name="ObjectShortName">o_mem_size[2:0]</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/mem_wdata">
+      <wvobject fp_name="/tb_cc/mem_wdata" type="array">
          <obj_property name="ElementShortName">mem_wdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">mem_wdata[31:0]</obj_property>
          <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
          <obj_property name="CustomSignalColor">#A52A2A</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/mem_rdata">
+      <wvobject fp_name="/tb_cc/mem_rdata" type="array">
          <obj_property name="ElementShortName">mem_rdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">mem_rdata[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FFA500</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/mem_rw">
+      <wvobject fp_name="/tb_cc/mem_rw" type="array">
          <obj_property name="ElementShortName">mem_rw[1:0]</obj_property>
          <obj_property name="ObjectShortName">mem_rw[1:0]</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/mem_wait">
+      <wvobject fp_name="/tb_cc/mem_wait" type="logic">
          <obj_property name="ElementShortName">mem_wait</obj_property>
          <obj_property name="ObjectShortName">mem_wait</obj_property>
          <obj_property name="CustomSignalColor">#800080</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider149" type="divider">
+   <wvobject type="divider" fp_name="divider149">
       <obj_property name="label">Arbitration</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#D2691E</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group148">
+   <wvobject fp_name="group148" type="group">
       <obj_property name="label">Arbitration</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/i_clk">
+      <wvobject fp_name="/tb_cc/dut/l1_subsystem/i_clk" type="logic">
          <obj_property name="ElementShortName">i_clk</obj_property>
          <obj_property name="ObjectShortName">i_clk</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/control_unit/mem_stall">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/mem_stall" type="logic">
          <obj_property name="ElementShortName">mem_stall</obj_property>
          <obj_property name="ObjectShortName">mem_stall</obj_property>
          <obj_property name="CustomSignalColor">#00FFFF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/l1_subsystem/state">
+      <wvobject fp_name="/tb_cc/dut/l1_subsystem/state" type="array">
          <obj_property name="ElementShortName">state[1:0]</obj_property>
          <obj_property name="ObjectShortName">state[1:0]</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/i_mem_wait">
+      <wvobject fp_name="/tb_cc/dut/l1_subsystem/i_mem_wait" type="logic">
          <obj_property name="ElementShortName">i_mem_wait</obj_property>
          <obj_property name="ObjectShortName">i_mem_wait</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/priority_flag">
+      <wvobject fp_name="/tb_cc/dut/l1_subsystem/priority_flag" type="logic">
          <obj_property name="ElementShortName">priority_flag</obj_property>
          <obj_property name="ObjectShortName">priority_flag</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group146">
+      <wvobject fp_name="group146" type="group">
          <obj_property name="label">I Mem</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/i_inst_en">
+         <wvobject fp_name="/tb_cc/dut/l1_subsystem/i_inst_en" type="logic">
             <obj_property name="ElementShortName">i_inst_en</obj_property>
             <obj_property name="ObjectShortName">i_inst_en</obj_property>
             <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/o_inst_wait">
+         <wvobject fp_name="/tb_cc/dut/l1_subsystem/o_inst_wait" type="logic">
             <obj_property name="ElementShortName">o_inst_wait</obj_property>
             <obj_property name="ObjectShortName">o_inst_wait</obj_property>
             <obj_property name="CustomSignalColor">#FFA500</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="group" fp_name="group147">
+      <wvobject fp_name="group147" type="group">
          <obj_property name="label">D Mem</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/i_data_en">
+         <wvobject fp_name="/tb_cc/dut/l1_subsystem/i_data_en" type="logic">
             <obj_property name="ElementShortName">i_data_en</obj_property>
             <obj_property name="ObjectShortName">i_data_en</obj_property>
             <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/l1_subsystem/o_data_wait">
+         <wvobject fp_name="/tb_cc/dut/l1_subsystem/o_data_wait" type="logic">
             <obj_property name="ElementShortName">o_data_wait</obj_property>
             <obj_property name="ObjectShortName">o_data_wait</obj_property>
             <obj_property name="CustomSignalColor">#FFA500</obj_property>
@@ -157,37 +157,33 @@
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider124" type="divider">
+   <wvobject type="divider" fp_name="divider124">
       <obj_property name="label">Control</obj_property>
       <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group125">
+   <wvobject fp_name="group125" type="group">
       <obj_property name="label">Control</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/control_unit/clk_in">
-         <obj_property name="ElementShortName">clk_in</obj_property>
-         <obj_property name="ObjectShortName">clk_in</obj_property>
-      </wvobject>
-      <wvobject type="group" fp_name="group132">
+      <wvobject fp_name="group132" type="group">
          <obj_property name="label">Hazard control</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs1_sel_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs1_sel_in" type="array">
             <obj_property name="ElementShortName">id_rs1_sel_in[4:0]</obj_property>
             <obj_property name="ObjectShortName">id_rs1_sel_in[4:0]</obj_property>
             <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs2_sel_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs2_sel_in" type="array">
             <obj_property name="ElementShortName">id_rs2_sel_in[4:0]</obj_property>
             <obj_property name="ObjectShortName">id_rs2_sel_in[4:0]</obj_property>
             <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/control_unit/ex_rd_sel_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/ex_rd_sel_in" type="array">
             <obj_property name="ElementShortName">ex_rd_sel_in[4:0]</obj_property>
             <obj_property name="ObjectShortName">ex_rd_sel_in[4:0]</obj_property>
             <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
@@ -195,80 +191,94 @@
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="group" fp_name="group123">
+      <wvobject fp_name="group123" type="group">
          <obj_property name="label">Jump control</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/control_unit/jump_branch_out">
-            <obj_property name="ElementShortName">jump_branch_out</obj_property>
-            <obj_property name="ObjectShortName">jump_branch_out</obj_property>
-            <obj_property name="CustomSignalColor">#FFA500</obj_property>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/branch_target_in" type="array">
+            <obj_property name="ElementShortName">branch_target_in[31:0]</obj_property>
+            <obj_property name="ObjectShortName">branch_target_in[31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#00FFFF</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/control_unit/branch_ok_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/branch_ok_in" type="logic">
             <obj_property name="ElementShortName">branch_ok_in</obj_property>
             <obj_property name="ObjectShortName">branch_ok_in</obj_property>
+            <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/jal_target_in" type="array">
+            <obj_property name="ElementShortName">jal_target_in[31:0]</obj_property>
+            <obj_property name="ObjectShortName">jal_target_in[31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/jal_ok_in" type="logic">
+            <obj_property name="ElementShortName">jal_ok_in</obj_property>
+            <obj_property name="ObjectShortName">jal_ok_in</obj_property>
+            <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/jump_target_out" type="array">
+            <obj_property name="ElementShortName">jump_target_out[31:0]</obj_property>
+            <obj_property name="ObjectShortName">jump_target_out[31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/jump_ok_out" type="logic">
+            <obj_property name="ElementShortName">jump_ok_out</obj_property>
+            <obj_property name="ObjectShortName">jump_ok_out</obj_property>
+            <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider421" type="divider">
+   <wvobject type="divider" fp_name="divider421">
       <obj_property name="label">IF</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#FFA500</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group413">
+   <wvobject fp_name="group413" type="group">
       <obj_property name="label">IF</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/clk">
+      <wvobject fp_name="/tb_cc/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/if_stage/stage_stall_in">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/if_stage/stage_stall_in" type="logic">
          <obj_property name="ElementShortName">stage_stall_in</obj_property>
          <obj_property name="ObjectShortName">stage_stall_in</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/if_stage/jump_branch_addr_in">
-         <obj_property name="ElementShortName">jump_branch_addr_in[31:0]</obj_property>
-         <obj_property name="ObjectShortName">jump_branch_addr_in[31:0]</obj_property>
-         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/if_stage/jump_branch_in">
-         <obj_property name="ElementShortName">jump_branch_in</obj_property>
-         <obj_property name="ObjectShortName">jump_branch_in</obj_property>
-         <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/if_stage/pc_reg">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/if_stage/pc_reg" type="array">
          <obj_property name="ElementShortName">pc_reg[31:0]</obj_property>
          <obj_property name="ObjectShortName">pc_reg[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/if_stage/ir_out">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/if_stage/ir_out" type="array">
          <obj_property name="ElementShortName">ir_out[31:0]</obj_property>
          <obj_property name="ObjectShortName">ir_out[31:0]</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group133">
+      <wvobject fp_name="group133" type="group">
          <obj_property name="label">Memory</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/if_stage/i_mem_addr_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/if_stage/i_mem_addr_out" type="array">
             <obj_property name="ElementShortName">i_mem_addr_out[31:0]</obj_property>
             <obj_property name="ObjectShortName">i_mem_addr_out[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#FFFF00</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/if_stage/i_mem_data_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/if_stage/i_mem_data_in" type="array">
             <obj_property name="ElementShortName">i_mem_data_in[31:0]</obj_property>
             <obj_property name="ObjectShortName">i_mem_data_in[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#FFA500</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/control_unit/if_wait_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/if_wait_in" type="logic">
             <obj_property name="ElementShortName">if_wait_in</obj_property>
             <obj_property name="ObjectShortName">if_wait_in</obj_property>
             <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
@@ -276,116 +286,141 @@
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider422" type="divider">
+   <wvobject type="divider" fp_name="divider422">
       <obj_property name="label">ID</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#FFFF00</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group418">
+   <wvobject fp_name="group418" type="group">
       <obj_property name="label">ID</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/clk">
+      <wvobject fp_name="/tb_cc/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/id_stage/rst_n_in">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/rst_n_in" type="logic">
          <obj_property name="ElementShortName">rst_n_in</obj_property>
          <obj_property name="ObjectShortName">rst_n_in</obj_property>
          <obj_property name="CustomSignalColor">#00FFFF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/id_stage/stage_stall_in">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/stage_stall_in" type="logic">
          <obj_property name="ElementShortName">stage_stall_in</obj_property>
          <obj_property name="ObjectShortName">stage_stall_in</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/pc_in_buff">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/flush_in" type="logic">
+         <obj_property name="ElementShortName">flush_in</obj_property>
+         <obj_property name="ObjectShortName">flush_in</obj_property>
+         <obj_property name="CustomSignalColor">#A0A0A4</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/pc_in_buff" type="array">
          <obj_property name="ElementShortName">pc_in_buff[31:0]</obj_property>
          <obj_property name="ObjectShortName">pc_in_buff[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group135">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/pc_plus_4_in_buff" type="array">
+         <obj_property name="ElementShortName">pc_plus_4_in_buff[31:0]</obj_property>
+         <obj_property name="ObjectShortName">pc_plus_4_in_buff[31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="group118" type="group">
+         <obj_property name="label">Early JAL/JALR</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/jal_target_out" type="array">
+            <obj_property name="ElementShortName">jal_target_out[31:0]</obj_property>
+            <obj_property name="ObjectShortName">jal_target_out[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/jal_ok_out" type="logic">
+            <obj_property name="ElementShortName">jal_ok_out</obj_property>
+            <obj_property name="ObjectShortName">jal_ok_out</obj_property>
+            <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group135" type="group">
          <obj_property name="label">WB</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/rd_sel_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/rd_sel_in" type="array">
             <obj_property name="ElementShortName">rd_sel_in[4:0]</obj_property>
             <obj_property name="ObjectShortName">rd_sel_in[4:0]</obj_property>
             <obj_property name="CustomSignalColor">#008080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/rd_data_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/rd_data_in" type="array">
             <obj_property name="ElementShortName">rd_data_in[31:0]</obj_property>
             <obj_property name="ObjectShortName">rd_data_in[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#008080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/regfile">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/regfile" type="array">
          <obj_property name="ElementShortName">regfile[0:31][31:0]</obj_property>
          <obj_property name="ObjectShortName">regfile[0:31][31:0]</obj_property>
          <obj_property name="CustomSignalColor">#F0E68C</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/regfile[28]">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/regfile[28]" type="array">
          <obj_property name="ElementShortName">[28][31:0]</obj_property>
          <obj_property name="ObjectShortName">[28][31:0]</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group134">
+      <wvobject fp_name="group134" type="group">
          <obj_property name="label">Reg. &amp; data out</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/imm32_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/imm32_out" type="array">
             <obj_property name="ElementShortName">imm32_out[31:0]</obj_property>
             <obj_property name="ObjectShortName">imm32_out[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#800080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="group" fp_name="group136">
+         <wvobject fp_name="group136" type="group">
             <obj_property name="label">rs1</obj_property>
             <obj_property name="DisplayName">label</obj_property>
             <obj_property name="isExpanded"></obj_property>
-            <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/ir_buff.r.rs1">
+            <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/ir_buff.r.rs1" type="array">
                <obj_property name="ElementShortName">.rs1[4:0]</obj_property>
                <obj_property name="ObjectShortName">.rs1[4:0]</obj_property>
                <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
                <obj_property name="UseCustomSignalColor">true</obj_property>
                <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
             </wvobject>
-            <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/rs1_out">
+            <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/rs1_out" type="array">
                <obj_property name="ElementShortName">rs1_out[31:0]</obj_property>
                <obj_property name="ObjectShortName">rs1_out[31:0]</obj_property>
                <obj_property name="CustomSignalColor">#FF0080</obj_property>
                <obj_property name="UseCustomSignalColor">true</obj_property>
             </wvobject>
          </wvobject>
-         <wvobject type="group" fp_name="group137">
+         <wvobject fp_name="group137" type="group">
             <obj_property name="label">rs2</obj_property>
             <obj_property name="DisplayName">label</obj_property>
             <obj_property name="isExpanded"></obj_property>
-            <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/ir_buff.r.rs2">
+            <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/ir_buff.r.rs2" type="array">
                <obj_property name="ElementShortName">.rs2[4:0]</obj_property>
                <obj_property name="ObjectShortName">.rs2[4:0]</obj_property>
                <obj_property name="CustomSignalColor">#00FFFF</obj_property>
                <obj_property name="UseCustomSignalColor">true</obj_property>
                <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
             </wvobject>
-            <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/rs2_out">
+            <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/rs2_out" type="array">
                <obj_property name="ElementShortName">rs2_out[31:0]</obj_property>
                <obj_property name="ObjectShortName">rs2_out[31:0]</obj_property>
                <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
                <obj_property name="UseCustomSignalColor">true</obj_property>
             </wvobject>
          </wvobject>
-         <wvobject type="group" fp_name="group138">
+         <wvobject fp_name="group138" type="group">
             <obj_property name="label">rd</obj_property>
             <obj_property name="DisplayName">label</obj_property>
             <obj_property name="isExpanded"></obj_property>
-            <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/id_stage/rd_sel_out">
+            <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/rd_sel_out" type="array">
                <obj_property name="ElementShortName">rd_sel_out[4:0]</obj_property>
                <obj_property name="ObjectShortName">rd_sel_out[4:0]</obj_property>
                <obj_property name="CustomSignalColor">#008080</obj_property>
@@ -394,137 +429,137 @@
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider431" type="divider">
+   <wvobject type="divider" fp_name="divider431">
       <obj_property name="label">EX</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#00FF7F</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group430">
+   <wvobject fp_name="group430" type="group">
       <obj_property name="label">EX</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/clk">
+      <wvobject fp_name="/tb_cc/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/stage_stall_in">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/stage_stall_in" type="logic">
          <obj_property name="ElementShortName">stage_stall_in</obj_property>
          <obj_property name="ObjectShortName">stage_stall_in</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/stage_flush_in">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/stage_flush_in" type="logic">
          <obj_property name="ElementShortName">stage_flush_in</obj_property>
          <obj_property name="ObjectShortName">stage_flush_in</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/pc_buff">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/pc_buff" type="array">
          <obj_property name="ElementShortName">pc_buff[31:0]</obj_property>
          <obj_property name="ObjectShortName">pc_buff[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group1272">
+      <wvobject fp_name="group1272" type="group">
          <obj_property name="label">Duplicate detection</obj_property>
          <obj_property name="DisplayName">label</obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/pc_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/pc_in" type="array">
             <obj_property name="ElementShortName">pc_in[31:0]</obj_property>
             <obj_property name="ObjectShortName">pc_in[31:0]</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="group" fp_name="group434">
+      <wvobject fp_name="group434" type="group">
          <obj_property name="label">Operands</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/alu_input_a">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/alu_input_a" type="array">
             <obj_property name="ElementShortName">alu_input_a[31:0]</obj_property>
             <obj_property name="ObjectShortName">alu_input_a[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#FF0080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/alu_input_b">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/alu_input_b" type="array">
             <obj_property name="ElementShortName">alu_input_b[31:0]</obj_property>
             <obj_property name="ObjectShortName">alu_input_b[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="group" fp_name="group435">
+      <wvobject fp_name="group435" type="group">
          <obj_property name="label">Data out</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/alu_data_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/alu_data_out" type="array">
             <obj_property name="ElementShortName">alu_data_out[31:0]</obj_property>
             <obj_property name="ObjectShortName">alu_data_out[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#800080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/store_data_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/store_data_out" type="array">
             <obj_property name="ElementShortName">store_data_out[31:0]</obj_property>
             <obj_property name="ObjectShortName">store_data_out[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#A52A2A</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/rd_sel_buff">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/rd_sel_buff" type="array">
          <obj_property name="ElementShortName">rd_sel_buff[4:0]</obj_property>
          <obj_property name="ObjectShortName">rd_sel_buff[4:0]</obj_property>
          <obj_property name="CustomSignalColor">#008080</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/load_store_width_out">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/load_store_width_out" type="array">
          <obj_property name="ElementShortName">load_store_width_out[2:0]</obj_property>
          <obj_property name="ObjectShortName">load_store_width_out[2:0]</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group159">
+      <wvobject fp_name="group159" type="group">
          <obj_property name="label">Flags</obj_property>
          <obj_property name="DisplayName">label</obj_property>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/n">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/n" type="logic">
             <obj_property name="ElementShortName">n</obj_property>
             <obj_property name="ObjectShortName">n</obj_property>
             <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/z">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/z" type="logic">
             <obj_property name="ElementShortName">z</obj_property>
             <obj_property name="ObjectShortName">z</obj_property>
             <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/c">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/c" type="logic">
             <obj_property name="ElementShortName">c</obj_property>
             <obj_property name="ObjectShortName">c</obj_property>
             <obj_property name="CustomSignalColor">#A0A0A4</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/v">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/v" type="logic">
             <obj_property name="ElementShortName">v</obj_property>
             <obj_property name="ObjectShortName">v</obj_property>
             <obj_property name="CustomSignalColor">#808080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="group" fp_name="group160">
+      <wvobject fp_name="group160" type="group">
          <obj_property name="label">Branching</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/branch_cond_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/branch_cond_in" type="array">
             <obj_property name="ElementShortName">branch_cond_in[2:0]</obj_property>
             <obj_property name="ObjectShortName">branch_cond_in[2:0]</obj_property>
             <obj_property name="CustomSignalColor">#00FF7F</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/branch_jal_sel_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/branch_jal_sel_in" type="array">
             <obj_property name="ElementShortName">branch_jal_sel_in[1:0]</obj_property>
             <obj_property name="ObjectShortName">branch_jal_sel_in[1:0]</obj_property>
             <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/branch_ok_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/ex_stage/branch_unit/branch_ok_out" type="logic">
             <obj_property name="ElementShortName">branch_ok_out</obj_property>
             <obj_property name="ObjectShortName">branch_ok_out</obj_property>
             <obj_property name="CustomSignalColor">#FFFF00</obj_property>
@@ -532,94 +567,94 @@
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider445" type="divider">
+   <wvobject type="divider" fp_name="divider445">
       <obj_property name="label">MEM</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#00FFFF</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group443">
+   <wvobject fp_name="group443" type="group">
       <obj_property name="label">MEM</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/clk">
+      <wvobject fp_name="/tb_cc/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/mem_stage/stage_stall_in">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/stage_stall_in" type="logic">
          <obj_property name="ElementShortName">stage_stall_in</obj_property>
          <obj_property name="ObjectShortName">stage_stall_in</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/mem_instr_sel_buff">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/mem_instr_sel_buff" type="array">
          <obj_property name="ElementShortName">mem_instr_sel_buff[1:0]</obj_property>
          <obj_property name="ObjectShortName">mem_instr_sel_buff[1:0]</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group446">
+      <wvobject fp_name="group446" type="group">
          <obj_property name="label">Data in</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/alu_data_buff">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/alu_data_buff" type="array">
             <obj_property name="ElementShortName">alu_data_buff[31:0]</obj_property>
             <obj_property name="ObjectShortName">alu_data_buff[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#800080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/store_data_buff">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/store_data_buff" type="array">
             <obj_property name="ElementShortName">store_data_buff[31:0]</obj_property>
             <obj_property name="ObjectShortName">store_data_buff[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#A52A2A</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/load_store_width_buff">
+      <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/load_store_width_buff" type="array">
          <obj_property name="ElementShortName">load_store_width_buff[2:0]</obj_property>
          <obj_property name="ObjectShortName">load_store_width_buff[2:0]</obj_property>
          <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="group" fp_name="group204">
+      <wvobject fp_name="group204" type="group">
          <obj_property name="label">Memory</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_addr_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_addr_out" type="array">
             <obj_property name="ElementShortName">d_mem_addr_out[31:0]</obj_property>
             <obj_property name="ObjectShortName">d_mem_addr_out[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#FFFF00</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_data_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_data_in" type="array">
             <obj_property name="ElementShortName">d_mem_data_in[31:0]</obj_property>
             <obj_property name="ObjectShortName">d_mem_data_in[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#FFA500</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="array" fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_data_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_data_out" type="array">
             <obj_property name="ElementShortName">d_mem_data_out[31:0]</obj_property>
             <obj_property name="ObjectShortName">d_mem_data_out[31:0]</obj_property>
             <obj_property name="CustomSignalColor">#A52A2A</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject type="group" fp_name="group203">
+      <wvobject fp_name="group203" type="group">
          <obj_property name="label">Mem. ctrl.</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_en_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_en_out" type="logic">
             <obj_property name="ElementShortName">d_mem_en_out</obj_property>
             <obj_property name="ObjectShortName">d_mem_en_out</obj_property>
             <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_wr_out">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/mem_stage/d_mem_wr_out" type="logic">
             <obj_property name="ElementShortName">d_mem_wr_out</obj_property>
             <obj_property name="ObjectShortName">d_mem_wr_out</obj_property>
             <obj_property name="CustomSignalColor">#DCDCDC</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-         <wvobject type="logic" fp_name="/tb_cc/dut/cpu_0/control_unit/mem_wait_in">
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/mem_wait_in" type="logic">
             <obj_property name="ElementShortName">mem_wait_in</obj_property>
             <obj_property name="ObjectShortName">mem_wait_in</obj_property>
             <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
@@ -627,26 +662,26 @@
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider57" type="divider">
+   <wvobject type="divider" fp_name="divider57">
       <obj_property name="label">WB</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#FF0080</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group56">
+   <wvobject fp_name="group56" type="group">
       <obj_property name="label">WB</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_cc/clk">
+      <wvobject fp_name="/tb_cc/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="divider58" type="divider">
+   <wvobject type="divider" fp_name="divider58">
       <obj_property name="label">Result</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">#FF00FF</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_cc/gpio_reg">
+   <wvobject fp_name="/tb_cc/gpio_reg" type="array">
       <obj_property name="ElementShortName">gpio_reg[31:0]</obj_property>
       <obj_property name="ObjectShortName">gpio_reg[31:0]</obj_property>
       <obj_property name="CustomSignalColor">#00FFFF</obj_property>

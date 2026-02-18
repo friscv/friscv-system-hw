@@ -17,9 +17,9 @@ Version info is listed in friscv_pkg.sv
 
 module friscv_ex_stage (
     input  logic           clk_in,
-
-    // Stage control inputs
     input  logic           rst_n_in,
+
+    // Stage control signals
     input  logic           stage_stall_in,
     input  logic           stage_flush_in,
   
