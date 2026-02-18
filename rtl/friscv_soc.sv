@@ -80,21 +80,76 @@ end else begin
     assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
 end
 
+// Metastability protection for reset
+logic [1:0]  r_rstn_sync = 2'b00;
+
+always_ff @(posedge i_clk) begin
+    r_rstn_sync <= {r_rstn_sync[0], i_rstn};
+end
+
+// Reset debouncer
+logic        r_rstn_debounced = 1'b0;
+logic [20:0] r_debounce_cnt = 21'd0;
+
+always_ff @(posedge i_clk) begin
+    if (r_rstn_sync[1] == r_rstn_debounced) begin
+        // Signal is stable, reset counter
+        r_debounce_cnt <= '0;
+    end else begin
+        // Signal changed, increment counter
+        if (r_debounce_cnt < 21'd2_000_000) begin
+            r_debounce_cnt <= r_debounce_cnt + 1'b1;
+        end else begin
+            // Signal has been stable for debounce period, update output
+            r_rstn_debounced <= r_rstn_sync[1];
+        end
+    end
+end
+
+logic w_core_rstn;
+assign w_core_rstn = r_rstn_debounced;
+
 friscv_core_complex cc_0 (
-    .i_clk       ( i_clk      ),
-    .i_rstn      ( i_rstn     ),
-    .o_end       ( o_end      ),
-    .o_mem_size  ( w_size     ),
-    .o_mem_addr  ( w_phy_addr ),
-    .o_mem_wdata ( w_wdata    ),
-    .i_mem_rdata ( w_rdata    ),
-    .o_mem_rw    ( w_rw       ),
-    .i_mem_wait  ( w_wait     )
+    .i_clk       ( i_clk       ),
+    .i_rstn      ( w_core_rstn ),
+    .o_end       ( o_end       ),
+    .o_mem_size  ( w_size      ),
+    .o_mem_addr  ( w_phy_addr  ),
+    .o_mem_wdata ( w_wdata     ),
+    .i_mem_rdata ( w_rdata     ),
+    .o_mem_rw    ( w_rw        ),
+    .i_mem_wait  ( w_wait      )
 );
 
-friscv_axi_master axi_master (
+// AXI master reset sequencer
+// Wait for transactions to complete before resetting
+logic r_axi_reset_req;
+logic r_axi_in_reset = 1'b1;  // Start in reset
+
+always_ff @(posedge i_clk or negedge r_rstn_debounced) begin
+    if (!r_rstn_debounced) begin
+        r_axi_reset_req <= 1'b1;  // Request reset when button pressed
+    end else begin
+        r_axi_reset_req <= 1'b0;  // Clear request when button released
+    end
+end
+
+always_ff @(posedge i_clk) begin
+    if (r_axi_reset_req && !w_wait) begin
+        // Once transaction completes and reset is requested, assert reset
+        r_axi_in_reset <= 1'b1;
+    end else if (!r_axi_reset_req) begin
+        // Only release reset when external reset is released
+        r_axi_in_reset <= 1'b0;
+    end
+end
+
+logic w_axi_rstn;
+assign w_axi_rstn = !r_axi_in_reset;
+
+friscv_axi_master m_axi (
     .i_clk          ( i_clk         ),
-    .i_rstn         ( i_rstn        ),
+    .i_rstn         ( w_axi_rstn    ),
     .i_size         ( w_size        ),
     .i_addr         ( w_dram_addr   ),
     .i_wdata        ( w_wdata       ),

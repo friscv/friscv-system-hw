@@ -47,7 +47,15 @@ module friscv_id_stage (
     input  data_t     rd_data_in
 );
 
-data_t regfile [REGISTER_NUM] = '{REGISTER_NUM{0}};
+data_t regfile [REGISTER_NUM];
+
+// Initialize regfile to prevent X in simulation
+genvar g;
+generate
+    for (g = 0; g < REGISTER_NUM; g++) begin : init_regfile
+        initial regfile[g] = '0;
+    end
+endgenerate
 
 instr_op_t ir_buff;
 addr_t     pc_in_buff;
@@ -63,6 +71,7 @@ assign pc_plus_4_out = pc_plus_4_in_buff;
 // IF stage input buffers
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
+        // Do not reset regfile to synthesize as distributed RAM
         pc_in_buff <= '0;
         pc_plus_4_in_buff <= '0;
         ir_buff <= NOP;
@@ -73,8 +82,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 
         if (flush_in) begin
             ir_buff <= NOP;
-            pc_in_buff <= 0;
-            pc_plus_4_in_buff <= 0;
+            pc_in_buff <= '0;
+            pc_plus_4_in_buff <= '0;
         end else if (!stage_stall_in) begin
             ir_buff <= ir_in;
             pc_in_buff <= pc_in;
@@ -92,7 +101,7 @@ always_comb begin
         U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
         J_TYPE:  imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
         default: imm32_out = 32'h0;
-    endcase  
+    endcase
 end
 
 always_comb begin

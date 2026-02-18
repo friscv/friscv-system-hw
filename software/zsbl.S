@@ -1,6 +1,20 @@
 .section .text
 .global _start
 
+# =============================================================================
+# REGISTER ALLOCATION (Stack-free design - do not use these for other purposes)
+# =============================================================================
+# s0 - Reserved for boot mode
+# s1 - Reserved for GPIO0_BASE
+# s2 - Reserved for GPIO1_BASE
+# s3 - Reserved for uart_puts return address
+# s4 - Reserved for uart_boot return address
+# s5 - DRAM write pointer (uart_boot)
+# s6 - Packet counter (uart_boot)
+# s7 - Retry counter (uart_boot)
+# s8-s11 - Free to use
+# =============================================================================
+
 .equ DRAM_BASE, 0x80000000
 .equ GPIO0_BASE, 0x40000000
 .equ GPIO1_BASE, 0x40010000
@@ -34,12 +48,6 @@
 .equ MODE_WAIT, 0x3
 
 _start:
-.ifdef SIMULATION
-    li sp, 0x80000800          # Top of 2KiB sim DRAM (MEM_BASE + MEM_SIZE)
-.else
-    li sp, 0x81000000          # Top of stack in hardware (1MB above DRAM base)
-.endif
-
     li t2, UART_BASE
     li t0, UART_RST            # Reset TX and RX FIFOs
     sw t0, UART_CTRL(t2)
@@ -119,8 +127,7 @@ uart_getc:
 
 # ----- Put null-terminated string at a0 to UART -----
 uart_puts:
-    addi sp, sp, -4            # Save ra
-    sw ra, 0(sp)
+    mv s3, ra                  # Save ra in s3 (ZSBL doesn't use it)
     mv t2, a0                  # t2 = string pointer
     1:  lbu a0, (t2)
         beqz a0, 2f            # Return if null terminator
@@ -132,8 +139,7 @@ uart_puts:
     3:  lw t0, UART_STATUS(t2)
         andi t0, t0, UART_SR_TX_EMPTY
         beqz t0, 3b
-    lw ra, 0(sp)               # Restore ra
-    addi sp, sp, 4
+    mv ra, s3                  # Restore ra from s3
     ret
 
 # -----------------------------------------------------------------------------
@@ -150,21 +156,17 @@ uart_getc_timeout:
         bnez t0, 2f            # Character available
         addi a1, a1, -1
         bnez a1, 1b            # Keep polling while count > 0
-    li a0, -1                  # Timeout — no character received
+    li a0, -1                  # Timeout - no character received
     ret
     2:  lbu a0, UART_RX(t1)
     ret
 
 uart_boot:
-    addi sp, sp, -16
-    sw ra, 0(sp)
-    sw s0, 4(sp)
-    sw s1, 8(sp)
-    sw s2, 12(sp)
+    mv s4, ra                  # Save ra in s4
 
-    li s0, DRAM_BASE
-    li s1, 1                   # Packet counter
-    li s2, XMODEM_RETRIES      # Retry counter for initial handshake
+    li s5, DRAM_BASE           # s5 = DRAM write pointer
+    li s6, 1                   # s6 = Packet counter
+    li s7, XMODEM_RETRIES      # s7 = Retry counter for initial handshake
 
     .xmodem_start_retry:
         li a0, XMODEM_START
@@ -178,15 +180,11 @@ uart_boot:
 
         j .check_char                  # Got a character, process it
 
-    .xmodem_check_retry:
-        addi s2, s2, -1
-        bnez s2, .xmodem_start_retry   # Retry if attempts remain
-        # All retries exhausted
-        lw ra, 0(sp)
-        lw s0, 4(sp)
-        lw s1, 8(sp)
-        lw s2, 12(sp)
-        addi sp, sp, 16
+        .xmodem_check_retry:
+        addi s7, s7, -1
+        bnez s7, .xmodem_start_retry   # Retry if attempts remain
+        # All retries exhausted - return
+        mv ra, s4                      # Restore ra from s4
         ret
 
     # Blocking packet receive loop
@@ -204,8 +202,8 @@ uart_boot:
 
         li t1, 128
         1:  call uart_getc
-            sb a0, (s0)            # Store byte in DRAM
-            addi s0, s0, 1
+            sb a0, (s5)            # Store byte in DRAM
+            addi s5, s5, 1
             addi t1, t1, -1
             bnez t1, 1b
 
@@ -215,13 +213,13 @@ uart_boot:
         li a0, XMODEM_ACK
         call uart_putc
 
-        addi s1, s1, 1
+        addi s6, s6, 1
         j .next_packet
 
     .transfer_done:
     li a0, XMODEM_ACK
     call uart_putc
-    # Does not have to clear stack, jumping to loaded code
+    # Jump directly to loaded code
     j execute_loaded
 
 # -----------------------------------------------------------------------------

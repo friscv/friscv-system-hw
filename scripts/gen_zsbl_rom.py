@@ -131,6 +131,7 @@ assign w_valid = (i_addr >= RESET_VEC && w_word_offset < (ZSBL_ROM_SIZE_BYTES/4)
 
 // Registered read for BRAM inference
 always_ff @(posedge i_clk) begin
+    // Do not reset r_data, will not synthesize as BRAM if reset added
     if (w_valid) begin
         r_data <= mem[w_word_offset];
     end else begin
