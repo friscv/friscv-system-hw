@@ -19,6 +19,7 @@ module friscv_axi_master (
     input  logic                    i_clk,
     input  logic                    i_rstn,
 
+    // Internal interface
     input  mem_width_t              i_size,
     input  logic [31:0]             i_addr,
     input  data_t                   i_wdata,
@@ -26,6 +27,7 @@ module friscv_axi_master (
     input  rw_cmd_t                 i_rw,
     output logic                    o_wait,
 
+    // Write address channel
     output logic                    m_axi_awvalid,
     input  logic                    m_axi_awready,
     output logic [31:0]             m_axi_awaddr,
@@ -37,16 +39,19 @@ module friscv_axi_master (
     output logic                    m_axi_awlock,
     output logic [3:0]              m_axi_awqos,
 
+    // Write data channel
     output logic                    m_axi_wvalid,
     input  logic                    m_axi_wready,
     output logic                    m_axi_wlast,
     output data_t                   m_axi_wdata,
     output logic [DATA_WIDTH/8-1:0] m_axi_wstrb,
 
+    // Write response channel
     input  logic                    m_axi_bvalid,
     output logic                    m_axi_bready,
     input  logic [1:0]              m_axi_bresp,
 
+    // Read address channel
     output logic                    m_axi_arvalid,
     input  logic                    m_axi_arready,
     output logic [31:0]             m_axi_araddr,
@@ -58,6 +63,7 @@ module friscv_axi_master (
     output logic                    m_axi_arlock,
     output logic [3:0]              m_axi_arqos,
 
+    // Read data channel
     input  logic                    m_axi_rvalid,
     output logic                    m_axi_rready,
     input  logic                    m_axi_rlast,
@@ -175,7 +181,7 @@ always_comb begin
         end
         S_R_ADDR: begin
             m_axi_arvalid = 1'b1;
-            w_next_state  = (m_axi_arready) ? S_R_DATA :  S_R_ADDR;
+            w_next_state  = (m_axi_arready) ? S_R_DATA : S_R_ADDR;
         end
         S_R_DATA: begin
             m_axi_rready = 1'b1;
