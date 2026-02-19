@@ -60,6 +60,8 @@ reg_addr_t      ex_rd_sel_out;
 mem_instr_sel_t ex_mem_instr_sel_out;
 mem_width_t     ex_load_store_width_out;
 wb_data_sel_t   ex_wb_data_sel_out;
+logic           ex_reserve_out;
+logic           ex_conditional_out;
 
 // MEM stage signals
 data_t     mem_rd_data_out;
@@ -176,6 +178,8 @@ friscv_ex_stage ex_stage (
     .mem_instr_sel_out    ( ex_mem_instr_sel_out    ),
     .load_store_width_out ( ex_load_store_width_out ),
     .wb_data_sel_out      ( ex_wb_data_sel_out      ),
+    .reserve_out          ( ex_reserve_out          ),
+    .conditional_out      ( ex_conditional_out      ),
 
     // Outputs to control logic
     .branch_ok_out        ( branch_ok               )
@@ -196,6 +200,8 @@ friscv_mem_stage mem_stage (
     .mem_instr_sel_in    ( ex_mem_instr_sel_out    ),
     .load_store_width_in ( ex_load_store_width_out ),
     .wb_data_sel_in      ( ex_wb_data_sel_out      ),
+    .reserve_in          ( ex_reserve_out          ),
+    .conditional_in      ( ex_conditional_out      ),
 
     // Outputs to WB stage
     .rd_data_out         ( mem_rd_data_out         ),

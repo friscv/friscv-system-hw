@@ -40,100 +40,90 @@ module friscv_ex_stage (
     output mem_instr_sel_t mem_instr_sel_out,
 	output mem_width_t     load_store_width_out,
     output wb_data_sel_t   wb_data_sel_out,
+    output logic           reserve_out,
+    output logic           conditional_out,
 
     // Outputs to control logic
     output logic           branch_ok_out
 );
 
 // Input registers
-addr_t     pc_buff;
-addr_t     pc_plus_4_buff;
-data_t     rs1_buff;
-data_t     rs2_buff;
-data_t     imm32_buff;
-reg_addr_t rd_sel_buff;
-instr_ex_t instr_ex_buff;
+addr_t pc_buff;
+addr_t pc_plus_4_buff;
+data_t rs1_buff;
+data_t rs2_buff;
+data_t imm32_buff;
 
-// ALU inputs
-data_t alu_input_a;
-data_t alu_input_b;
+reg_addr_t rd_sel_buff;
+instr_ex_t instr_buff;
 
 friscv_ex_stage_branch_unit branch_unit (
-    .branch_jal_sel_in ( instr_ex_buff.branch_jal_sel ),
-    .branch_cond_in    ( instr_ex_buff.branch_cond    ),
-    .src1_in           ( rs1_buff                     ),
-    .src2_in           ( rs2_buff                     ),
-    .branch_ok_out     ( branch_ok_out                )
+    .branch_jal_sel_in ( instr_buff.branch_jal_sel ),
+    .branch_cond_in    ( instr_buff.branch_cond    ),
+    .src1_in           ( rs1_buff                  ),
+    .src2_in           ( rs2_buff                  ),
+    .branch_ok_out     ( branch_ok_out             )
 );
+
+instr_ex_t NOP_CTRL;
+assign NOP_CTRL = '{
+    branch_jal_sel: BRANCH_JAL_NONE,
+    branch_cond: COND_EQ,
+    mux1_sel: RS,
+    mux2_sel: RS,
+    alu_op: ADD_OP,
+    mem_instr_sel: MEM_INSTR_NONE,
+    load_store_width: WIDTH_I32,
+    wb_data_sel: WB_DATA_SEL_ALU,
+    reserve: 1'b0,
+    conditional: 1'b0
+};
 
 // Stage inputs buffering
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
-        pc_buff <= 32'h0;
         pc_plus_4_buff <= 32'h0;
-        rs1_buff <= 32'h0;
-        rs2_buff <= 32'h0;
-        imm32_buff <= 32'h0;
+        pc_buff     <= 32'h0;
+        rs1_buff    <= 32'h0;
+        rs2_buff    <= 32'h0;
+        imm32_buff  <= 32'h0;
         rd_sel_buff <= 5'b0;
-        instr_ex_buff <= '{
-            branch_jal_sel: BRANCH_JAL_NONE,
-            branch_cond: COND_EQ,
-            mux1_sel: RS,
-            mux2_sel: RS,
-            alu_op: ADD_OP,
-            mem_instr_sel: MEM_INSTR_NONE,
-            load_store_width: WIDTH_I32,
-            wb_data_sel: WB_DATA_SEL_ALU
-        };
+        instr_buff  <= NOP_CTRL;
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
             rd_sel_buff <= 5'b0;
-            instr_ex_buff <= '{
-                branch_jal_sel: BRANCH_JAL_NONE,
-                branch_cond: COND_EQ,
-                mux1_sel: RS,
-                mux2_sel: RS,
-                alu_op: ADD_OP,
-                mem_instr_sel: MEM_INSTR_NONE,
-                load_store_width: WIDTH_I32,
-                wb_data_sel: WB_DATA_SEL_ALU
-            };
+            instr_buff  <= NOP_CTRL;
         end else begin
-            pc_buff <= pc_in;
             pc_plus_4_buff <= pc_plus_4_in;
-            rs1_buff <= rs1_in;
-            rs2_buff <= rs2_in;
-            imm32_buff <= imm32_in;
+            pc_buff     <= pc_in;
+            rs1_buff    <= rs1_in;
+            rs2_buff    <= rs2_in;
+            imm32_buff  <= imm32_in;
             rd_sel_buff <= rd_sel_in;
-            instr_ex_buff <= instr_ex_in;
+            instr_buff  <= instr_ex_in;
         end
     end
 end
 
-always_comb begin
-    pc_plus_4_out = pc_plus_4_buff;
-    mem_instr_sel_out = instr_ex_buff.mem_instr_sel;
-    load_store_width_out = instr_ex_buff.load_store_width;
-    wb_data_sel_out = instr_ex_buff.wb_data_sel;
-    rd_sel_out = rd_sel_buff;
-end
+// Pass memory control signals through
+assign pc_plus_4_out        = pc_plus_4_buff;
+assign mem_instr_sel_out    = instr_buff.mem_instr_sel;
+assign load_store_width_out = instr_buff.load_store_width;
+assign wb_data_sel_out      = instr_buff.wb_data_sel;
+assign reserve_out          = instr_buff.reserve;
+assign conditional_out      = instr_buff.conditional;
+assign rd_sel_out           = rd_sel_buff;
 
-always_comb begin
-    if (instr_ex_buff.mux1_sel == RS) begin
-        alu_input_a = rs1_buff;
-    end else begin
-        alu_input_a = pc_buff;
-    end
-    
-    if (instr_ex_buff.mux2_sel == OTHER) begin
-        alu_input_b = imm32_buff;
-    end else begin
-        alu_input_b = rs2_buff;
-    end
-end
+// Select ALU inputs
+data_t alu_input_a;
+data_t alu_input_b;
 
+assign alu_input_a = (instr_buff.mux1_sel == RS) ? rs1_buff : pc_buff;
+assign alu_input_b = (instr_buff.mux2_sel == RS) ? rs2_buff : imm32_buff;
+
+// Execute ALU op
 always_comb begin
-    case (instr_ex_buff.alu_op)
+    case (instr_buff.alu_op)
         ADD_OP:  alu_data_out = alu_input_a + alu_input_b;
         SUB_OP:  alu_data_out = alu_input_a - alu_input_b;
         AND_OP:  alu_data_out = alu_input_a & alu_input_b;
@@ -144,18 +134,18 @@ always_comb begin
         SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b[4:0];
         SLT_OP:  alu_data_out = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
         SLTU_OP: alu_data_out = {31'b0, alu_input_a < alu_input_b};
-        default: alu_data_out = '0;
+        default: alu_data_out = 32'h0;
     endcase
 end
 
 // Store data positioning
 always_comb begin
-    case (instr_ex_buff.load_store_width)
+    case (instr_buff.load_store_width)
         3'b000: begin   //B
             case (alu_data_out[1:0]) 
                 2'b00: store_data_out = {24'h0, rs2_buff[7:0]};
-                2'b01: store_data_out = {16'h0, rs2_buff[7:0], 8'h0};
-                2'b10: store_data_out = {8'h0, rs2_buff[7:0], 16'h0};
+                2'b01: store_data_out = {16'h0, rs2_buff[7:0],  8'h0};
+                2'b10: store_data_out = { 8'h0, rs2_buff[7:0], 16'h0};
                 2'b11: store_data_out = {rs2_buff[7:0], 24'h0};
             endcase
         end
@@ -164,7 +154,7 @@ always_comb begin
             else                 store_data_out = {16'h0, rs2_buff[15:0]};
         end
         3'b010:  store_data_out = rs2_buff; //W
-        default: store_data_out = '0;
+        default: store_data_out = 32'h0;
     endcase
 end
 

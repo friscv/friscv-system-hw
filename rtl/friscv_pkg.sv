@@ -30,8 +30,10 @@ v 1.1.0     Emil Popovic, 2026_01, AXI interface, combinatorial control unit, au
 package friscv_pkg;
 
     // --- Configurable parameter definitions start ---
-    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
+    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 0;
     localparam int unsigned ENABLE_EARLY_JAL_JALR = 1;
+    localparam int unsigned ENABLE_EXTENSION_A = 1;
+    localparam int unsigned ENABLE_EXTENSION_ZIFENCEI = 1;
     // --- Configurable parameter definitions end ---
 
     localparam int unsigned XLEN = 32;
@@ -56,12 +58,13 @@ package friscv_pkg;
     localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
 
     typedef enum logic [2:0] {
-        I_TYPE  = 3'b000,
-        I2_TYPE = 3'b001,
-        S_TYPE  = 3'b010,
-        B_TYPE  = 3'b011,
-        U_TYPE  = 3'b100,
-        J_TYPE  = 3'b101
+        I_TYPE    = 3'b000,
+        I2_TYPE   = 3'b001,
+        S_TYPE    = 3'b010,
+        B_TYPE    = 3'b011,
+        U_TYPE    = 3'b100,
+        J_TYPE    = 3'b101,
+        ZERO_TYPE = 3'b110   // Always produces 32'h0
     } imm_t;
 
     // Load/Store instruction funct3
@@ -129,22 +132,35 @@ package friscv_pkg;
     typedef enum logic [1:0] {
         WB_DATA_SEL_PC_PLUS_4 = 2'b00,
         WB_DATA_SEL_ALU       = 2'b01,
-        WB_DATA_SEL_MEM       = 2'b10
+        WB_DATA_SEL_MEM       = 2'b10,
+        WB_DATA_SEL_SC_RES    = 2'b11
     } wb_data_sel_t;
 
     // Instruction types
     typedef enum logic [6:0] {
-        LOAD     = 7'b0000011, 
-        FENCE    = 7'b0001111,
-        ALOP_IMM = 7'b0010011,
+        LOAD     = 7'b0000011,
+        LOAD_FP  = 7'b0000111,
+        CUSTOM_0 = 7'b0001011,
+        MISC_MEM = 7'b0001111,
+        OP_IMM   = 7'b0010011,
         AUIPC    = 7'b0010111,
         STORE    = 7'b0100011,
-        ALOP     = 7'b0110011,
+        STORE_FP = 7'b0100111,
+        CUSTOM_1 = 7'b0101011,
+        AMO      = 7'b0101111,
+        OP       = 7'b0110011,
         LUI      = 7'b0110111,
+        MADD     = 7'b1000011,
+        MSUB     = 7'b1000111,
+        NMSUB    = 7'b1001011,
+        NMADD    = 7'b1001111,
+        OP_FP    = 7'b1010011,
+        OP_V     = 7'b1010111,
         BRANCH   = 7'b1100011,
         JALR     = 7'b1100111,
         JAL      = 7'b1101111,
-        ENV      = 7'b1110011
+        SYSTEM   = 7'b1110011,
+        OP_VE    = 7'b1110111
     } opcode_t;
 
     typedef struct packed {
@@ -156,6 +172,8 @@ package friscv_pkg;
         mem_instr_sel_t  mem_instr_sel;
         mem_width_t      load_store_width;
         wb_data_sel_t    wb_data_sel;
+        logic            reserve;
+        logic            conditional;
     } instr_ex_t;
 
     typedef enum logic [1:0] {

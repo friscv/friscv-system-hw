@@ -106,13 +106,14 @@ end
 
 always_comb begin
     case (imm_sel)
-        I_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
-        I2_TYPE: imm32_out = {27'h0, ir_buff.b[24:20]};
-        S_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:25], ir_buff.b[11:7]};
-        B_TYPE:  imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
-        U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
-        J_TYPE:  imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
-        default: imm32_out = 32'h0;
+        I_TYPE:    imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
+        I2_TYPE:   imm32_out = {27'h0, ir_buff.b[24:20]};
+        S_TYPE:    imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:25], ir_buff.b[11:7]};
+        B_TYPE:    imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
+        U_TYPE:    imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
+        J_TYPE:    imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
+        ZERO_TYPE: imm32_out = 32'h0;
+        default:   imm32_out = 32'h0;
     endcase
 end
 
@@ -164,6 +165,8 @@ always_comb begin
     instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
     instr_ex_out.load_store_width = WIDTH_I32;
     instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
+    instr_ex_out.reserve = 1'b0;
+    instr_ex_out.conditional = 1'b0;
     rs1_sel_out = 5'b0;
     rs2_sel_out = 5'b0;
     rd_sel_out  = 5'b0;
@@ -172,7 +175,6 @@ always_comb begin
 
     case (ir_buff.r.opcode)
         LOAD: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
@@ -185,11 +187,12 @@ always_comb begin
             rd_sel_out  = ir_buff.r.rd;
         end
 
-        FENCE: begin
+        MISC_MEM: begin
             case (ir_buff.r.funct3)
                 3'b000: begin  // FENCE
                 end
                 3'b001: begin  // FENCE.I
+                    illegal_inst = !ENABLE_EXTENSION_ZIFENCEI;
                 end
                 default: begin
                     illegal_inst = 1'b1;
@@ -198,7 +201,6 @@ always_comb begin
         end
 
         STORE: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
@@ -210,8 +212,70 @@ always_comb begin
             rs2_sel_out = ir_buff.r.rs2;
         end
 
-        ALOP: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
+        AMO: begin
+            if (ENABLE_EXTENSION_A) begin
+                case (ir_buff.r.funct3)
+                    3'b010: begin  // RV32A Standard Extension instructions
+                        rd_sel_out  = ir_buff.r.rd;
+                        rs2_sel_out = ir_buff.r.rs2;
+                        rs1_sel_out = ir_buff.r.rs1;
+
+                        case (ir_buff.r.funct7[6:2])
+                            5'b00010: begin  // LR.W
+                                instr_ex_out.mux1_sel = RS;
+                                instr_ex_out.mux2_sel = RS;
+                                instr_ex_out.mem_instr_sel = MEM_INSTR_LOAD;
+                                instr_ex_out.load_store_width = WIDTH_I32;
+                                instr_ex_out.reserve = 1'b1;
+                                rs2_sel_out = 5'b0;
+                                instr_ex_out.wb_data_sel = WB_DATA_SEL_MEM;
+                            end
+                            5'b00011: begin  // SC.W
+                                instr_ex_out.mux1_sel = RS;
+                                instr_ex_out.mux2_sel = OTHER;
+                                instr_ex_out.alu_op = ADD_OP;
+                                instr_ex_out.mem_instr_sel = MEM_INSTR_STORE;
+                                instr_ex_out.load_store_width = WIDTH_I32;
+                                instr_ex_out.conditional = 1'b1;
+                                imm_sel = ZERO_TYPE;  // AMO has no offset, address = rs1 + 0
+                                instr_ex_out.wb_data_sel = WB_DATA_SEL_SC_RES;
+                            end
+                            5'b00001: begin  // AMOSWAP.W
+                            end
+                            5'b00000: begin  // AMOADD.W
+                            end
+                            5'b00100: begin  // AMOXOR.W
+                            end
+                            5'b01100: begin  // AMOAND.W
+                            end
+                            5'b01000: begin  // AMOOR.W
+                            end
+                            5'b10000: begin  // AMOMIN.W
+                            end
+                            5'b10100: begin  // AMOMAX.W
+                            end
+                            5'b11000: begin  // AMOMINU.W
+                            end
+                            5'b11100: begin  // AMOMAXU.W
+                            end
+                            default:  begin
+                                illegal_inst = 1'b1;
+                                rd_sel_out = 5'b0;
+                                rs1_sel_out = 5'b0;
+                                rs2_sel_out = 5'b0;
+                            end
+                        endcase
+                    end
+                    default: begin
+                        illegal_inst = 1'b1;
+                    end
+                endcase
+            end else begin
+                illegal_inst = 1'b1;
+            end
+        end
+
+        OP: begin
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = RS;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
@@ -246,8 +310,7 @@ always_comb begin
             endcase
         end
 
-        ALOP_IMM: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
+        OP_IMM: begin
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
@@ -280,7 +343,6 @@ always_comb begin
         end
         
         AUIPC: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
             instr_ex_out.mux1_sel = OTHER;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
@@ -292,7 +354,6 @@ always_comb begin
         end
         
         LUI: begin
-            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
             instr_ex_out.mux1_sel = RS;
             instr_ex_out.mux2_sel = OTHER;
             instr_ex_out.alu_op = ADD_OP;
