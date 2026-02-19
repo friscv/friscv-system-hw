@@ -185,6 +185,18 @@ always_comb begin
             rd_sel_out  = ir_buff.r.rd;
         end
 
+        FENCE: begin
+            case (ir_buff.r.funct3)
+                3'b000: begin  // FENCE
+                end
+                3'b001: begin  // FENCE.I
+                end
+                default: begin
+                    illegal_inst = 1'b1;
+                end
+            endcase
+        end
+
         STORE: begin
             instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
             instr_ex_out.mux1_sel = RS;
