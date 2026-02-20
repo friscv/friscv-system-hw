@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_l1_subsystem (
+module friscv_l1_arbiter (
     input  logic       i_clk,
     input  logic       i_rstn,
 
@@ -33,6 +33,7 @@ module friscv_l1_subsystem (
     input  logic       i_data_en,
     input  logic       i_data_wr,
     output logic       o_data_wait,
+    input  amo_op_t    i_amo_op,
 
     // External Interface
     output addr_t      o_mem_addr,
@@ -40,7 +41,8 @@ module friscv_l1_subsystem (
     output data_t      o_mem_wdata,
     input  data_t      i_mem_rdata,
     output rw_cmd_t    o_mem_rw,
-    input  logic       i_mem_wait
+    input  logic       i_mem_wait,
+    output amo_op_t    o_amo_op
 );
 
 // FSM States
@@ -91,12 +93,13 @@ end
 
 // Output Logic
 always_comb begin
-    o_mem_addr  = '0;
+    o_mem_addr  = 32'h0;
     o_mem_size  = WIDTH_I32;
-    o_mem_wdata = '0;
+    o_mem_wdata = 32'h0;
     o_mem_rw    = RW_IDLE;
     o_inst_wait = 1'b0;
     o_data_wait = 1'b0;
+    o_amo_op    = AMO_NONE;
 
     unique case (state)
         S_IDLE: begin
@@ -117,6 +120,7 @@ always_comb begin
             o_mem_wdata = i_data_wdata;
             o_mem_rw    = i_data_wr ? RW_WRITE : RW_READ;
             o_data_wait = i_mem_wait;
+            o_amo_op    = i_amo_op;
             if (i_inst_en) o_inst_wait = 1'b1;
         end
     endcase

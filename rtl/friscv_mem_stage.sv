@@ -32,6 +32,7 @@ module friscv_mem_stage (
 	input  wb_data_sel_t   wb_data_sel_in,
     input  logic           reserve_in,
     input  logic           conditional_in,
+    input  logic           amo_op_in,
 
     // Outputs to WB stage
     output data_t          rd_data_out,

@@ -16,8 +16,8 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_core (
-    input logic        i_clk,
-    input logic        i_rstn,
+    input  logic       i_clk,
+    input  logic       i_rstn,
     
     // Instruction Memory Interface
     output addr_t      i_mem_addr_out,
@@ -32,7 +32,8 @@ module friscv_core (
     output logic       d_mem_en_out,
     output logic       d_mem_wr_out,
     output mem_width_t d_mem_size_out,
-    input  logic       d_mem_wait_in
+    input  logic       d_mem_wait_in,
+    output amo_op_t    d_mem_amo_op_out
 );
 
 logic flush_if, flush_id;
@@ -62,6 +63,9 @@ mem_width_t     ex_load_store_width_out;
 wb_data_sel_t   ex_wb_data_sel_out;
 logic           ex_reserve_out;
 logic           ex_conditional_out;
+amo_op_t        ex_amo_op_out;
+
+assign d_mem_amo_op_out = ex_amo_op_out;
 
 // MEM stage signals
 data_t     mem_rd_data_out;
@@ -98,59 +102,59 @@ friscv_pipeline_control control_unit (
 );
 
 friscv_if_stage if_stage (
-    .clk_in              ( i_clk            ),
-    .rst_n_in            ( i_rstn           ),
+    .clk_in         ( i_clk            ),
+    .rst_n_in       ( i_rstn           ),
 
     // Stage control signals
-    .flush_in            ( flush_if         ),
-    .stage_stall_in      ( stall_if         ),
-    .i_mem_wait_in       ( i_mem_wait_in    ),
-    .jump_ok_in          ( jump_ok          ),
-    .jump_target_in      ( jump_target      ),
+    .flush_in       ( flush_if         ),
+    .stage_stall_in ( stall_if         ),
+    .i_mem_wait_in  ( i_mem_wait_in    ),
+    .jump_ok_in     ( jump_ok          ),
+    .jump_target_in ( jump_target      ),
 
     // Outputs to ID stage
-    .pc_out              ( if_pc_out        ),
-    .pc_plus_4_out       ( if_pc_plus_4_out ),
-    .ir_out              ( if_ir_out        ),
+    .pc_out         ( if_pc_out        ),
+    .pc_plus_4_out  ( if_pc_plus_4_out ),
+    .ir_out         ( if_ir_out        ),
 
     // Instruction memory interface
-    .i_mem_addr_out      ( i_mem_addr_out   ),
-    .i_mem_data_in       ( i_mem_data_in    ),
-    .i_mem_en_out        ( i_mem_en_out     )
+    .i_mem_addr_out ( i_mem_addr_out   ),
+    .i_mem_data_in  ( i_mem_data_in    ),
+    .i_mem_en_out   ( i_mem_en_out     )
 );
 
 friscv_id_stage id_stage (
-    .clk_in          ( i_clk            ),
-    .rst_n_in        ( i_rstn           ),
+    .clk_in         ( i_clk            ),
+    .rst_n_in       ( i_rstn           ),
 
     // Stage control signals
-    .flush_in        ( flush_id         ),
-    .stage_stall_in  ( stall_id         ),
+    .flush_in       ( flush_id         ),
+    .stage_stall_in ( stall_id         ),
 
     // Outputs to control logic
-    .rs1_sel_out     ( id_rs1_sel_out   ),
-    .rs2_sel_out     ( id_rs2_sel_out   ),
-    .rd_sel_out      ( id_rd_sel_out    ),
-    .jal_ok_out      ( jal_ok           ),
-    .jal_target_out  ( jal_target       ),
-    .illegal_inst    ( id_illegal_inst  ),
+    .rs1_sel_out    ( id_rs1_sel_out   ),
+    .rs2_sel_out    ( id_rs2_sel_out   ),
+    .rd_sel_out     ( id_rd_sel_out    ),
+    .jal_ok_out     ( jal_ok           ),
+    .jal_target_out ( jal_target       ),
+    .illegal_inst   ( id_illegal_inst  ),
 
     // Inputs from IF stage
-    .pc_in           ( if_pc_out        ),
-    .pc_plus_4_in    ( if_pc_plus_4_out ),
-    .ir_in           ( if_ir_out        ),
+    .pc_in          ( if_pc_out        ),
+    .pc_plus_4_in   ( if_pc_plus_4_out ),
+    .ir_in          ( if_ir_out        ),
 
     // Outputs to EX stage
-    .pc_out          ( id_pc_out        ),
-    .pc_plus_4_out   ( id_pc_plus_4_out ),
-    .rs1_out         ( id_rs1_out       ),
-    .rs2_out         ( id_rs2_out       ),
-    .imm32_out       ( id_imm32_out     ),
-    .instr_ex_out    ( id_instr_ex_out  ),
+    .pc_out         ( id_pc_out        ),
+    .pc_plus_4_out  ( id_pc_plus_4_out ),
+    .rs1_out        ( id_rs1_out       ),
+    .rs2_out        ( id_rs2_out       ),
+    .imm32_out      ( id_imm32_out     ),
+    .instr_ex_out   ( id_instr_ex_out  ),
 
     // Inputs from WB stage
-    .rd_sel_in       ( mem_rd_sel_out   ),
-    .rd_data_in      ( mem_rd_data_out  )
+    .rd_sel_in      ( mem_rd_sel_out   ),
+    .rd_data_in     ( mem_rd_data_out  )
 );
 
 friscv_ex_stage ex_stage (
@@ -180,6 +184,7 @@ friscv_ex_stage ex_stage (
     .wb_data_sel_out      ( ex_wb_data_sel_out      ),
     .reserve_out          ( ex_reserve_out          ),
     .conditional_out      ( ex_conditional_out      ),
+    .amo_op_out           ( ex_amo_op_out           ),
 
     // Outputs to control logic
     .branch_ok_out        ( branch_ok               )
@@ -202,6 +207,7 @@ friscv_mem_stage mem_stage (
     .wb_data_sel_in      ( ex_wb_data_sel_out      ),
     .reserve_in          ( ex_reserve_out          ),
     .conditional_in      ( ex_conditional_out      ),
+    .amo_op_in           ( ex_amo_op_in            ),
 
     // Outputs to WB stage
     .rd_data_out         ( mem_rd_data_out         ),

@@ -42,6 +42,7 @@ module friscv_ex_stage (
     output wb_data_sel_t   wb_data_sel_out,
     output logic           reserve_out,
     output logic           conditional_out,
+    output amo_op_t        amo_op_out,
 
     // Outputs to control logic
     output logic           branch_ok_out
@@ -76,7 +77,8 @@ assign NOP_CTRL = '{
     load_store_width: WIDTH_I32,
     wb_data_sel: WB_DATA_SEL_ALU,
     reserve: 1'b0,
-    conditional: 1'b0
+    conditional: 1'b0,
+    amo_op: AMO_NONE
 };
 
 // Stage inputs buffering
@@ -112,6 +114,7 @@ assign load_store_width_out = instr_buff.load_store_width;
 assign wb_data_sel_out      = instr_buff.wb_data_sel;
 assign reserve_out          = instr_buff.reserve;
 assign conditional_out      = instr_buff.conditional;
+assign amo_op_out           = instr_buff.amo_op;
 assign rd_sel_out           = rd_sel_buff;
 
 // Select ALU inputs
@@ -141,7 +144,7 @@ end
 // Store data positioning
 always_comb begin
     case (instr_buff.load_store_width)
-        3'b000: begin   //B
+        3'b000: begin   // B
             case (alu_data_out[1:0]) 
                 2'b00: store_data_out = {24'h0, rs2_buff[7:0]};
                 2'b01: store_data_out = {16'h0, rs2_buff[7:0],  8'h0};
@@ -149,11 +152,11 @@ always_comb begin
                 2'b11: store_data_out = {rs2_buff[7:0], 24'h0};
             endcase
         end
-        3'b001: begin   //H
+        3'b001: begin   // H
             if (alu_data_out[1]) store_data_out = {rs2_buff[15:0], 16'h0};
             else                 store_data_out = {16'h0, rs2_buff[15:0]};
         end
-        3'b010:  store_data_out = rs2_buff; //W
+        3'b010:  store_data_out = rs2_buff; // W
         default: store_data_out = 32'h0;
     endcase
 end

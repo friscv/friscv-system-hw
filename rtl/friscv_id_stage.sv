@@ -167,6 +167,7 @@ always_comb begin
     instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
     instr_ex_out.reserve = 1'b0;
     instr_ex_out.conditional = 1'b0;
+    instr_ex_out.amo_op = AMO_NONE;
     rs1_sel_out = 5'b0;
     rs2_sel_out = 5'b0;
     rd_sel_out  = 5'b0;
@@ -192,6 +193,11 @@ always_comb begin
                 3'b000: begin  // FENCE
                 end
                 3'b001: begin  // FENCE.I
+                    // This should flush the pipeline to refetch modified instructions
+                    // Self modifying code won't work correctly if not flushed
+                    // It can be treated as a jump to PC+4
+                    // As we are already in ID, FENCE.I can either be an early jump or
+                    // an unconditional branch to PC+4
                     illegal_inst = !ENABLE_EXTENSION_ZIFENCEI;
                 end
                 default: begin
@@ -216,53 +222,55 @@ always_comb begin
             if (ENABLE_EXTENSION_A) begin
                 case (ir_buff.r.funct3)
                     3'b010: begin  // RV32A Standard Extension instructions
+                        instr_ex_out.wb_data_sel = WB_DATA_SEL_MEM;
+                        instr_ex_out.mem_instr_sel = MEM_INSTR_LOAD;
+                        instr_ex_out.load_store_width = WIDTH_I32;
+                        instr_ex_out.alu_op = ADD_OP;
+                        instr_ex_out.mux1_sel = RS;
+                        instr_ex_out.mux2_sel = OTHER;
+                        imm_sel = ZERO_TYPE;  // AMO has no offset, address = rs1 + 0
                         rd_sel_out  = ir_buff.r.rd;
                         rs2_sel_out = ir_buff.r.rs2;
                         rs1_sel_out = ir_buff.r.rs1;
 
                         case (ir_buff.r.funct7[6:2])
                             5'b00010: begin  // LR.W
-                                instr_ex_out.mux1_sel = RS;
-                                instr_ex_out.mux2_sel = RS;
-                                instr_ex_out.mem_instr_sel = MEM_INSTR_LOAD;
-                                instr_ex_out.load_store_width = WIDTH_I32;
                                 instr_ex_out.reserve = 1'b1;
-                                rs2_sel_out = 5'b0;
-                                instr_ex_out.wb_data_sel = WB_DATA_SEL_MEM;
                             end
                             5'b00011: begin  // SC.W
-                                instr_ex_out.mux1_sel = RS;
-                                instr_ex_out.mux2_sel = OTHER;
-                                instr_ex_out.alu_op = ADD_OP;
                                 instr_ex_out.mem_instr_sel = MEM_INSTR_STORE;
-                                instr_ex_out.load_store_width = WIDTH_I32;
                                 instr_ex_out.conditional = 1'b1;
-                                imm_sel = ZERO_TYPE;  // AMO has no offset, address = rs1 + 0
                                 instr_ex_out.wb_data_sel = WB_DATA_SEL_SC_RES;
                             end
                             5'b00001: begin  // AMOSWAP.W
+                                instr_ex_out.amo_op = AMO_SWAP;
                             end
                             5'b00000: begin  // AMOADD.W
+                                instr_ex_out.amo_op = AMO_ADD;
                             end
                             5'b00100: begin  // AMOXOR.W
+                                instr_ex_out.amo_op = AMO_XOR;
                             end
                             5'b01100: begin  // AMOAND.W
+                                instr_ex_out.amo_op = AMO_AND;
                             end
                             5'b01000: begin  // AMOOR.W
+                                instr_ex_out.amo_op = AMO_OR;
                             end
                             5'b10000: begin  // AMOMIN.W
+                                instr_ex_out.amo_op = AMO_MIN;
                             end
                             5'b10100: begin  // AMOMAX.W
+                                instr_ex_out.amo_op = AMO_MAX;
                             end
                             5'b11000: begin  // AMOMINU.W
+                                instr_ex_out.amo_op = AMO_MINU;
                             end
                             5'b11100: begin  // AMOMAXU.W
+                                instr_ex_out.amo_op = AMO_MAXU;
                             end
                             default:  begin
                                 illegal_inst = 1'b1;
-                                rd_sel_out = 5'b0;
-                                rs1_sel_out = 5'b0;
-                                rs2_sel_out = 5'b0;
                             end
                         endcase
                     end

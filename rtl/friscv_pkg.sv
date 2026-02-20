@@ -123,6 +123,19 @@ package friscv_pkg;
         SLTU_OP = 4'b0011
     } alu_op_t;
 
+    typedef enum logic [3:0] {
+        AMO_NONE = 4'b0000,
+        AMO_SWAP = 4'b0001,
+        AMO_ADD  = 4'b0010,
+        AMO_XOR  = 4'b0011,
+        AMO_AND  = 4'b0100,
+        AMO_OR   = 4'b0101,
+        AMO_MIN  = 4'b0110,
+        AMO_MAX  = 4'b0111,
+        AMO_MINU = 4'b1000,
+        AMO_MAXU = 4'b1001
+    } amo_op_t;
+
     typedef enum logic [1:0] {
         MEM_INSTR_NONE  = 2'b00,
         MEM_INSTR_LOAD  = 2'b01,
@@ -174,6 +187,7 @@ package friscv_pkg;
         wb_data_sel_t    wb_data_sel;
         logic            reserve;
         logic            conditional;
+        amo_op_t         amo_op;
     } instr_ex_t;
 
     typedef enum logic [1:0] {
