@@ -234,44 +234,22 @@ always_comb begin
                         rs1_sel_out = ir_buff.r.rs1;
 
                         case (ir_buff.r.funct7[6:2])
-                            5'b00010: begin  // LR.W
-                                instr_ex_out.reserve = 1'b1;
-                            end
                             5'b00011: begin  // SC.W
                                 instr_ex_out.mem_instr_sel = MEM_INSTR_STORE;
                                 instr_ex_out.conditional = 1'b1;
                                 instr_ex_out.wb_data_sel = WB_DATA_SEL_SC_RES;
                             end
-                            5'b00001: begin  // AMOSWAP.W
-                                instr_ex_out.amo_op = AMO_SWAP;
-                            end
-                            5'b00000: begin  // AMOADD.W
-                                instr_ex_out.amo_op = AMO_ADD;
-                            end
-                            5'b00100: begin  // AMOXOR.W
-                                instr_ex_out.amo_op = AMO_XOR;
-                            end
-                            5'b01100: begin  // AMOAND.W
-                                instr_ex_out.amo_op = AMO_AND;
-                            end
-                            5'b01000: begin  // AMOOR.W
-                                instr_ex_out.amo_op = AMO_OR;
-                            end
-                            5'b10000: begin  // AMOMIN.W
-                                instr_ex_out.amo_op = AMO_MIN;
-                            end
-                            5'b10100: begin  // AMOMAX.W
-                                instr_ex_out.amo_op = AMO_MAX;
-                            end
-                            5'b11000: begin  // AMOMINU.W
-                                instr_ex_out.amo_op = AMO_MINU;
-                            end
-                            5'b11100: begin  // AMOMAXU.W
-                                instr_ex_out.amo_op = AMO_MAXU;
-                            end
-                            default:  begin
-                                illegal_inst = 1'b1;
-                            end
+                            5'b00010: instr_ex_out.reserve = 1'b1;     // LR.W
+                            5'b00001: instr_ex_out.amo_op = AMO_SWAP;  // AMOSWAP.W
+                            5'b00000: instr_ex_out.amo_op = AMO_ADD;   // AMOADD.W
+                            5'b00100: instr_ex_out.amo_op = AMO_XOR;   // AMOXOR.W
+                            5'b01100: instr_ex_out.amo_op = AMO_AND;   // AMOAND.W
+                            5'b01000: instr_ex_out.amo_op = AMO_OR;    // AMOOR.W
+                            5'b10000: instr_ex_out.amo_op = AMO_MIN;   // AMOMIN.W
+                            5'b10100: instr_ex_out.amo_op = AMO_MAX;   // AMOMAX.W
+                            5'b11000: instr_ex_out.amo_op = AMO_MINU;  // AMOMINU.W
+                            5'b11100: instr_ex_out.amo_op = AMO_MAXU;  // AMOMAXU.W
+                            default:  illegal_inst = 1'b1;
                         endcase
                     end
                     default: begin

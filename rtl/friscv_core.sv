@@ -65,8 +65,6 @@ logic           ex_reserve_out;
 logic           ex_conditional_out;
 amo_op_t        ex_amo_op_out;
 
-assign d_mem_amo_op_out = ex_amo_op_out;
-
 // MEM stage signals
 data_t     mem_rd_data_out;
 reg_addr_t mem_rd_sel_out;
@@ -220,7 +218,8 @@ friscv_mem_stage mem_stage (
     .d_mem_en_out        ( d_mem_en_out            ),
     .d_mem_wr_out        ( d_mem_wr_out            ),
     .d_mem_size_out      ( d_mem_size_out          ),
-    .d_mem_wait_in       ( d_mem_wait_in           )
+    .d_mem_wait_in       ( d_mem_wait_in           ),
+    .d_mem_amo_op_out    ( d_mem_amo_op_out        )
 );
 
 endmodule

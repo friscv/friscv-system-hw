@@ -32,7 +32,7 @@ module friscv_mem_stage (
 	input  wb_data_sel_t   wb_data_sel_in,
     input  logic           reserve_in,
     input  logic           conditional_in,
-    input  logic           amo_op_in,
+    input  amo_op_t        amo_op_in,
 
     // Outputs to WB stage
     output data_t          rd_data_out,
@@ -45,7 +45,8 @@ module friscv_mem_stage (
     output logic           d_mem_en_out,
     output logic           d_mem_wr_out,
     output mem_width_t     d_mem_size_out,
-    input  logic           d_mem_wait_in
+    input  logic           d_mem_wait_in,
+    output amo_op_t        d_mem_amo_op_out
 );
 
 // Input registers
@@ -57,6 +58,7 @@ mem_instr_sel_t mem_instr_sel_buff;
 mem_width_t     load_store_width_buff;
 wb_data_sel_t   wb_data_sel_buff;
 logic           conditional_buff;
+amo_op_t        amo_op_buff;
 
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
@@ -105,6 +107,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         r_sc_res              <= 1'b0;
         conditional_buff      <= 1'b0;
         cond_valid_r          <= 1'b0;
+        amo_op_buff           <= AMO_NONE;
     end
 
     else begin
@@ -121,6 +124,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             r_load_data_valid     <= 1'b0;  // Clear on new instruction
             r_sc_res_valid        <= 1'b0;
             conditional_buff      <= conditional_in;
+            amo_op_buff           <= amo_op_in;
             cond_valid_r          <= cond_valid;
 
             if (reserve_in) begin
@@ -180,6 +184,7 @@ end
 
 assign d_mem_data_out = store_data_buff;
 assign rd_sel_out = rd_sel_buff;
+assign d_mem_amo_op_out = amo_op_buff;
 
 // ============================================================
 // Load data expansion to 32b
@@ -225,6 +230,7 @@ end
 // Output selection
 // ============================================================
 
+// TODO: move this mux to WB stage and implement forwarding
 always_comb begin
     case (wb_data_sel_buff)
         WB_DATA_SEL_PC_PLUS_4: rd_data_out = pc_plus_4_buff;
