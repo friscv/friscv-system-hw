@@ -205,7 +205,7 @@ friscv_mem_stage mem_stage (
     .wb_data_sel_in      ( ex_wb_data_sel_out      ),
     .reserve_in          ( ex_reserve_out          ),
     .conditional_in      ( ex_conditional_out      ),
-    .amo_op_in           ( ex_amo_op_in            ),
+    .amo_op_in           ( ex_amo_op_out           ),
 
     // Outputs to WB stage
     .rd_data_out         ( mem_rd_data_out         ),
