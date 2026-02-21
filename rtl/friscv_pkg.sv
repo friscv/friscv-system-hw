@@ -30,10 +30,15 @@ v 1.1.0     Emil Popovic, 2026_02, AXI interface, combinatorial control unit, au
 package friscv_pkg;
 
     // --- Configurable parameter definitions start ---
+
+    // Set 2048 for FPGA, 0 for simulation
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
     localparam int unsigned ENABLE_EARLY_JAL_JALR = 1;
     localparam int unsigned ENABLE_EXTENSION_A = 1;
     localparam int unsigned ENABLE_EXTENSION_ZIFENCEI = 1;
+    // Set to 2_000_000 for FPGA, 10 for simulation
+    localparam int unsigned RST_DEBOUNCE_CYCLES = 2_000_000;
+
     // --- Configurable parameter definitions end ---
 
     localparam int unsigned XLEN = 32;

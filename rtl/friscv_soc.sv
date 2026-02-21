@@ -97,7 +97,7 @@ always_ff @(posedge i_clk) begin
         r_debounce_cnt <= '0;
     end else begin
         // Signal changed, increment counter
-        if (r_debounce_cnt < 21'd2_000_000) begin
+        if (r_debounce_cnt < RST_DEBOUNCE_CYCLES) begin
             r_debounce_cnt <= r_debounce_cnt + 1'b1;
         end else begin
             // Signal has been stable for debounce period, update output
