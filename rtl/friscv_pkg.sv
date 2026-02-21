@@ -20,7 +20,7 @@ v 0.2.0     Matej Grzunov, Duje Strunje, 2022_06, pipeline debug, ALU debug, ini
 v 0.5.0		Mario Kovac, 2024_05, memory debug & update, system update
 v 0.9.0     Petra Kelkovic, Luka Kokic, 2024_06, cpu & system verification, external debug interface, PC & ARM SW, External IO board connections
 v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 official
-v 1.1.0     Emil Popovic, 2026_01, AXI interface, combinatorial control unit, automation scripts
+v 1.1.0     Emil Popovic, 2026_02, AXI interface, combinatorial control unit, automation scripts, A extension
 
 */
 
