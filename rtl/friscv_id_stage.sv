@@ -105,15 +105,15 @@ end
 // ============================================================
 
 always_comb begin
-    case (imm_sel)
-        I_TYPE:    imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
-        I2_TYPE:   imm32_out = {27'h0, ir_buff.b[24:20]};
-        S_TYPE:    imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:25], ir_buff.b[11:7]};
-        B_TYPE:    imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
-        U_TYPE:    imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
-        J_TYPE:    imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
-        ZERO_TYPE: imm32_out = 32'h0;
-        default:   imm32_out = 32'h0;
+    unique case (imm_sel)
+        I_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
+        I2_TYPE: imm32_out = {27'h0, ir_buff.b[24:20]};
+        S_TYPE:  imm32_out = {{21{ir_buff.b[31]}}, ir_buff.b[30:25], ir_buff.b[11:7]};
+        B_TYPE:  imm32_out = {{20{ir_buff.b[31]}}, ir_buff.b[7], ir_buff.b[30:25], ir_buff.b[11:8], 1'b0};
+        U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
+        J_TYPE:  imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
+        ZERO:    imm32_out = 32'h0;
+        NEXT_PC: imm32_out = pc_plus_4_in_buff;
     endcase
 end
 
@@ -193,12 +193,18 @@ always_comb begin
                 3'b000: begin  // FENCE
                 end
                 3'b001: begin  // FENCE.I
-                    // This should flush the pipeline to refetch modified instructions
-                    // Self modifying code won't work correctly if not flushed
-                    // It can be treated as a jump to PC+4
-                    // As we are already in ID, FENCE.I can either be an early jump or
-                    // an unconditional branch to PC+4
-                    illegal_inst = !ENABLE_EXTENSION_ZIFENCEI;
+                    // BEQ x0, x0, <PC+4> to flush potentially modified fetched instruction
+                    if (ENABLE_EXTENSION_ZIFENCEI) begin
+                        instr_ex_out.branch_jal_sel = BRANCH_INSTR;
+                        instr_ex_out.branch_cond = COND_EQ;
+                        instr_ex_out.mux1_sel = RS;    // Branch address = x0 + next_pc
+                        instr_ex_out.mux2_sel = OTHER;
+                        imm_sel = NEXT_PC;
+                        instr_ex_out.alu_op = ADD_OP;
+                        instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
+                    end else begin
+                        illegal_inst = 1'b1;
+                    end
                 end
                 default: begin
                     illegal_inst = 1'b1;
@@ -228,7 +234,7 @@ always_comb begin
                         instr_ex_out.alu_op = ADD_OP;
                         instr_ex_out.mux1_sel = RS;
                         instr_ex_out.mux2_sel = OTHER;
-                        imm_sel = ZERO_TYPE;  // AMO has no offset, address = rs1 + 0
+                        imm_sel = ZERO;  // AMO has no offset, address = rs1 + 0
                         rd_sel_out  = ir_buff.r.rd;
                         rs2_sel_out = ir_buff.r.rs2;
                         rs1_sel_out = ir_buff.r.rs1;

@@ -63,13 +63,14 @@ package friscv_pkg;
     localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
 
     typedef enum logic [2:0] {
-        I_TYPE    = 3'b000,
-        I2_TYPE   = 3'b001,
-        S_TYPE    = 3'b010,
-        B_TYPE    = 3'b011,
-        U_TYPE    = 3'b100,
-        J_TYPE    = 3'b101,
-        ZERO_TYPE = 3'b110   // Always produces 32'h0
+        I_TYPE  = 3'b000,
+        I2_TYPE = 3'b001,
+        S_TYPE  = 3'b010,
+        B_TYPE  = 3'b011,
+        U_TYPE  = 3'b100,
+        J_TYPE  = 3'b101,
+        ZERO    = 3'b110,  // Always produces 32'h0
+        NEXT_PC = 3'b111   // Used to jump to incremented PC to refetch on FENCE.I
     } imm_t;
 
     // Load/Store instruction funct3
