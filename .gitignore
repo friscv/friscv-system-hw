@@ -12,6 +12,7 @@ friscv-system-hw/
 *.str/
 vivado_pid*
 NA/
+dfx_runtime.txt
 
 # Block designs - ignore everything except .tcl files
 bd/*

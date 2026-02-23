@@ -20,12 +20,18 @@ set script_folder [_tcl::get_script_folder]
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-set scripts_vivado_version 2022.2
+set scripts_vivado_version 2025.2
 set current_vivado_version [version -short]
 
 if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
    puts ""
-   catch {common::send_gid_msg -ssname BD::TCL -id 2041 -severity "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
+   if { [string compare $scripts_vivado_version $current_vivado_version] > 0 } {
+      catch {common::send_gid_msg -ssname BD::TCL -id 2042 -severity "ERROR" " This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Sourcing the script failed since it was created with a future version of Vivado."}
+
+   } else {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2041 -severity "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
+
+   }
 
    return 1
 }
@@ -51,7 +57,6 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 set list_projs [get_projects -quiet]
 if { $list_projs eq "" } {
    create_project project_1 myproj -part xc7z020clg400-1
-   set_property BOARD_PART tul.com.tw:pynq-z2:part0:1.0 [current_project]
 }
 
 
@@ -301,17 +306,6 @@ proc create_root_design { parentCell } {
   set_property CONFIG.NUM_MI {7} $axi_interconnect_0
 
 
-  # Create instance: friscv_core_wrapper_0, and set properties
-  set block_name friscv_core_wrapper
-  set block_cell_name friscv_core_wrapper_0
-  if { [catch {set friscv_core_wrapper_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $friscv_core_wrapper_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
   # Create instance: proc_sys_reset_0, and set properties
   set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
 
@@ -686,6 +680,17 @@ proc create_root_design { parentCell } {
   set_property CONFIG.CONST_VAL {0} $xlconstant_0
 
 
+  # Create instance: friscv_core_wrapper_0, and set properties
+  set block_name friscv_core_wrapper
+  set block_cell_name friscv_core_wrapper_0
+  if { [catch {set friscv_core_wrapper_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $friscv_core_wrapper_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create interface connections
   connect_bd_intf_net -intf_net axi_interconnect_0_M00_AXI [get_bd_intf_pins axi_gpio_clk_gen_n_debug/S_AXI] [get_bd_intf_pins axi_interconnect_0/M00_AXI]
   connect_bd_intf_net -intf_net axi_interconnect_0_M01_AXI [get_bd_intf_pins axi_gpio_rst_n_extern/S_AXI] [get_bd_intf_pins axi_interconnect_0/M01_AXI]
@@ -699,25 +704,77 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins axi_interconnect_0/S00_AXI] [get_bd_intf_pins processing_system7_0/M_AXI_GP0]
 
   # Create port connections
-  connect_bd_net -net Op2_0_1 [get_bd_ports rst_pushbutton_in] [get_bd_pins util_vector_logic_1/Op2]
-  connect_bd_net -net axi_gpio_clk_gen_n_debug_gpio_io_o [get_bd_pins axi_gpio_clk_gen_n_debug/gpio_io_o] [get_bd_pins friscv_core_wrapper_0/i_clk]
-  connect_bd_net -net axi_gpio_d_mem_data_gpio_io_o [get_bd_pins axi_gpio_d_mem_data/gpio_io_o] [get_bd_pins friscv_core_wrapper_0/d_mem_data_in]
-  connect_bd_net -net axi_gpio_i_mem_data_gpio_io_o [get_bd_pins axi_gpio_i_mem_data/gpio_io_o] [get_bd_pins friscv_core_wrapper_0/i_mem_data_in]
-  connect_bd_net -net axi_gpio_rst_n_extern_gpio2_io_o [get_bd_pins axi_gpio_rst_n_extern/gpio2_io_o] [get_bd_pins util_vector_logic_0/Op1]
-  connect_bd_net -net friscv_core_wrapper_0_d_mem_addr_out [get_bd_pins axi_gpio_d_mem_addr/gpio_io_i] [get_bd_pins friscv_core_wrapper_0/d_mem_addr_out]
-  connect_bd_net -net friscv_core_wrapper_0_d_mem_data_out [get_bd_pins axi_gpio_d_mem_data/gpio2_io_i] [get_bd_pins friscv_core_wrapper_0/d_mem_data_out]
-  connect_bd_net -net friscv_core_wrapper_0_d_mem_en_out [get_bd_pins friscv_core_wrapper_0/d_mem_en_out] [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net friscv_core_wrapper_0_d_mem_size_out [get_bd_pins axi_gpio_d_mem_ctrl/gpio2_io_i] [get_bd_pins friscv_core_wrapper_0/d_mem_size_out]
-  connect_bd_net -net friscv_core_wrapper_0_d_mem_wr_out [get_bd_pins friscv_core_wrapper_0/d_mem_wr_out] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net friscv_core_wrapper_0_i_mem_addr_out [get_bd_pins axi_gpio_i_mem_data/gpio2_io_i] [get_bd_pins friscv_core_wrapper_0/i_mem_addr_out]
-  connect_bd_net -net friscv_core_wrapper_0_i_mem_en_out [get_bd_pins axi_gpio_i_mem_ctrl/gpio_io_i] [get_bd_pins friscv_core_wrapper_0/i_mem_en_out]
-  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins axi_gpio_clk_gen_n_debug/s_axi_aresetn] [get_bd_pins axi_gpio_d_mem_addr/s_axi_aresetn] [get_bd_pins axi_gpio_d_mem_ctrl/s_axi_aresetn] [get_bd_pins axi_gpio_d_mem_data/s_axi_aresetn] [get_bd_pins axi_gpio_i_mem_ctrl/s_axi_aresetn] [get_bd_pins axi_gpio_i_mem_data/s_axi_aresetn] [get_bd_pins axi_gpio_rst_n_extern/s_axi_aresetn] [get_bd_pins axi_interconnect_0/ARESETN] [get_bd_pins axi_interconnect_0/M00_ARESETN] [get_bd_pins axi_interconnect_0/M01_ARESETN] [get_bd_pins axi_interconnect_0/M02_ARESETN] [get_bd_pins axi_interconnect_0/M03_ARESETN] [get_bd_pins axi_interconnect_0/M04_ARESETN] [get_bd_pins axi_interconnect_0/M05_ARESETN] [get_bd_pins axi_interconnect_0/M06_ARESETN] [get_bd_pins axi_interconnect_0/S00_ARESETN] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins axi_gpio_clk_gen_n_debug/s_axi_aclk] [get_bd_pins axi_gpio_d_mem_addr/s_axi_aclk] [get_bd_pins axi_gpio_d_mem_ctrl/s_axi_aclk] [get_bd_pins axi_gpio_d_mem_data/s_axi_aclk] [get_bd_pins axi_gpio_i_mem_ctrl/s_axi_aclk] [get_bd_pins axi_gpio_i_mem_data/s_axi_aclk] [get_bd_pins axi_gpio_rst_n_extern/s_axi_aclk] [get_bd_pins axi_interconnect_0/ACLK] [get_bd_pins axi_interconnect_0/M00_ACLK] [get_bd_pins axi_interconnect_0/M01_ACLK] [get_bd_pins axi_interconnect_0/M02_ACLK] [get_bd_pins axi_interconnect_0/M03_ACLK] [get_bd_pins axi_interconnect_0/M04_ACLK] [get_bd_pins axi_interconnect_0/M05_ACLK] [get_bd_pins axi_interconnect_0/M06_ACLK] [get_bd_pins axi_interconnect_0/S00_ACLK] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
-  connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins processing_system7_0/FCLK_RESET0_N]
-  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins util_vector_logic_0/Res] [get_bd_pins util_vector_logic_1/Op1]
-  connect_bd_net -net util_vector_logic_1_Res [get_bd_pins friscv_core_wrapper_0/i_rstn] [get_bd_pins util_vector_logic_1/Res]
-  connect_bd_net -net xlconcat_0_dout [get_bd_pins axi_gpio_d_mem_ctrl/gpio_io_i] [get_bd_pins xlconcat_0/dout]
-  connect_bd_net -net xlconstant_0_dout [get_bd_pins friscv_core_wrapper_0/d_mem_wait_in] [get_bd_pins friscv_core_wrapper_0/i_mem_wait_in] [get_bd_pins xlconstant_0/dout]
+  connect_bd_net -net Op2_0_1  [get_bd_ports rst_pushbutton_in] \
+  [get_bd_pins util_vector_logic_1/Op2]
+  connect_bd_net -net axi_gpio_clk_gen_n_debug_gpio_io_o  [get_bd_pins axi_gpio_clk_gen_n_debug/gpio_io_o] \
+  [get_bd_pins friscv_core_wrapper_0/i_clk]
+  connect_bd_net -net axi_gpio_d_mem_data_gpio_io_o  [get_bd_pins axi_gpio_d_mem_data/gpio_io_o] \
+  [get_bd_pins friscv_core_wrapper_0/d_mem_data_in]
+  connect_bd_net -net axi_gpio_i_mem_data_gpio_io_o  [get_bd_pins axi_gpio_i_mem_data/gpio_io_o] \
+  [get_bd_pins friscv_core_wrapper_0/i_mem_data_in]
+  connect_bd_net -net axi_gpio_rst_n_extern_gpio2_io_o  [get_bd_pins axi_gpio_rst_n_extern/gpio2_io_o] \
+  [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net friscv_core_wrapper_0_d_mem_addr_out  [get_bd_pins friscv_core_wrapper_0/d_mem_addr_out] \
+  [get_bd_pins axi_gpio_d_mem_addr/gpio_io_i]
+  connect_bd_net -net friscv_core_wrapper_0_d_mem_data_out  [get_bd_pins friscv_core_wrapper_0/d_mem_data_out] \
+  [get_bd_pins axi_gpio_d_mem_data/gpio2_io_i]
+  connect_bd_net -net friscv_core_wrapper_0_d_mem_en_out  [get_bd_pins friscv_core_wrapper_0/d_mem_en_out] \
+  [get_bd_pins xlconcat_0/In1]
+  connect_bd_net -net friscv_core_wrapper_0_d_mem_size_out  [get_bd_pins friscv_core_wrapper_0/d_mem_size_out] \
+  [get_bd_pins axi_gpio_d_mem_ctrl/gpio2_io_i]
+  connect_bd_net -net friscv_core_wrapper_0_d_mem_wr_out  [get_bd_pins friscv_core_wrapper_0/d_mem_wr_out] \
+  [get_bd_pins xlconcat_0/In0]
+  connect_bd_net -net friscv_core_wrapper_0_i_mem_addr_out  [get_bd_pins friscv_core_wrapper_0/i_mem_addr_out] \
+  [get_bd_pins axi_gpio_i_mem_data/gpio2_io_i]
+  connect_bd_net -net friscv_core_wrapper_0_i_mem_en_out  [get_bd_pins friscv_core_wrapper_0/i_mem_en_out] \
+  [get_bd_pins axi_gpio_i_mem_ctrl/gpio_io_i]
+  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn  [get_bd_pins proc_sys_reset_0/peripheral_aresetn] \
+  [get_bd_pins axi_gpio_clk_gen_n_debug/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_d_mem_addr/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_d_mem_ctrl/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_d_mem_data/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_i_mem_ctrl/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_i_mem_data/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_rst_n_extern/s_axi_aresetn] \
+  [get_bd_pins axi_interconnect_0/ARESETN] \
+  [get_bd_pins axi_interconnect_0/S00_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M00_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M01_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M02_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M03_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M04_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M05_ARESETN] \
+  [get_bd_pins axi_interconnect_0/M06_ARESETN]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
+  [get_bd_pins axi_gpio_clk_gen_n_debug/s_axi_aclk] \
+  [get_bd_pins axi_gpio_d_mem_addr/s_axi_aclk] \
+  [get_bd_pins axi_gpio_d_mem_ctrl/s_axi_aclk] \
+  [get_bd_pins axi_gpio_d_mem_data/s_axi_aclk] \
+  [get_bd_pins axi_gpio_i_mem_ctrl/s_axi_aclk] \
+  [get_bd_pins axi_gpio_i_mem_data/s_axi_aclk] \
+  [get_bd_pins axi_gpio_rst_n_extern/s_axi_aclk] \
+  [get_bd_pins axi_interconnect_0/ACLK] \
+  [get_bd_pins axi_interconnect_0/S00_ACLK] \
+  [get_bd_pins axi_interconnect_0/M00_ACLK] \
+  [get_bd_pins axi_interconnect_0/M01_ACLK] \
+  [get_bd_pins axi_interconnect_0/M02_ACLK] \
+  [get_bd_pins axi_interconnect_0/M03_ACLK] \
+  [get_bd_pins axi_interconnect_0/M04_ACLK] \
+  [get_bd_pins axi_interconnect_0/M05_ACLK] \
+  [get_bd_pins axi_interconnect_0/M06_ACLK] \
+  [get_bd_pins proc_sys_reset_0/slowest_sync_clk] \
+  [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
+  connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
+  [get_bd_pins proc_sys_reset_0/ext_reset_in]
+  connect_bd_net -net util_vector_logic_0_Res  [get_bd_pins util_vector_logic_0/Res] \
+  [get_bd_pins util_vector_logic_1/Op1]
+  connect_bd_net -net util_vector_logic_1_Res  [get_bd_pins util_vector_logic_1/Res] \
+  [get_bd_pins friscv_core_wrapper_0/i_rstn]
+  connect_bd_net -net xlconcat_0_dout  [get_bd_pins xlconcat_0/dout] \
+  [get_bd_pins axi_gpio_d_mem_ctrl/gpio_io_i]
+  connect_bd_net -net xlconstant_0_dout  [get_bd_pins xlconstant_0/dout] \
+  [get_bd_pins friscv_core_wrapper_0/i_mem_wait_in] \
+  [get_bd_pins friscv_core_wrapper_0/d_mem_wait_in]
 
   # Create address segments
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_clk_gen_n_debug/S_AXI/Reg] -force
