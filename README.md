@@ -1,213 +1,130 @@
 # FRISC-V
 
-FRISC-V is a [RISC-V](https://en.wikipedia.org/wiki/RISC-V) core developed at [FER](https://www.fer.unizg.hr/en), University of Zagreb. It is designed for the [Pynq-Z2](https://www.tulembedded.com/fpga/ProductsPYNQ-Z2.html) FPGA board and supports the RV32I base instruction set.
+FRISC-V is a 32-bit RISC-V processor developed at [FER](https://www.fer.unizg.hr/en), University of Zagreb, targeting the [PYNQ-Z2](https://www.tulembedded.com/fpga/ProductsPYNQ-Z2.html) FPGA board.
 
-## Getting Started
+**ISA:** RV32I + A (atomics) + Zifencei
 
-Development on Linux and Windows is supported. See the appropriate guide below.
+## Prerequisites
 
-<details>
-<summary>Linux</summary>
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| [Vivado 2025.2](https://www.xilinx.com/support/download.html) | Synthesis and programming | Add `bin/` to `PATH` |
+| Python 3.9+ | `build.py` and helper scripts | Standard library only |
+| `riscv32-unknown-elf` toolchain | Building test programs | [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain) |
+| `make` | Building test programs | Linux/macOS native; Windows: WSL2 |
 
-1. **Prerequisites:**
+> **Windows:** Vivado's `bin/` must be on `PATH`. Test programs in `test/` must be assembled inside WSL2 or another environment that has the RISC-V toolchain.
 
-    - Vivado 2022.2 - Get it on the official AMD [download page](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/archive.html#accordion-2022)
-    - `make` - On Ubuntu, run `sudo apt install make`
-    - `riscv32-unknown-elf` - Follow instructions on the official [repository](https://github.com/riscv-collab/riscv-gnu-toolchain)
-
-2. **Clone the repository**
-
-    ```bash
-    git clone git@github.com:friscv/friscv-system-hw.git
-    cd ./friscv-system-hw
-    ```
-
-3. **Recreate the Vivado project**
-
-    ```bash
-    make
-    ```
-
-</details>
-
-<details>
-<summary>Windows</summary>
-
-1. **Prerequisites:**
-
-    - Vivado 2022.2 - Get it on the official AMD [download page](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/archive.html#accordion-2022)
-    - WSL2 - Follow the official [guide](https://learn.microsoft.com/en-us/windows/wsl/install) from Microsoft, and in WSL
-        - `make` - On Ubuntu, run `sudo apt install make`
-        - `riscv32-unknown-elf` - Follow instructions on the official [repository](https://github.com/riscv-collab/riscv-gnu-toolchain)
-    - Vivado added in Path
-
-        <details>
-        <summary>Instructions</summary>
-
-        ```powershell
-        $vivadoPath = "C:\Xilinx\Vivado\2022.2\bin"
-        [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$vivadoPath", [EnvironmentVariableTarget]::User)
-        ```
-
-        </details>
-
-    - Powershell scripts executable
-
-        <details>
-        <summary>Instructions</summary>
-
-        ```powershell
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-        ```
-
-        </details>
-
-2. **Clone the repository**
-
-    ```powershell
-    git clone git@github.com:friscv/friscv-system-hw.git
-    cd .\friscv-system-hw\
-    ```
-
-3. **Recreate the Vivado project**
-
-    ```powershell
-    .\build.ps1
-    ```
-
-</details>
-
-### Quick Start
-
-To get started right away, run these commands on Linux:
+## Quick Start
 
 ```bash
-# Create the project
-make
-# Build a program
-cd test
-make count_fast.S
-cd ..
-# Run the program (with board connected and turned on)
-make go
+git clone git@github.com:friscv/friscv-system-hw.git
+cd friscv-system-hw
+
+python build.py project    # create Vivado project
+python build.py bitstream  # build bitstream → overlay/friscv.bit
 ```
 
-Or these commands on Windows:
+See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a full walkthrough from clone to running a program on hardware.
 
-In WSL:
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Step-by-step setup: clone → bitstream → program → run |
+| [docs/BOOT.md](docs/BOOT.md) | Boot modes, ZSBL boot process, switch encoding |
+| [docs/UART.md](docs/UART.md) | UART pinout, register map, host connection, C examples |
+
+## Build Script
+
+`build.py` is the cross-platform build entry point (Windows, Linux).
+
+```
+python build.py <target> [--bin FILE]
+```
+
+| Target | Description |
+|--------|-------------|
+| `project` | Create the Vivado project *(default)* |
+| `export-bd` | Export block designs to TCL |
+| `bitstream` | Clean, rebuild bitstream, deploy `.bit`/`.hwh` to `overlay/` |
+| `program` | Program FPGA via JTAG |
+| `status` | Check FPGA status via XSDB |
+| `load` | Load `test/prog.bin` (or `--bin FILE`) into DDR via XSDB |
+| `run` | Release FRISC-V from reset |
+| `go` | `program` + `load` + `run` in one step |
+| `open` | Open project in Vivado GUI |
+| `clean` | Remove Vivado project and generated files |
+| `zsbl-rom [TEST]` | Regenerate boot ROM from `software/zsbl.S`, or from `test/TEST.S` |
+| `help` | Show usage |
+
+> **Note:** `bitstream` deletes all cached synthesis and implementation runs before building to ensure a clean result. All CPU cores will be used during synthesis by default - ensure sufficient RAM.
+
+## Building Test Programs
+
+Test programs are RISC-V assembly files in `test/`. They require the `riscv32-unknown-elf` toolchain and `make`:
 
 ```bash
 cd test
-make count_fast.S
+make test_I.S        # assemble test_I.S → prog.bin, prog.elf, prog.dis
 ```
 
-And then in Powershell:
+All targets write to the same output files (`prog.bin`, `prog.elf`, `prog.dis`). `test/prog.bin` is what `build.py load` and `xmodem_load.py` consume.
 
-```powershell
-.\build.ps1
-.\build.ps1 -Target go
-```
+Available tests: `test_I.S`, `test_Zaamo.S`, `test_Zalrsc.S`, `test_Zifencei.S`.
 
-## Building the Bitstream
+## Running Programs
 
-The bitstream is provided in the `overlay/` directory and should be built from the source files exactly as they are in the repository. The bitstream only needs to be rebuilt if changes have been made to the RTL design (`rtl/`), block design (`bd/`), or constraints (`constraints/`).
+### Via JTAG (XSDB)
 
-A bitstream can be built in Vivado through the GUI, or using provided scripts through the command line. If the command line is used, the outputs of building the build scripts are `overlay/friscv.bit`, `overlay/friscv.hwh` and `scripts/ps7_init.tcl`. These files are generated by the build process and should not be modified manually.
-
-> [!NOTE]
-> Building the bitstream through the command line deletes all cached run results, even in the Vivado project directory. This makes it run longer and requires more compute resources, but eliminates issues of an outdated design being used for building the bitstream.
-
-The bitstream can be built through the command line on Linux by running
+The PYNQ-Z2 exposes a USB JTAG interface. With the board powered on and connected:
 
 ```bash
-make bitstream
+python build.py program   # load bitstream
+python build.py load      # write test/prog.bin to DDR
+python build.py run       # release FRISC-V from reset
+# or in one step:
+python build.py go
 ```
 
-in the root directory, or on Windows, by running
+### Via UART (XMODEM boot)
 
-```powershell
-.\build.ps1 -Target bitstream
-```
-
-> [!WARNING]
-> All available CPU cores will be used during synthesis by default. This can be very memory intensive on high core count CPUs, make sure you have enough RAM for the build.
-
-## Building Demo Programs
-
-Demo programs are provided as assembly files in the `test/` directory. You can build them on Linux or through WSL by running
+Set switch `SW0` = 1, `SW1` = 0 before powering on, then transfer the binary over the serial port:
 
 ```bash
-make <test_name>.S
+pip install pyserial
+python scripts/xmodem_load.py --port /dev/ttyUSB0 --baud 115200
+# Windows: --port COM3 (check Device Manager)
 ```
 
-Building a program will generate `prog.bin`, a binary file which can be loaded directly into memory and run, as well as its disassembly `prog.dis` for reference and debugging.
+The bootloader prints `[ZSBL] Mode: UART` over the same serial port when ready to receive.
 
-## Running Programs Using XSDB
+## Boot Modes
 
-> [!NOTE]
-> Again, both Linux and Windows is supported. First the Linux command will be shown, then Windows.
+The ZSBL (Zero-Stage Boot Loader, embedded in the bitstream ROM) reads the slide switches at reset to select a boot mode:
 
-XSDB (Xilinx System Debugger) can be used to load and start programs with ARM inactive during runtime. Before loading and running a program, it needs to be compiled and/or assembled to `test/prog.bin`.
+| Switches (SW1:SW0) | Mode | Action |
+|--------------------|------|--------|
+| `00` | DRAM | Jump directly to DDR base (`0x8000_0000`) |
+| `01` | UART | Receive binary over UART via XMODEM-CRC, then execute |
+| `10` | SD | Load from SD card *(not yet implemented)* |
+| `11` | Wait | Wait for BTN0 press, then jump to DDR |
 
-> [!IMPORTANT]
-> FRISC-V cannot be reset externally after it was released from reset for the first time after programming the FPGA. That is because DDR must be retrained after each reset. **Before running another program, turn the board off and program it again.**
-
-**Programming the FPGA:**
-
-To load the bitstream into the FPGA, run:
+The ZSBL source is in `software/zsbl.S`. After modifying it, regenerate the ROM and rebuild the bitstream:
 
 ```bash
-make program
+python build.py zsbl-rom
+python build.py bitstream
 ```
 
-```powershell
-.\build.ps1 -Target program
-```
+## Bitstream Artifacts
 
-**Loading a program:**
+Pre-built artifacts are committed under `overlay/` and `scripts/`:
 
-This loads the program starting at physical address `0x8000_0000`, which corresponds to DRAM address `0x0`.
+| File | Description |
+|------|-------------|
+| `overlay/friscv.bit` | FPGA bitstream |
+| `overlay/friscv.hwh` | Hardware handoff (PYNQ overlay system) |
+| `scripts/ps7_init.tcl` | Zynq PS7 initialisation (extracted from XSA) |
 
-```bash
-make load
-```
-
-```powershell
-.\build.ps1 -Target bitstream
-```
-
-**Starting execution:**
-
-By default, loading a program resets FRISC-V and holds it in reset. This is a way to release reset and make the program start.
-
-```bash
-make run
-```
-
-```powershell
-.\build.ps1 -Target bitstream
-```
-
-**Resetting:**
-
-If FRISC-V needs to be put into reset externally.
-
-```bash
-make reset
-```
-
-```powershell
-.\build.ps1 -Target reset
-```
-
-**Programming and running:**
-
-It is possible to program the board, load `prog.bin` and start execution with a single command.
-
-```bash
-make go
-```
-
-```powershell
-.\build.ps1 -Target go
-```
+These are regenerated by `python build.py bitstream` and must not be edited manually.
