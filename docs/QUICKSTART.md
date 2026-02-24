@@ -46,7 +46,8 @@ This will:
 2. Run Vivado synthesis + implementation + bitstream generation
 3. Copy `friscv.bit`, `friscv.hwh`, and `ps7_init.tcl` to their destinations
 
-> **Warning:** All CPU cores are used during synthesis. On a high core-count machine, ensure you have enough RAM (16 GB minimum recommended).
+> [!NOTE]
+> All CPU cores are used during synthesis. On a high core-count machine, ensure you have enough RAM (16 GB minimum recommended).
 
 ## 4. Build a Test Program
 
