@@ -12,7 +12,8 @@
 # s5 - DRAM write pointer (uart_boot)
 # s6 - Packet counter (uart_boot)
 # s7 - Retry counter (uart_boot)
-# s8-s11 - Free to use
+# s8 - Byte counter (uart_boot inner loop)
+# s9-s11 - Free to use
 # =============================================================================
 
 .equ DRAM_BASE, 0x80000000
@@ -21,6 +22,7 @@
 .equ UART_BASE, 0x40600000
 .equ HALT_ADDR, 0x50000000
 
+.equ GPIO_LED_OFFSET, 0x0
 .equ GPIO_SW_OFFSET, 0x8
 .equ GPIO_BTN_BIT, 0x1
 .equ GPIO_BTN_OFFSET, 0x0
@@ -168,6 +170,9 @@ uart_boot:
     li s6, 1                   # s6 = Packet counter
     li s7, XMODEM_RETRIES      # s7 = Retry counter for initial handshake
 
+    li t0, 1
+    sw t0, GPIO_LED_OFFSET(s1) # LED on: ready to receive
+
     .xmodem_start_retry:
         li a0, XMODEM_START
         call uart_putc         # Send 'C' to initiate XMODEM-CRC
@@ -184,6 +189,7 @@ uart_boot:
         addi s7, s7, -1
         bnez s7, .xmodem_start_retry   # Retry if attempts remain
         # All retries exhausted - return
+        sw zero, GPIO_LED_OFFSET(s1)   # LED off: receive failed
         mv ra, s4                      # Restore ra from s4
         ret
 
@@ -197,15 +203,17 @@ uart_boot:
         li t0, XMODEM_SOH
         bne a0, t0, .next_packet   # Unexpected byte, wait for SOH
 
+        sw zero, GPIO_LED_OFFSET(s1)   # LED off: load started
+
         call uart_getc             # Packet number (ignored)
         call uart_getc             # Packet number complement (ignored)
 
-        li t1, 128
+        li s8, 128
         1:  call uart_getc
             sb a0, (s5)            # Store byte in DRAM
             addi s5, s5, 1
-            addi t1, t1, -1
-            bnez t1, 1b
+            addi s8, s8, -1
+            bnez s8, 1b
 
         call uart_getc             # CRC high byte (ignored)
         call uart_getc             # CRC low byte (ignored)
@@ -219,6 +227,10 @@ uart_boot:
     .transfer_done:
     li a0, XMODEM_ACK
     call uart_putc
+    li t1, UART_BASE           # Wait for TX FIFO to drain before handing off
+    1:  lw t0, UART_STATUS(t1)
+        andi t0, t0, UART_SR_TX_EMPTY
+        beqz t0, 1b
     # Jump directly to loaded code
     j execute_loaded
 
