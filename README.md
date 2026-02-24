@@ -13,7 +13,8 @@ FRISC-V is a 32-bit RISC-V processor developed at [FER](https://www.fer.unizg.hr
 | `riscv32-unknown-elf` toolchain | Building test programs | [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain) |
 | `make` | Building test programs | Linux/macOS native; Windows: WSL2 |
 
-> **Windows:** Vivado's `bin/` must be on `PATH`. Test programs in `test/` must be assembled inside WSL2 or another environment that has the RISC-V toolchain.
+> [!IMPORTANT]
+> On Windows, Vivado's `bin/` must be on `PATH`. Test programs in `test/` must be assembled inside WSL2 or another environment that has the RISC-V toolchain.
 
 ## Quick Start
 
