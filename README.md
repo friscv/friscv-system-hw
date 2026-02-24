@@ -59,7 +59,8 @@ python build.py <target> [--bin FILE]
 | `zsbl-rom [TEST]` | Regenerate boot ROM from `software/zsbl.S`, or from `test/TEST.S` |
 | `help` | Show usage |
 
-> **Note:** `bitstream` deletes all cached synthesis and implementation runs before building to ensure a clean result. All CPU cores will be used during synthesis by default - ensure sufficient RAM.
+> [!NOTE]
+> `bitstream` deletes all cached synthesis and implementation runs before building to ensure a clean result. All CPU cores will be used during synthesis by default - ensure sufficient RAM.
 
 ## Building Test Programs
 
