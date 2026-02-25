@@ -33,11 +33,16 @@ package friscv_pkg;
 
     // Set 2048 for FPGA, 0 for simulation
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
-    localparam int unsigned ENABLE_EARLY_JAL_JALR = 1;
-    localparam int unsigned ENABLE_EXTENSION_A = 1;
-    localparam int unsigned ENABLE_EXTENSION_ZIFENCEI = 1;
+
+    // Parametrized feature generation
+    localparam logic ENABLE_EARLY_JAL_JALR = 1;
+
+    // Extension selection
+    localparam logic ENABLE_EXTENSION_A = 1;
+    localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
+
     // Set to 2_000_000 for FPGA, 10 for simulation
-    localparam int unsigned RST_DEBOUNCE_CYCLES = 2_000_000;
+    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 2_000_000;
 
     // --- Configurable parameter definitions end ---
 
