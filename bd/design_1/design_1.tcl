@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# friscv_soc_wrapper
+# friscv_soc_wrapper, friscv_timer
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -57,6 +57,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 set list_projs [get_projects -quiet]
 if { $list_projs eq "" } {
    create_project project_1 myproj -part xc7z020clg400-1
+   set_property BOARD_PART tul.com.tw:pynq-z2:part0:1.0 [current_project]
 }
 
 
@@ -168,6 +169,7 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 friscv_soc_wrapper\
+friscv_timer\
 "
 
    set list_mods_missing ""
@@ -294,7 +296,7 @@ proc create_root_design { parentCell } {
   set fv_interconnect [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 fv_interconnect ]
   set_property -dict [list \
     CONFIG.ENABLE_ADVANCED_OPTIONS {0} \
-    CONFIG.NUM_MI {4} \
+    CONFIG.NUM_MI {5} \
     CONFIG.S00_HAS_DATA_FIFO {2} \
     CONFIG.STRATEGY {2} \
   ] $fv_interconnect
@@ -898,6 +900,17 @@ proc create_root_design { parentCell } {
      return 1
    }
   
+  # Create instance: friscv_timer_0, and set properties
+  set block_name friscv_timer
+  set block_cell_name friscv_timer_0
+  if { [catch {set friscv_timer_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $friscv_timer_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create interface connections
   connect_bd_intf_net -intf_net axi_interconnect_0_M01_AXI [get_bd_intf_pins fv_gpio_0/S_AXI] [get_bd_intf_pins fv_interconnect/M01_AXI]
   connect_bd_intf_net -intf_net debug_interconnect_M00_AXI [get_bd_intf_pins debug_interconnect/M00_AXI] [get_bd_intf_pins gpio_aresetn/S_AXI]
@@ -905,6 +918,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net friscv_interconnect_M02_AXI [get_bd_intf_pins fv_interconnect/M02_AXI] [get_bd_intf_pins fv_uartlite_0/S_AXI]
   connect_bd_intf_net -intf_net friscv_soc_wrapper_0_m_axi [get_bd_intf_pins friscv_soc/m_axi] [get_bd_intf_pins fv_interconnect/S00_AXI]
   connect_bd_intf_net -intf_net fv_interconnect_M03_AXI [get_bd_intf_pins fv_gpio_1/S_AXI] [get_bd_intf_pins fv_interconnect/M03_AXI]
+  connect_bd_intf_net -intf_net fv_interconnect_M04_AXI [get_bd_intf_pins friscv_timer_0/s_axi] [get_bd_intf_pins fv_interconnect/M04_AXI]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins debug_interconnect/S00_AXI] [get_bd_intf_pins processing_system7_0/M_AXI_GP0]
@@ -925,6 +939,8 @@ proc create_root_design { parentCell } {
   [get_bd_ports led]
   connect_bd_net -net friscv_soc_wrapper_o_end  [get_bd_pins friscv_soc/done] \
   [get_bd_ports done_out]
+  connect_bd_net -net friscv_timer_0_timer_irq  [get_bd_pins friscv_timer_0/timer_irq] \
+  [get_bd_pins friscv_soc/i_timer_irq]
   connect_bd_net -net gpio2_io_i_0_1  [get_bd_ports sw_in] \
   [get_bd_pins fv_gpio_0/gpio2_io_i]
   connect_bd_net -net gpio_aresetn_gpio_io_o  [get_bd_pins gpio_aresetn/gpio_io_o] \
@@ -945,7 +961,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins fv_interconnect/M02_ARESETN] \
   [get_bd_pins fv_interconnect/M03_ARESETN] \
   [get_bd_pins fv_uartlite_0/s_axi_aresetn] \
-  [get_bd_pins gpio_aresetn/s_axi_aresetn]
+  [get_bd_pins gpio_aresetn/s_axi_aresetn] \
+  [get_bd_pins fv_interconnect/M04_ARESETN] \
+  [get_bd_pins friscv_timer_0/rstn_in]
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins debug_interconnect/ACLK] \
   [get_bd_pins debug_interconnect/S00_ACLK] \
@@ -963,7 +981,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins proc_sys_reset_0/slowest_sync_clk] \
   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
-  [get_bd_pins friscv_soc/aclk]
+  [get_bd_pins friscv_soc/aclk] \
+  [get_bd_pins fv_interconnect/M04_ACLK] \
+  [get_bd_pins friscv_timer_0/clk_in]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins proc_sys_reset_0/ext_reset_in]
   connect_bd_net -net rx_0_1  [get_bd_ports uart_rx] \
@@ -975,6 +995,7 @@ proc create_root_design { parentCell } {
 
   # Create address segments
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs gpio_aresetn/S_AXI/Reg] -force
+  assign_bd_address -offset 0x40100000 -range 0x00001000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs friscv_timer_0/s_axi/reg0] -force
   assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x40010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_gpio_1/S_AXI/Reg] -force
   assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_soc/m_axi] [get_bd_addr_segs fv_uartlite_0/S_AXI/Reg] -force
