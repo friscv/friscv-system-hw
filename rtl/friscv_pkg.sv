@@ -66,6 +66,12 @@ package friscv_pkg;
     localparam addr_t DRAM_BASE     = 32'h80000000;
     localparam addr_t RESET_VEC     = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;
     localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
+    localparam addr_t FRISCV_TIMER  = 32'h40100000;
+    
+    localparam logic [11:0] CSR_MSTATUS = 12'h300;
+    localparam logic [11:0] CSR_MTVEC =   12'h305;
+    localparam logic [11:0] CSR_MEPC =    12'h341; 
+
 
     typedef enum logic [2:0] {
         I_TYPE  = 3'b000,
@@ -199,6 +205,11 @@ package friscv_pkg;
         logic            reserve;
         logic            conditional;
         amo_op_t         amo_op;
+        
+        logic            csr_wr_en;
+        logic            mret_en;
+		logic [11:0]     csr_addr;
+        
     } instr_ex_t;
 
     typedef enum logic [1:0] {

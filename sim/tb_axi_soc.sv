@@ -19,6 +19,8 @@ logic clk;
 logic rstn;
 logic end_signal;
 
+logic i_timer_irq_sim;
+
 // AXI Signals
 logic        m_axi_awvalid;
 logic        m_axi_awready;
@@ -70,6 +72,8 @@ friscv_soc dut (
     .i_clk         ( clk           ),
     .i_rstn        ( rstn          ),
     .o_end         ( end_signal    ),
+    
+    .i_timer_irq   ( i_timer_irq_sim ),
 
     // AXI4 Master Write Address Channel
     .m_axi_awvalid ( m_axi_awvalid ),
@@ -319,6 +323,15 @@ initial begin
     #(CLK_PERIOD * MAX_CYCLES * 2);
     $display("ERROR: Timeout!");
     $finish;
+end
+
+initial begin
+    i_timer_irq_sim = 0;
+    wait(rstn == 1);
+    repeat (500) @(posedge clk);
+    i_timer_irq_sim = 1;
+    repeat (5) @(posedge clk);
+    i_timer_irq_sim = 0;
 end
 
 endmodule

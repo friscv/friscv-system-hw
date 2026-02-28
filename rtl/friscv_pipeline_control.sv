@@ -42,7 +42,11 @@ module friscv_pipeline_control (
 
     // Memory wait signals
     input  logic      if_wait_in,
-    input  logic      mem_wait_in
+    input  logic      mem_wait_in,
+    
+    // Interrupts
+    input logic       interrupt_in,
+    input logic       mret_in
 );
 
 logic mem_stall, hazard_stall;
@@ -63,9 +67,9 @@ always_comb begin
     stall_ex_out  = mem_stall;
     stall_mem_out = mem_stall;
 
-    flush_if_out = branch_ok_in || effective_jal;
-    flush_id_out = branch_ok_in || effective_jal;
-    flush_ex_out = hazard_stall && !mem_stall;
+    flush_if_out = branch_ok_in || effective_jal || interrupt_in || mret_in;
+    flush_id_out = branch_ok_in || effective_jal || interrupt_in || mret_in;
+    flush_ex_out = (hazard_stall && !mem_stall) || interrupt_in;
 
     jump_ok_out     = branch_ok_in || effective_jal;
     jump_target_out = (branch_ok_in) ? branch_target_in : jal_target_in;

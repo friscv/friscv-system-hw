@@ -19,6 +19,7 @@ module friscv_core_complex (
     input  logic       i_clk,
     input  logic       i_rstn,
     output logic       o_end,
+    input  logic       i_timer_irq,
 
     output mem_width_t o_mem_size,
     output addr_t      o_mem_addr,
@@ -127,6 +128,7 @@ assign w_stall_if = w_inst_wait || r_end_signal;
 friscv_core cpu_0 (
     .i_clk            ( i_clk        ),
     .i_rstn           ( i_rstn       ),
+    .i_timer_irq      ( i_timer_irq  ),
 
     // Instruction Memory Interface
     .i_mem_addr_out   ( w_inst_addr  ),

@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+//`timescale 1ns / 1ps
 `define SIMULATION_MODE
 
 module tb_cc;
@@ -19,6 +19,8 @@ logic clk;
 logic rstn;
 logic end_signal;
 
+logic i_timer_irq_sim;
+
 logic [2:0]  mem_size;
 logic [31:0] mem_addr;
 logic [31:0] mem_wdata;
@@ -28,6 +30,8 @@ logic        mem_wait;
 
 logic [7:0]  memory [MEM_SIZE];
 logic [31:0] gpio_reg;
+
+
 
 int mem_delay_counter;
 
@@ -39,6 +43,7 @@ friscv_core_complex dut (
     .i_clk       ( clk        ),
     .i_rstn      ( rstn       ),
     .o_end       ( end_signal ),
+    .i_timer_irq ( i_timer_irq_sim ),
     .o_mem_size  ( mem_size   ),
     .o_mem_addr  ( mem_addr   ),
     .o_mem_wdata ( mem_wdata  ),
@@ -201,6 +206,15 @@ initial begin
     #(CLK_PERIOD * MAX_CYCLES * 2);
     $display("ERROR: Timeout!");
     $finish;
+end
+
+initial begin
+    i_timer_irq_sim = 0;
+    wait(rstn == 1);
+    repeat (5000) @(posedge clk);
+    i_timer_irq_sim = 1;
+    repeat (5) @(posedge clk);
+    i_timer_irq_sim = 0;
 end
 
 endmodule

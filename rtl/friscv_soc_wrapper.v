@@ -23,6 +23,7 @@ module friscv_soc_wrapper (
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
     input  wire aresetn,
     output wire done,
+    input  wire i_timer_irq,
 
     // AXI4 Master Write Address Channel
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWVALID" *)
@@ -105,6 +106,7 @@ friscv_soc soc_inst (
     .i_clk          ( aclk          ),
     .i_rstn         ( aresetn       ),
     .o_end          ( done          ),
+    .i_timer_irq    ( i_timer_irq   ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

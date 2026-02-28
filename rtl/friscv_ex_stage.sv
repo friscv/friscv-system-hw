@@ -45,7 +45,10 @@ module friscv_ex_stage (
     output amo_op_t        amo_op_out,
 
     // Outputs to control logic
-    output logic           branch_ok_out
+    output logic           branch_ok_out,
+    
+    // Output to id stage for mepc
+    output addr_t          ex_pc_reg_out
 );
 
 // Input registers
@@ -78,7 +81,10 @@ assign NOP_CTRL = '{
     wb_data_sel: WB_DATA_SEL_ALU,
     reserve: 1'b0,
     conditional: 1'b0,
-    amo_op: AMO_NONE
+    amo_op: AMO_NONE,
+    csr_wr_en: 1'b0,   
+    mret_en: 1'b0,   
+    csr_addr: 12'b0
 };
 
 // Stage inputs buffering
@@ -92,12 +98,14 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         rd_sel_buff <= 5'b0;
         instr_buff  <= NOP_CTRL;
     end else if (!stage_stall_in) begin
+        //interrupts
+        pc_buff <= pc_in; 
         if (stage_flush_in || branch_ok_out) begin
             rd_sel_buff <= 5'b0;
             instr_buff  <= NOP_CTRL;
         end else begin
             pc_plus_4_buff <= pc_plus_4_in;
-            pc_buff     <= pc_in;
+            //pc_buff     <= pc_in;
             rs1_buff    <= rs1_in;
             rs2_buff    <= rs2_in;
             imm32_buff  <= imm32_in;
@@ -160,5 +168,8 @@ always_comb begin
         default: store_data_out = 32'h0;
     endcase
 end
+
+assign ex_pc_reg_out = pc_buff;
+
 
 endmodule

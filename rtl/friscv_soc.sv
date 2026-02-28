@@ -19,7 +19,9 @@ module friscv_soc (
     input  logic        i_clk,
     input  logic        i_rstn,
     output logic        o_end,
-
+    
+    input  logic        i_timer_irq,
+ 
     // AXI4 Master Write Address Channel
     output logic        m_axi_awvalid,
     input  logic        m_axi_awready,
@@ -113,6 +115,7 @@ friscv_core_complex cc_0 (
     .i_clk       ( i_clk       ),
     .i_rstn      ( w_core_rstn ),
     .o_end       ( o_end       ),
+    .i_timer_irq ( i_timer_irq ),
     .o_mem_size  ( w_size      ),
     .o_mem_addr  ( w_phy_addr  ),
     .o_mem_wdata ( w_wdata     ),

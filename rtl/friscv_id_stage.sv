@@ -18,6 +18,8 @@ Version info is listed in friscv_pkg.sv
 module friscv_id_stage (
     input  logic      clk_in,
     input  logic      rst_n_in,
+    
+    input  logic      timer_irq_in,
 
     // Stage control signals
     input  logic      flush_in,
@@ -48,7 +50,15 @@ module friscv_id_stage (
 
     // Inputs from WB stage    
     input  reg_addr_t rd_sel_in,
-    input  data_t     rd_data_in
+    input  data_t     rd_data_in,
+    
+    //Outputs and inputs for handling interrupts
+    output addr_t   mtvec_out,
+    output addr_t   mepc_out,
+    output logic    interrupt_id_out,
+    output logic    mret_id_out,
+    
+    input addr_t    pc_ex_in
 );
 
 data_t regfile [REGISTER_NUM];
@@ -65,6 +75,17 @@ instr_op_t ir_buff;
 addr_t     pc_in_buff;
 addr_t     pc_plus_4_in_buff;
 imm_t      imm_sel;
+
+//CSRs for interrupts
+data_t     csr_mstatus = 0;
+data_t     csr_mtvec = 0;
+data_t     csr_mepc = 0;
+
+
+assign mtvec_out = csr_mtvec;
+assign mepc_out  = csr_mepc;
+assign interrupt_id_out = timer_irq_in && csr_mstatus[3];//mstatus bit 3 is for enabling/disabling interrupts
+assign mret_id_out = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'h302);
 
 // MEM-EX forwarding
 assign rs1_out = (rd_sel_in != 0 && rs1_sel_out == rd_sel_in) ? rd_data_in : regfile[rs1_sel_out];
@@ -90,8 +111,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 
         if (flush_in) begin
             ir_buff <= NOP;
-            pc_in_buff <= 32'h0;
-            pc_plus_4_in_buff <= 32'h0;
+            //pc_in_buff <= 32'h0;          //Commented out for interrupt purposes
+            //pc_plus_4_in_buff <= 32'h0;
         end else if (!stage_stall_in) begin
             ir_buff <= ir_in;
             pc_in_buff <= pc_in;
@@ -99,6 +120,37 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         end
     end
 end
+
+// ============================================================
+// CSR registers
+// ============================================================
+always_ff @(posedge clk_in or negedge rst_n_in) begin
+    if(!rst_n_in) begin
+        csr_mstatus <= 0;
+        csr_mtvec   <= 0;
+        csr_mepc    <= 0;
+    end
+    else begin
+        if(interrupt_id_out) begin// saving the pc of instruction in the id stage and disabling further interrupts
+            csr_mepc <= pc_ex_in;
+            csr_mstatus[3] <= 1'b0;
+        end
+        else if(mret_id_out) begin
+            csr_mstatus[3] <= 1'b1;
+        end
+        else if(instr_ex_out.csr_wr_en && !stage_stall_in && !flush_in) begin
+            case (instr_ex_out.csr_addr) 
+                CSR_MSTATUS:    csr_mstatus <= rs1_out;
+                CSR_MTVEC:      csr_mtvec <= rs1_out;
+                CSR_MEPC:       csr_mepc <= rs1_out;
+            endcase
+        end
+        
+        
+    end
+end
+
+
 
 // ============================================================
 // Immediate generation
@@ -122,7 +174,7 @@ end
 // ============================================================
 
 always_comb begin
-    if (ENABLE_EARLY_JAL_JALR) begin
+    if (ENABLE_EARLY_JAL_JALR && !interrupt_id_out) begin
         addr_t jal_target_base;
         data_t jal_imm;
         jal_target_base = 32'h0;
@@ -173,6 +225,9 @@ always_comb begin
     rd_sel_out  = 5'b0;
     illegal_inst = 1'b0;
     imm_sel = I_TYPE;
+    instr_ex_out.csr_wr_en = 0;
+    instr_ex_out.mret_en   = 0;
+    instr_ex_out.csr_addr  = 0;
 
     case (ir_buff.r.opcode)
         LOAD: begin
@@ -401,6 +456,33 @@ always_comb begin
 
             imm_sel = J_TYPE;
             rd_sel_out  = ir_buff.r.rd;
+        end
+        
+        SYSTEM: begin
+            instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
+            instr_ex_out.mux1_sel = RS;
+            instr_ex_out.mux2_sel = RS;
+            instr_ex_out.alu_op = ADD_OP;
+            instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
+            instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
+            
+            instr_ex_out.csr_wr_en = 0;
+            instr_ex_out.mret_en   = 0;
+            instr_ex_out.csr_addr  = ir_buff.b[31:20];
+            
+            case (ir_buff.r.funct3)
+                3'b000: begin // mret
+                    if (ir_buff.b[31:20] == 12'h302) begin
+                        instr_ex_out.mret_en = 1;
+                    end
+                end
+                3'b001: begin // csrw
+                    instr_ex_out.csr_wr_en = 1;
+                    rs1_sel_out = ir_buff.r.rs1;
+                    rd_sel_out  = ir_buff.r.rd;
+                end
+            endcase
+            imm_sel = I_TYPE;
         end
 
         default: begin

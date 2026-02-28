@@ -19,6 +19,8 @@ module friscv_core (
     input  logic       i_clk,
     input  logic       i_rstn,
     
+    input  logic       i_timer_irq,
+    
     // Instruction Memory Interface
     output addr_t      i_mem_addr_out,
     input  data_t      i_mem_data_in,
@@ -69,6 +71,11 @@ amo_op_t        ex_amo_op_out;
 data_t     mem_rd_data_out;
 reg_addr_t mem_rd_sel_out;
 
+// Interrupts
+addr_t          id_mtvec_out, id_mepc_out;
+logic           id_interrupt_out, id_mret_out;
+addr_t          real_ex_pc;
+
 friscv_pipeline_control control_unit (
     // Control signals
     .flush_if_out     ( flush_if        ),
@@ -96,7 +103,11 @@ friscv_pipeline_control control_unit (
 
     // Memory wait signals
     .if_wait_in       ( i_mem_wait_in   ),
-    .mem_wait_in      ( d_mem_wait_in   )
+    .mem_wait_in      ( d_mem_wait_in   ),
+    
+    //Interrupts
+    .interrupt_in     ( id_interrupt_out),
+    .mret_in          ( id_mret_out     )
 );
 
 friscv_if_stage if_stage (
@@ -118,41 +129,56 @@ friscv_if_stage if_stage (
     // Instruction memory interface
     .i_mem_addr_out ( i_mem_addr_out   ),
     .i_mem_data_in  ( i_mem_data_in    ),
-    .i_mem_en_out   ( i_mem_en_out     )
+    .i_mem_en_out   ( i_mem_en_out     ),
+    
+    //Interrupts
+    .interrupt_in   ( id_interrupt_out ),
+    .mret_in        ( id_mret_out      ),
+    .mtvec_in       ( id_mtvec_out     ),
+    .mepc_in        ( id_mepc_out      )
 );
 
 friscv_id_stage id_stage (
-    .clk_in         ( i_clk            ),
-    .rst_n_in       ( i_rstn           ),
+    .clk_in         ( i_clk               ), 
+    .rst_n_in       ( i_rstn              ),
+    
+    .timer_irq_in   ( i_timer_irq         ),
 
     // Stage control signals
-    .flush_in       ( flush_id         ),
-    .stage_stall_in ( stall_id         ),
+    .flush_in       ( flush_id            ),
+    .stage_stall_in ( stall_id            ),
 
     // Outputs to control logic
-    .rs1_sel_out    ( id_rs1_sel_out   ),
-    .rs2_sel_out    ( id_rs2_sel_out   ),
-    .rd_sel_out     ( id_rd_sel_out    ),
-    .jal_ok_out     ( jal_ok           ),
-    .jal_target_out ( jal_target       ),
-    .illegal_inst   ( id_illegal_inst  ),
+    .rs1_sel_out    ( id_rs1_sel_out      ),
+    .rs2_sel_out    ( id_rs2_sel_out      ),
+    .rd_sel_out     ( id_rd_sel_out       ),
+    .jal_ok_out     ( jal_ok              ),
+    .jal_target_out ( jal_target          ),
+    .illegal_inst   ( id_illegal_inst     ),
 
     // Inputs from IF stage
-    .pc_in          ( if_pc_out        ),
-    .pc_plus_4_in   ( if_pc_plus_4_out ),
-    .ir_in          ( if_ir_out        ),
+    .pc_in          ( if_pc_out           ),
+    .pc_plus_4_in   ( if_pc_plus_4_out    ),
+    .ir_in          ( if_ir_out           ),
 
     // Outputs to EX stage
-    .pc_out         ( id_pc_out        ),
-    .pc_plus_4_out  ( id_pc_plus_4_out ),
-    .rs1_out        ( id_rs1_out       ),
-    .rs2_out        ( id_rs2_out       ),
-    .imm32_out      ( id_imm32_out     ),
-    .instr_ex_out   ( id_instr_ex_out  ),
+    .pc_out         ( id_pc_out           ),
+    .pc_plus_4_out  ( id_pc_plus_4_out    ),
+    .rs1_out        ( id_rs1_out          ),
+    .rs2_out        ( id_rs2_out          ),
+    .imm32_out      ( id_imm32_out        ),
+    .instr_ex_out   ( id_instr_ex_out     ),
 
     // Inputs from WB stage
-    .rd_sel_in      ( mem_rd_sel_out   ),
-    .rd_data_in     ( mem_rd_data_out  )
+    .rd_sel_in      ( mem_rd_sel_out      ),
+    .rd_data_in     ( mem_rd_data_out     ),
+    
+    //Interrupts
+    .mtvec_out        ( id_mtvec_out      ), 
+    .mepc_out         ( id_mepc_out       ),
+    .interrupt_id_out ( id_interrupt_out  ),
+    .mret_id_out      ( id_mret_out       ),
+    .pc_ex_in         ( real_ex_pc        )
 );
 
 friscv_ex_stage ex_stage (
@@ -185,7 +211,10 @@ friscv_ex_stage ex_stage (
     .amo_op_out           ( ex_amo_op_out           ),
 
     // Outputs to control logic
-    .branch_ok_out        ( branch_ok               )
+    .branch_ok_out        ( branch_ok               ),
+    
+    //Interrupts
+    .ex_pc_reg_out        ( real_ex_pc              )
 );
 
 friscv_mem_stage mem_stage (
