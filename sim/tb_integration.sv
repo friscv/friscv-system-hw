@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `define SIMULATION_MODE
 
-module tb_axi_soc;
+module tb_integration;
 
 parameter CLK_PERIOD = 20;      // 20ns clock period (50MHz)
 parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
@@ -313,7 +313,7 @@ initial begin
     int bytes_read;
     
     $display("==============================================");
-    $display("FRISCV AXI SoC Testbench");
+    $display("FRISCV Integration Testbench");
     $display("==============================================");
     $display("CPU Memory Base: 0x%08h", CPU_MEM_BASE);
     $display("AXI RAM Base:    0x%08h", DRAM_BASE);
