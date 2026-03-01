@@ -21,11 +21,11 @@ module friscv_core_complex (
     output logic       o_end,
     input  logic       i_timer_irq,
 
-    output mem_width_t o_mem_size,
+    output mem_width_e o_mem_size,
     output addr_t      o_mem_addr,
     output data_t      o_mem_wdata,
     input  data_t      i_mem_rdata,
-    output rw_cmd_t    o_mem_rw,
+    output rw_cmd_e    o_mem_rw,
     input  logic       i_mem_wait
 );
 
@@ -47,24 +47,24 @@ data_t      w_data_wdata;
 data_t      w_data_rdata;
 logic       w_data_en;
 logic       w_data_wr;
-mem_width_t w_data_size;
+mem_width_e w_data_size;
 logic       w_data_wait;
-amo_op_t    w_amo_op;
+amo_op_e    w_amo_op;
 
 // ============================================================
 // Level 2 bus and L1-L2 arbitration
 // ============================================================
 
 addr_t      w_l2_addr;
-mem_width_t w_l2_size;
+mem_width_e w_l2_size;
 data_t      w_l2_wdata;
-rw_cmd_t    w_l2_rw;
+rw_cmd_e    w_l2_rw;
 data_t      w_l2_rdata;
 logic       w_l2_wait;
-amo_op_t    w_l2_amo_op;
+amo_op_e    w_l2_amo_op;
 
 // AMO unit signals
-rw_cmd_t    w_amo_rw;
+rw_cmd_e    w_amo_rw;
 data_t      w_amo_store_data;
 data_t      w_amo_load_data;
 logic       w_amo_core_wait;
@@ -128,7 +128,7 @@ assign w_stall_if = w_inst_wait || r_end_signal;
 friscv_core cpu_0 (
     .i_clk            ( i_clk        ),
     .i_rstn           ( i_rstn       ),
-    .i_timer_irq      ( i_timer_irq  ),
+    .i_irq            ( i_timer_irq  ),
 
     // Instruction Memory Interface
     .i_mem_addr_out   ( w_inst_addr  ),

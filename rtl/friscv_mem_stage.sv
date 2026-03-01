@@ -27,12 +27,15 @@ module friscv_mem_stage (
     input  data_t          alu_data_in,
     input  reg_addr_t      rd_sel_in,
     input  data_t          store_data_in,
-    input  mem_instr_sel_t mem_instr_sel_in,
-	input  mem_width_t     load_store_width_in,
-	input  wb_data_sel_t   wb_data_sel_in,
+    input  mem_instr_sel_e mem_instr_sel_in,
+	input  mem_width_e     load_store_width_in,
+	input  wb_data_sel_e   wb_data_sel_in,
+
+    // AMO control
     input  logic           reserve_in,
     input  logic           conditional_in,
-    input  amo_op_t        amo_op_in,
+    input  logic           clear_reserve_in,
+    input  amo_op_e        amo_op_in,
 
     // Outputs to WB stage
     output data_t          rd_data_out,
@@ -44,9 +47,9 @@ module friscv_mem_stage (
     input  data_t          d_mem_data_in,
     output logic           d_mem_en_out,
     output logic           d_mem_wr_out,
-    output mem_width_t     d_mem_size_out,
+    output mem_width_e     d_mem_size_out,
     input  logic           d_mem_wait_in,
-    output amo_op_t        d_mem_amo_op_out
+    output amo_op_e        d_mem_amo_op_out
 );
 
 // Input registers
@@ -54,11 +57,12 @@ addr_t          pc_plus_4_buff;
 addr_t          alu_data_buff;
 data_t          store_data_buff;
 reg_addr_t      rd_sel_buff;
-mem_instr_sel_t mem_instr_sel_buff;
-mem_width_t     load_store_width_buff;
-wb_data_sel_t   wb_data_sel_buff;
+mem_instr_sel_e mem_instr_sel_buff;
+mem_width_e     load_store_width_buff;
+wb_data_sel_e   wb_data_sel_buff;
 logic           conditional_buff;
-amo_op_t        amo_op_buff;
+logic           clear_reserve_buff;
+amo_op_e        amo_op_buff;
 
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
@@ -106,11 +110,15 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         r_sc_res_valid        <= 1'b0;
         r_sc_res              <= 1'b0;
         conditional_buff      <= 1'b0;
+        clear_reserve_buff    <= 1'b0;
         cond_valid_r          <= 1'b0;
         amo_op_buff           <= AMO_NONE;
     end
 
     else begin
+        if (clear_reserve_in) begin
+            reserve_valid <= 1'b0;
+        end
 
         if (!stage_stall_in) begin
             pc_plus_4_buff        <= pc_plus_4_in;
@@ -124,16 +132,18 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             r_load_data_valid     <= 1'b0;  // Clear on new instruction
             r_sc_res_valid        <= 1'b0;
             conditional_buff      <= conditional_in;
+            clear_reserve_buff    <= clear_reserve_in;
             amo_op_buff           <= amo_op_in;
             cond_valid_r          <= cond_valid;
 
-            if (reserve_in) begin
-                reserve_valid <= 1'b1;
-                reserve_addr  <= alu_data_in;
-            end else if (conditional_buff && r_mem_active) begin
-                // SC.W completed this cycle (d_mem_wait_in=0 implied by !stage_stall_in);
-                // clear the reservation so subsequent SC to same addr fails.
-                reserve_valid <= 1'b0;
+            if (!clear_reserve_in) begin
+                if (reserve_in) begin
+                    reserve_valid <= 1'b1;
+                    reserve_addr  <= alu_data_in;
+                end else if (conditional_buff && r_mem_active) begin
+                    // SC.W completed; clear reservation so a subsequent SC fails.
+                    reserve_valid <= 1'b0;
+                end
             end
         end
 

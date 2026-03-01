@@ -27,22 +27,22 @@ module friscv_l1_arbiter (
 
     // Data Memory Interface
     input  addr_t      i_data_addr,
-    input  mem_width_t i_data_size,
+    input  mem_width_e i_data_size,
     input  data_t      i_data_wdata,
     output data_t      o_data_rdata,
     input  logic       i_data_en,
     input  logic       i_data_wr,
     output logic       o_data_wait,
-    input  amo_op_t    i_amo_op,
+    input  amo_op_e    i_amo_op,
 
     // External Interface
     output addr_t      o_mem_addr,
-    output mem_width_t o_mem_size,
+    output mem_width_e o_mem_size,
     output data_t      o_mem_wdata,
     input  data_t      i_mem_rdata,
-    output rw_cmd_t    o_mem_rw,
+    output rw_cmd_e    o_mem_rw,
     input  logic       i_mem_wait,
-    output amo_op_t    o_amo_op
+    output amo_op_e    o_amo_op
 );
 
 // FSM States

@@ -6,7 +6,7 @@ OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 
 # Flags
-ASFLAGS = -march=rv32ia_zifencei -mabi=ilp32
+ASFLAGS = -march=rv32ia_zifencei_zicsr -mabi=ilp32
 LDFLAGS = -T linker.ld
 
 # Output files

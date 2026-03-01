@@ -28,6 +28,7 @@ import hashlib
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import sys
 import zipfile
@@ -138,9 +139,22 @@ def check_project() -> None:
 
 def remove_if_exists(path: Path) -> None:
     if path.is_dir():
-        shutil.rmtree(path)
+        shutil.rmtree(path, onexc=_rmtree_onexc)
     elif path.exists():
-        path.unlink()
+        try:
+            path.unlink()
+        except PermissionError as e:
+            winerror = getattr(e, "winerror", None)
+            if winerror == 5:
+                os.chmod(path, stat.S_IWRITE)
+                path.unlink()
+            elif winerror == 32:
+                die(
+                    f"Cannot delete '{path}' because it is locked by another process.\n"
+                    "Close Vivado (and any Java/Tcl helper processes) then try again."
+                )
+            else:
+                raise
 
 
 def extract_from_xsa(xsa: Path, pattern: str, dest: Path) -> bool:
@@ -302,15 +316,29 @@ def target_open() -> None:
         subprocess.Popen(cmd, start_new_session=True)
 
 
+def _rmtree_onexc(func, path, exc) -> None:
+    winerror = getattr(exc, "winerror", None)
+    if winerror == 5:  # ERROR_ACCESS_DENIED – read-only file
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    elif winerror == 32:  # ERROR_SHARING_VIOLATION – file locked by another process
+        die(
+            f"Cannot delete '{path}' because it is locked by another process.\n"
+            "Close Vivado (and any Java/Tcl helper processes) then try again."
+        )
+    else:
+        raise exc
+
+
 def target_clean() -> None:
     section("CLEANING PROJECT")
     xil_dir = ROOT / ".Xil"
     if xil_dir.exists():
         info("Removing .Xil directory...")
-        shutil.rmtree(xil_dir)
+        shutil.rmtree(xil_dir, onexc=_rmtree_onexc)
     if PROJECT_DIR.exists():
         info("Removing project directory...")
-        shutil.rmtree(PROJECT_DIR)
+        shutil.rmtree(PROJECT_DIR, onexc=_rmtree_onexc)
     info("Cleaning generated block design files...")
     bd_dir = ROOT / "bd"
     if bd_dir.exists():

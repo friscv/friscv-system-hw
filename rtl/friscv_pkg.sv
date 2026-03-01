@@ -41,9 +41,6 @@ package friscv_pkg;
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
 
-    // Set to 2_000_000 for FPGA, 10 for simulation
-    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 2_000_000;
-
     // --- Configurable parameter definitions end ---
 
     localparam int unsigned XLEN = 32;
@@ -56,6 +53,8 @@ package friscv_pkg;
 
     localparam int unsigned NOP = 32'h00000013;  // addi x0,x0,0
 
+    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 2_000_000;
+
     typedef logic [ADDR_WIDTH-1:0]    addr_t;
     typedef logic [DATA_WIDTH-1:0]    data_t;
     typedef logic [31:0]              inst_t;
@@ -66,12 +65,20 @@ package friscv_pkg;
     localparam addr_t DRAM_BASE     = 32'h80000000;
     localparam addr_t RESET_VEC     = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;
     localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
-    localparam addr_t FRISCV_TIMER  = 32'h40100000;
-    
-    localparam logic [11:0] CSR_MSTATUS = 12'h300;
-    localparam logic [11:0] CSR_MTVEC =   12'h305;
-    localparam logic [11:0] CSR_MEPC =    12'h341; 
 
+    typedef enum logic [11:0] {
+        CSR_ZERO    = 12'h000,
+        CSR_MSTATUS = 12'h300,
+        CSR_MTVEC   = 12'h305,
+        CSR_MEPC    = 12'h341
+    } csr_addr_e;
+
+    typedef enum logic [1:0] {
+        U_MODE = 2'b00,
+        S_MODE = 2'b01,
+        H_MODE = 2'b10,
+        M_MODE = 2'b11
+    } privilege_e;
 
     typedef enum logic [2:0] {
         I_TYPE  = 3'b000,
@@ -82,7 +89,7 @@ package friscv_pkg;
         J_TYPE  = 3'b101,
         ZERO    = 3'b110,  // Always produces 32'h0
         NEXT_PC = 3'b111   // Used to jump to incremented PC to refetch on FENCE.I
-    } imm_t;
+    } imm_e;
 
     // Load/Store instruction funct3
     typedef enum logic [2:0] {
@@ -91,80 +98,7 @@ package friscv_pkg;
         WIDTH_I16 = 3'b001,
         WIDTH_U16 = 3'b101,
         WIDTH_I32 = 3'b010
-    } mem_width_t;
-
-    typedef struct packed {
-        logic [6:0] funct7;
-        reg_addr_t  rs2;
-        reg_addr_t  rs1;
-        mem_width_t funct3;
-        reg_addr_t  rd;
-        logic [6:0] opcode;
-    } r_type;
-
-    typedef union packed {
-        logic [31:0] b;
-        r_type r;
-    } instr_op_t;
-
-    typedef enum logic [1:0] {
-        BRANCH_JAL_NONE = 2'b00,
-        BRANCH_INSTR    = 2'b01,
-        JAL_INSTR       = 2'b10
-    } branch_jal_sel_t;
-
-    typedef enum logic [2:0] {
-        COND_EQ  = 3'b000, 
-        COND_NE  = 3'b001, 
-        COND_LT  = 3'b100, 
-        COND_GE  = 3'b101, 
-        COND_LTU = 3'b110, 
-        COND_GEU = 3'b111
-    } branch_cond_t;
-
-    typedef enum logic {
-        RS    = 1'b0,
-        OTHER = 1'b1
-    } mux_sel_t;
-
-    typedef enum logic [3:0] {
-        ADD_OP  = 4'b0000,
-        SUB_OP  = 4'b1000,
-        AND_OP  = 4'b0111,
-        OR_OP   = 4'b0110,
-        XOR_OP  = 4'b0100,
-        SLL_OP  = 4'b0001,
-        SRL_OP  = 4'b0101,
-        SRA_OP  = 4'b1101,
-        SLT_OP  = 4'b0010,
-        SLTU_OP = 4'b0011
-    } alu_op_t;
-
-    typedef enum logic [3:0] {
-        AMO_NONE = 4'b0000,
-        AMO_SWAP = 4'b0001,
-        AMO_ADD  = 4'b0010,
-        AMO_XOR  = 4'b0011,
-        AMO_AND  = 4'b0100,
-        AMO_OR   = 4'b0101,
-        AMO_MIN  = 4'b0110,
-        AMO_MAX  = 4'b0111,
-        AMO_MINU = 4'b1000,
-        AMO_MAXU = 4'b1001
-    } amo_op_t;
-
-    typedef enum logic [1:0] {
-        MEM_INSTR_NONE  = 2'b00,
-        MEM_INSTR_LOAD  = 2'b01,
-        MEM_INSTR_STORE = 2'b10
-    } mem_instr_sel_t;
-
-    typedef enum logic [1:0] {
-        WB_DATA_SEL_PC_PLUS_4 = 2'b00,
-        WB_DATA_SEL_ALU       = 2'b01,
-        WB_DATA_SEL_MEM       = 2'b10,
-        WB_DATA_SEL_SC_RES    = 2'b11
-    } wb_data_sel_t;
+    } mem_width_e;
 
     // Instruction types
     typedef enum logic [6:0] {
@@ -191,32 +125,103 @@ package friscv_pkg;
         JAL      = 7'b1101111,
         SYSTEM   = 7'b1110011,
         OP_VE    = 7'b1110111
-    } opcode_t;
+    } opcode_e;
 
     typedef struct packed {
-        branch_jal_sel_t branch_jal_sel;
-        branch_cond_t    branch_cond;
-        mux_sel_t        mux1_sel;
-        mux_sel_t        mux2_sel;
-        alu_op_t         alu_op;
-        mem_instr_sel_t  mem_instr_sel;
-        mem_width_t      load_store_width;
-        wb_data_sel_t    wb_data_sel;
-        logic            reserve;
-        logic            conditional;
-        amo_op_t         amo_op;
-        
-        logic            csr_wr_en;
-        logic            mret_en;
-		logic [11:0]     csr_addr;
-        
+        logic [6:0] funct7;
+        reg_addr_t  rs2;
+        reg_addr_t  rs1;
+        mem_width_e funct3;
+        reg_addr_t  rd;
+        opcode_e    opcode;
+    } r_type_t;
+
+    typedef union packed {
+        inst_t   b;
+        r_type_t r;
+    } instr_op_t;
+
+    typedef enum logic [1:0] {
+        BRANCH_JAL_NONE = 2'b00,
+        BRANCH_INSTR    = 2'b01,
+        JAL_INSTR       = 2'b10
+    } jump_sel_e;
+
+    typedef enum logic [2:0] {
+        COND_EQ  = 3'b000, 
+        COND_NE  = 3'b001, 
+        COND_LT  = 3'b100, 
+        COND_GE  = 3'b101, 
+        COND_LTU = 3'b110, 
+        COND_GEU = 3'b111
+    } branch_cond_e;
+
+    typedef enum logic {
+        RS    = 1'b0,
+        OTHER = 1'b1
+    } mux_sel_e;
+
+    typedef enum logic [3:0] {
+        ADD_OP  = 4'b0000,
+        SUB_OP  = 4'b1000,
+        AND_OP  = 4'b0111,
+        OR_OP   = 4'b0110,
+        XOR_OP  = 4'b0100,
+        SLL_OP  = 4'b0001,
+        SRL_OP  = 4'b0101,
+        SRA_OP  = 4'b1101,
+        SLT_OP  = 4'b0010,
+        SLTU_OP = 4'b0011
+    } alu_op_e;
+
+    typedef enum logic [3:0] {
+        AMO_NONE = 4'b0000,
+        AMO_SWAP = 4'b0001,
+        AMO_ADD  = 4'b0010,
+        AMO_XOR  = 4'b0011,
+        AMO_AND  = 4'b0100,
+        AMO_OR   = 4'b0101,
+        AMO_MIN  = 4'b0110,
+        AMO_MAX  = 4'b0111,
+        AMO_MINU = 4'b1000,
+        AMO_MAXU = 4'b1001
+    } amo_op_e;
+
+    typedef enum logic [1:0] {
+        MEM_INSTR_NONE  = 2'b00,
+        MEM_INSTR_LOAD  = 2'b01,
+        MEM_INSTR_STORE = 2'b10
+    } mem_instr_sel_e;
+
+    typedef enum logic [1:0] {
+        WB_DATA_SEL_PC_PLUS_4 = 2'b00,
+        WB_DATA_SEL_ALU       = 2'b01,
+        WB_DATA_SEL_MEM       = 2'b10,
+        WB_DATA_SEL_SC_RES    = 2'b11
+    } wb_data_sel_e;
+
+    typedef struct packed {
+        jump_sel_e      branch_jal_sel;
+        branch_cond_e   branch_cond;
+        mux_sel_e       mux1_sel;
+        mux_sel_e       mux2_sel;
+        alu_op_e        alu_op;
+        mem_instr_sel_e mem_instr_sel;
+        mem_width_e     load_store_width;
+        wb_data_sel_e   wb_data_sel;
+        logic           reserve;
+        logic           conditional;
+        amo_op_e        amo_op;
+        logic           csr_wr_en;
+        logic           mret_en;
+		csr_addr_e      csr_addr;
     } instr_ex_t;
 
     typedef enum logic [1:0] {
         RW_IDLE  = 2'b00,
         RW_WRITE = 2'b01,
         RW_READ  = 2'b10
-    } rw_cmd_t;
+    } rw_cmd_e;
 
 endpackage
 

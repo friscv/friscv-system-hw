@@ -32,23 +32,23 @@ module friscv_ex_stage (
     input  reg_addr_t      rd_sel_in,
     input  instr_ex_t      instr_ex_in,
 
-    // Outputs to MEM stage 
+    // Outputs to MEM stage
     output addr_t          pc_plus_4_out,
     output data_t          alu_data_out,
     output reg_addr_t      rd_sel_out,
     output data_t          store_data_out,
-    output mem_instr_sel_t mem_instr_sel_out,
-	output mem_width_t     load_store_width_out,
-    output wb_data_sel_t   wb_data_sel_out,
+    output mem_instr_sel_e mem_instr_sel_out,
+	output mem_width_e     load_store_width_out,
+    output wb_data_sel_e   wb_data_sel_out,
     output logic           reserve_out,
     output logic           conditional_out,
-    output amo_op_t        amo_op_out,
+    output amo_op_e        amo_op_out,
 
     // Outputs to control logic
     output logic           branch_ok_out,
     
     // Output to id stage for mepc
-    output addr_t          ex_pc_reg_out
+    output addr_t          pc_out
 );
 
 // Input registers
@@ -84,7 +84,7 @@ assign NOP_CTRL = '{
     amo_op: AMO_NONE,
     csr_wr_en: 1'b0,   
     mret_en: 1'b0,   
-    csr_addr: 12'b0
+    csr_addr: CSR_ZERO
 };
 
 // Stage inputs buffering
@@ -98,19 +98,17 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         rd_sel_buff <= 5'b0;
         instr_buff  <= NOP_CTRL;
     end else if (!stage_stall_in) begin
-        //interrupts
-        pc_buff <= pc_in; 
         if (stage_flush_in || branch_ok_out) begin
             rd_sel_buff <= 5'b0;
             instr_buff  <= NOP_CTRL;
         end else begin
             pc_plus_4_buff <= pc_plus_4_in;
-            //pc_buff     <= pc_in;
-            rs1_buff    <= rs1_in;
-            rs2_buff    <= rs2_in;
-            imm32_buff  <= imm32_in;
-            rd_sel_buff <= rd_sel_in;
-            instr_buff  <= instr_ex_in;
+            pc_buff        <= pc_in;
+            rs1_buff       <= rs1_in;
+            rs2_buff       <= rs2_in;
+            imm32_buff     <= imm32_in;
+            rd_sel_buff    <= rd_sel_in;
+            instr_buff     <= instr_ex_in;
         end
     end
 end
@@ -169,7 +167,6 @@ always_comb begin
     endcase
 end
 
-assign ex_pc_reg_out = pc_buff;
-
+assign pc_out = pc_buff;
 
 endmodule

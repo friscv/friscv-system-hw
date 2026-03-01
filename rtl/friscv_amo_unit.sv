@@ -20,7 +20,7 @@ module friscv_amo_unit (
     input  logic    i_rstn,
 
     // Requested atomic operation
-    input  amo_op_t i_amo_op,
+    input  amo_op_e i_amo_op,
 
     // Core interface
     input  data_t   i_rs2_val,
@@ -29,7 +29,7 @@ module friscv_amo_unit (
 
     // External interface
     input  logic    i_mem_wait,
-    output rw_cmd_t o_mem_rw,
+    output rw_cmd_e o_mem_rw,
     input  data_t   i_mem_load_data,
     output data_t   o_mem_store_data
 );

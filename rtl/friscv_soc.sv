@@ -66,12 +66,12 @@ module friscv_soc (
     input  logic [1:0]  m_axi_rresp
 );
 
-mem_width_t  w_size;
+mem_width_e  w_size;
 logic [31:0] w_phy_addr;
 logic [31:0] w_dram_addr;
 logic [31:0] w_wdata;
 logic [31:0] w_rdata;
-rw_cmd_t     w_rw;
+rw_cmd_e     w_rw;
 logic        w_wait;
 
 if (DRAM_BASE == 32'h8000_0000) begin

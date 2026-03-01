@@ -22,84 +22,52 @@ module friscv_soc_wrapper (
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 aresetn RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
     input  wire aresetn,
+
     output wire done,
     input  wire i_timer_irq,
 
     // AXI4 Master Write Address Channel
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWVALID" *)
-    output wire m_axi_awvalid,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWREADY" *)
-    input  wire m_axi_awready,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWADDR" *)
+    output wire        m_axi_awvalid,
+    input  wire        m_axi_awready,
     output wire [31:0] m_axi_awaddr,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWSIZE" *)
-    output wire [2:0] m_axi_awsize,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWCACHE" *)
-    output wire [3:0] m_axi_awcache,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWPROT" *)
-    output wire [2:0] m_axi_awprot,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWBURST" *)
-    output wire [1:0] m_axi_awburst,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWLEN" *)
-    output wire [7:0] m_axi_awlen,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWLOCK" *)
-    output wire m_axi_awlock,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi AWQOS" *)
-    output wire [3:0] m_axi_awqos,
+    output wire [2:0]  m_axi_awsize,
+    output wire [3:0]  m_axi_awcache,
+    output wire [2:0]  m_axi_awprot,
+    output wire [1:0]  m_axi_awburst,
+    output wire [7:0]  m_axi_awlen,
+    output wire        m_axi_awlock,
+    output wire [3:0]  m_axi_awqos,
 
     // AXI4 Master Write Data Channel
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi WVALID" *)
-    output wire m_axi_wvalid,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi WREADY" *)
-    input  wire m_axi_wready,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi WLAST" *)
-    output wire m_axi_wlast,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi WDATA" *)
+    output wire        m_axi_wvalid,
+    input  wire        m_axi_wready,
+    output wire        m_axi_wlast,
     output wire [31:0] m_axi_wdata,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi WSTRB" *)
-    output wire [3:0] m_axi_wstrb,
+    output wire [3:0]  m_axi_wstrb,
 
     // AXI4 Master Write Response Channel
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi BVALID" *)
-    input  wire m_axi_bvalid,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi BREADY" *)
-    output wire m_axi_bready,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi BRESP" *)
-    input  wire [1:0] m_axi_bresp,
+    input  wire        m_axi_bvalid,
+    output wire        m_axi_bready,
+    input  wire [1:0]  m_axi_bresp,
 
     // AXI4 Master Read Address Channel
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARVALID" *)
-    output wire m_axi_arvalid,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARREADY" *)
-    input  wire m_axi_arready,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARADDR" *)
+    output wire        m_axi_arvalid,
+    input  wire        m_axi_arready,
     output wire [31:0] m_axi_araddr,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARSIZE" *)
-    output wire [2:0] m_axi_arsize,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARCACHE" *)
-    output wire [3:0] m_axi_arcache,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARPROT" *)
-    output wire [2:0] m_axi_arprot,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARBURST" *)
-    output wire [1:0] m_axi_arburst,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARLEN" *)
-    output wire [7:0] m_axi_arlen,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARLOCK" *)
-    output wire m_axi_arlock,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi ARQOS" *)
-    output wire [3:0] m_axi_arqos,
+    output wire [2:0]  m_axi_arsize,
+    output wire [3:0]  m_axi_arcache,
+    output wire [2:0]  m_axi_arprot,
+    output wire [1:0]  m_axi_arburst,
+    output wire [7:0]  m_axi_arlen,
+    output wire        m_axi_arlock,
+    output wire [3:0]  m_axi_arqos,
 
     // AXI4 Master Read Data Channel
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi RVALID" *)
-    input  wire m_axi_rvalid,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi RREADY" *)
-    output wire m_axi_rready,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi RLAST" *)
-    input  wire m_axi_rlast,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi RDATA" *)
+    input  wire        m_axi_rvalid,
+    output wire        m_axi_rready,
+    input  wire        m_axi_rlast,
     input  wire [31:0] m_axi_rdata,
-    (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 m_axi RRESP" *)
-    input  wire [1:0] m_axi_rresp
+    input  wire [1:0]  m_axi_rresp
 );
 
 friscv_soc soc_inst (

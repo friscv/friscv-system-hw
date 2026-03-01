@@ -9,9 +9,10 @@ parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 
 parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter MEM_BASE = 32'h80000000;      // Memory base address
-parameter GPIO_ADDR = 32'h40000000;     // GPIO address
-parameter UART_ADDR = 32'h40600000;     // UART address
-parameter RESULT_ADDR = 32'h80000500;   // Result address (MEM_BASE + 1.25K)
+parameter GPIO_ADDR   = 32'h40000000;     // GPIO address
+parameter UART_ADDR   = 32'h40600000;     // UART address
+parameter TIMER_ADDR  = 32'h40100000;     // Timer base address
+parameter RESULT_ADDR = 32'h80000500;     // Result address (MEM_BASE + 1.25K)
 
 parameter int MEM_DELAY_CYCLES = 0;
 
@@ -20,6 +21,13 @@ logic rstn;
 logic end_signal;
 
 logic i_timer_irq_sim;
+
+logic [31:0] timer_ctrl;
+logic [31:0] timer_compare;
+logic [31:0] timer_counter;
+
+assign i_timer_irq_sim = timer_ctrl[31] && (timer_compare != 0) &&
+                         (timer_counter >= timer_compare);
 
 logic [2:0]  mem_size;
 logic [31:0] mem_addr;
@@ -73,6 +81,13 @@ always_comb begin
                 end else if (mem_addr >= UART_ADDR && mem_addr < (UART_ADDR + 32'h20)) begin
                     // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
                     mem_rdata = (mem_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
+                end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h20)) begin
+                    case (mem_addr - TIMER_ADDR)
+                        32'h0:   mem_rdata = timer_ctrl;
+                        32'h4:   mem_rdata = timer_compare;
+                        32'h8:   mem_rdata = timer_counter;
+                        default: mem_rdata = 32'h0;
+                    endcase
                 end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                     logic [31:0] aligned_offset;
                     aligned_offset = (mem_addr - MEM_BASE) & 32'hFFFFFFFC;
@@ -88,10 +103,16 @@ end
 always_ff @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         mem_delay_counter <= 0;
-        gpio_reg <= 32'h0;
-        mem_read_count <= 0;
-        mem_write_count <= 0;
+        gpio_reg          <= 32'h0;
+        timer_ctrl        <= 32'h0;
+        timer_compare     <= 32'h0;
+        timer_counter     <= 32'h0;
+        mem_read_count    <= 0;
+        mem_write_count   <= 0;
     end else begin
+        if (timer_ctrl[31])
+            timer_counter <= timer_counter + 1;
+
         if (mem_rw != 2'b00) begin
             if (mem_delay_counter < MEM_DELAY_CYCLES) begin
                 mem_delay_counter <= mem_delay_counter + 1;
@@ -103,6 +124,13 @@ always_ff @(posedge clk or negedge rstn) begin
                         $display("[%0t] GPIO write: 0x%08h", $time, mem_wdata);
                     end else if (mem_addr == (UART_ADDR + 32'h4)) begin
                         $write("%c", mem_wdata[7:0]);
+                    end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h20)) begin
+                        case (mem_addr - TIMER_ADDR)
+                            32'h0: timer_ctrl    <= mem_wdata;
+                            32'h4: timer_compare <= mem_wdata;
+                            32'h8: timer_counter <= 32'h0; // write resets counter
+                            default: ;
+                        endcase
                     end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                         logic [31:0] offset;
                         offset = mem_addr - MEM_BASE;
@@ -118,6 +146,7 @@ always_ff @(posedge clk or negedge rstn) begin
                                 memory[offset+2] <= mem_wdata[23:16];
                                 memory[offset+3] <= mem_wdata[31:24];
                             end
+                            default: ;
                         endcase
                     end
                     mem_write_count <= mem_write_count + 1;
@@ -206,15 +235,6 @@ initial begin
     #(CLK_PERIOD * MAX_CYCLES * 2);
     $display("ERROR: Timeout!");
     $finish;
-end
-
-initial begin
-    i_timer_irq_sim = 0;
-    wait(rstn == 1);
-    repeat (5000) @(posedge clk);
-    i_timer_irq_sim = 1;
-    repeat (5) @(posedge clk);
-    i_timer_irq_sim = 0;
 end
 
 endmodule

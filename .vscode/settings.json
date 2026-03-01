@@ -1,0 +1,4 @@
+{
+    "verilog.linting.verilator.arguments": "--timing -y ../rtl",
+    "verilog.linting.verilator.runAtFileLocation": true
+}

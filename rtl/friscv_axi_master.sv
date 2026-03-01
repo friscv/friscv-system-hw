@@ -20,18 +20,18 @@ module friscv_axi_master (
     input  logic                    i_rstn,
 
     // Internal interface
-    input  mem_width_t              i_size,
+    input  mem_width_e              i_size,
     input  logic [31:0]             i_addr,
     input  data_t                   i_wdata,
     output data_t                   o_rdata,
-    input  rw_cmd_t                 i_rw,
+    input  rw_cmd_e                 i_rw,
     output logic                    o_wait,
 
     // Write address channel
     output logic                    m_axi_awvalid,
     input  logic                    m_axi_awready,
     output logic [31:0]             m_axi_awaddr,
-    output mem_width_t              m_axi_awsize,
+    output mem_width_e              m_axi_awsize,
     output logic [3:0]              m_axi_awcache,
     output logic [2:0]              m_axi_awprot,
     output logic [1:0]              m_axi_awburst,
@@ -55,7 +55,7 @@ module friscv_axi_master (
     output logic                    m_axi_arvalid,
     input  logic                    m_axi_arready,
     output logic [31:0]             m_axi_araddr,
-    output mem_width_t              m_axi_arsize,
+    output mem_width_e              m_axi_arsize,
     output logic [3:0]              m_axi_arcache,
     output logic [2:0]              m_axi_arprot,
     output logic [1:0]              m_axi_arburst,
@@ -83,8 +83,8 @@ typedef enum logic [2:0] {
 // Internal signals
 state_e r_state, w_next_state;
 
-mem_width_t r_size;
-rw_cmd_t r_rw;
+mem_width_e r_size;
+rw_cmd_e r_rw;
 
 logic [31:0] r_addr;
 data_t r_wdata, r_rdata;

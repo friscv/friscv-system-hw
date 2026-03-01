@@ -981,9 +981,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins proc_sys_reset_0/slowest_sync_clk] \
   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
-  [get_bd_pins friscv_soc/aclk] \
   [get_bd_pins fv_interconnect/M04_ACLK] \
-  [get_bd_pins friscv_timer_0/clk_in]
+  [get_bd_pins friscv_timer_0/clk_in] \
+  [get_bd_pins friscv_soc/aclk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins proc_sys_reset_0/ext_reset_in]
   connect_bd_net -net rx_0_1  [get_bd_ports uart_rx] \
