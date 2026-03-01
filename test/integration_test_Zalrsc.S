@@ -2,6 +2,7 @@
 # Tests: basic operation, success/failure conditions, reservation semantics
 # Final result will be 0xAABBCCDD only if all tests pass correctly
 
+.option arch, +a
 .text
 .globl _start
 

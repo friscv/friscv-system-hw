@@ -1,15 +1,6 @@
 # RV32I M-mode Interrupt Test
 # Tests: IRQ handler entry, MRET return, register preservation, MIE gate
 #
-# Register allocation (stable across all tests):
-#   x28 = accumulator     x29 = test counter
-#   x30 = result addr     x31 = checkpoint base
-#
-# Timer peripheral (0x40100000):
-#   +0  = control  (bit 31 = enable)
-#   +4  = compare  (IRQ fires when counter >= compare)
-#   +8  = counter  (write resets to 0)
-#
 # Final result will be 0xAABBCCDD only if all tests pass correctly
 
 .option arch, +zicsr
@@ -31,8 +22,9 @@ _start:
 handler1:
     addi x10, x10, 1
     lui  x5, 0x40100           # 0x40100000
-    sw   x0, 0(x5)             # disable timer (clear enable bit)
-    sw   x0, 8(x5)             # clear counter
+    li   x6, -1
+    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -42,8 +34,9 @@ handler1:
 handler2:
     li   x12, 0xBEEF
     lui  x5, 0x40100
-    sw   x0, 0(x5)
-    sw   x0, 8(x5)
+    li   x6, -1
+    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -54,8 +47,9 @@ handler2:
 handler3:
     addi x14, x14, 1
     lui  x5, 0x40100
-    sw   x0, 0(x5)
-    sw   x0, 8(x5)
+    li   x6, -1
+    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -74,11 +68,11 @@ test1:
     csrw 0x305, x1             # mtvec = handler1
 
     lui  x5, 0x40100           # timer base = 0x40100000
-    li   x6, 0x80000000
-    sw   x6, 0(x5)             # enable timer
-    sw   x0, 8(x5)             # reset counter
+    sw   x0, 8(x5)             # counter[31:0]  = 0
+    sw   x0, 12(x5)            # counter[63:32] = 0
     li   x6, 64
-    sw   x6, 4(x5)             # compare: fire after 64 counter ticks
+    sw   x6, 0(x5)             # target[31:0]  = 64 (fire after 64 ticks)
+    sw   x0, 4(x5)             # target[63:32] = 0
 
     li   x1, 8
     csrw 0x300, x1             # mstatus.MIE = 1
@@ -122,11 +116,11 @@ test2:
     csrw 0x305, x1             # mtvec = handler2
 
     lui  x5, 0x40100
-    li   x6, 0x80000000
-    sw   x6, 0(x5)
-    sw   x0, 8(x5)
+    sw   x0, 8(x5)             # counter[31:0]  = 0
+    sw   x0, 12(x5)            # counter[63:32] = 0
     li   x6, 64
-    sw   x6, 4(x5)
+    sw   x6, 0(x5)             # target[31:0]  = 64
+    sw   x0, 4(x5)             # target[63:32] = 0
 
     li   x1, 8
     csrw 0x300, x1             # MIE = 1
@@ -170,11 +164,11 @@ test3:
     csrw 0x305, x1             # mtvec = handler3
 
     lui  x5, 0x40100
-    li   x6, 0x80000000
-    sw   x6, 0(x5)
-    sw   x0, 8(x5)
+    sw   x0, 8(x5)             # counter[31:0]  = 0
+    sw   x0, 12(x5)            # counter[63:32] = 0
     li   x6, 64
-    sw   x6, 4(x5)
+    sw   x6, 0(x5)             # target[31:0]  = 64
+    sw   x0, 4(x5)             # target[63:32] = 0
     # MIE intentionally NOT enabled
 
     li   x6, 1024
@@ -183,9 +177,11 @@ test3_spin:
     addi x6, x6, -1
     bnez x6, test3_spin
 
-    # clean up timer before leaving
+    # clean up timer before leaving: set target to max to suppress IRQ
     lui  x5, 0x40100
-    sw   x0, 0(x5)             # disable timer
+    li   x6, -1
+    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF
+    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
 
 test3_pass:
     addi x28, x28, 0x333

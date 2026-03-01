@@ -7,8 +7,11 @@ _start:
 
 interrupt_handler:
     li t3, 0x40100000
-    sw x0, 8(t3)        
-    sw x0, 12(t3) #counter reset  
+    li t4, -1
+    sw t4, 0(t3)
+    sw t4, 4(t3)
+    sw x0, 8(t3)
+    sw x0, 12(t3)
     
     li t0, 0x40000000
     li t1, 0xF
@@ -25,9 +28,8 @@ _start2:
     
     li t0, 0x40100000
     li t1, 0x8FFFFFFF   
-    #li t1, 0x0FFFFFFF 
-    sw t1, 0(t0)        
-    sw x0, 4(t0) #target
+    sw t1, 0(t0)
+    sw x0, 4(t0)
     
     li t0, 8
     csrw 0x300, t0

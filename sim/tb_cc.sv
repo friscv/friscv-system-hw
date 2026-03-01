@@ -14,7 +14,7 @@ parameter UART_ADDR   = 32'h40600000;     // UART address
 parameter TIMER_ADDR  = 32'h40100000;     // Timer base address
 parameter RESULT_ADDR = 32'h80000500;     // Result address (MEM_BASE + 1.25K)
 
-parameter int MEM_DELAY_CYCLES = 0;
+parameter int MEM_DELAY_CYCLES = 10;
 
 logic clk;
 logic rstn;
@@ -22,12 +22,14 @@ logic end_signal;
 
 logic i_timer_irq_sim;
 
-logic [31:0] timer_ctrl;
-logic [31:0] timer_compare;
-logic [31:0] timer_counter;
+logic [31:0] timer_target_lo;
+logic [31:0] timer_target_hi;
+logic [31:0] timer_counter_lo;
+logic [31:0] timer_counter_hi;
 
-assign i_timer_irq_sim = timer_ctrl[31] && (timer_compare != 0) &&
-                         (timer_counter >= timer_compare);
+logic timer_counter_carry;
+assign timer_counter_carry = (timer_counter_lo == 32'hFFFF_FFFF);
+assign i_timer_irq_sim = ({timer_counter_hi, timer_counter_lo} >= {timer_target_hi, timer_target_lo});
 
 logic [2:0]  mem_size;
 logic [31:0] mem_addr;
@@ -38,8 +40,6 @@ logic        mem_wait;
 
 logic [7:0]  memory [MEM_SIZE];
 logic [31:0] gpio_reg;
-
-
 
 int mem_delay_counter;
 
@@ -81,11 +81,12 @@ always_comb begin
                 end else if (mem_addr >= UART_ADDR && mem_addr < (UART_ADDR + 32'h20)) begin
                     // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
                     mem_rdata = (mem_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
-                end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h20)) begin
+                end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h10)) begin
                     case (mem_addr - TIMER_ADDR)
-                        32'h0:   mem_rdata = timer_ctrl;
-                        32'h4:   mem_rdata = timer_compare;
-                        32'h8:   mem_rdata = timer_counter;
+                        32'h0:   mem_rdata = timer_target_lo;
+                        32'h4:   mem_rdata = timer_target_hi;
+                        32'h8:   mem_rdata = timer_counter_lo;
+                        32'hC:   mem_rdata = timer_counter_hi;
                         default: mem_rdata = 32'h0;
                     endcase
                 end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
@@ -102,17 +103,34 @@ end
 
 always_ff @(posedge clk or negedge rstn) begin
     if (!rstn) begin
+        timer_target_lo  <= 32'hFFFF_FFFF;  // IRQ suppressed at reset
+        timer_target_hi  <= 32'hFFFF_FFFF;
+        timer_counter_lo <= 32'h0;
+        timer_counter_hi <= 32'h0;
+    end else if (mem_rw == 2'b01 &&
+                 mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h10) &&
+                 mem_delay_counter >= MEM_DELAY_CYCLES) begin
+        case (mem_addr - TIMER_ADDR)
+            32'h0: timer_target_lo  <= mem_wdata;
+            32'h4: timer_target_hi  <= mem_wdata;
+            32'h8: timer_counter_lo <= mem_wdata;
+            32'hC: timer_counter_hi <= mem_wdata;
+            default: ;
+        endcase
+    end else begin
+        if (timer_counter_carry)
+            timer_counter_hi <= timer_counter_hi + 1;
+        timer_counter_lo <= timer_counter_lo + 1;
+    end
+end
+
+always_ff @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
         mem_delay_counter <= 0;
         gpio_reg          <= 32'h0;
-        timer_ctrl        <= 32'h0;
-        timer_compare     <= 32'h0;
-        timer_counter     <= 32'h0;
         mem_read_count    <= 0;
         mem_write_count   <= 0;
     end else begin
-        if (timer_ctrl[31])
-            timer_counter <= timer_counter + 1;
-
         if (mem_rw != 2'b00) begin
             if (mem_delay_counter < MEM_DELAY_CYCLES) begin
                 mem_delay_counter <= mem_delay_counter + 1;
@@ -124,13 +142,6 @@ always_ff @(posedge clk or negedge rstn) begin
                         $display("[%0t] GPIO write: 0x%08h", $time, mem_wdata);
                     end else if (mem_addr == (UART_ADDR + 32'h4)) begin
                         $write("%c", mem_wdata[7:0]);
-                    end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h20)) begin
-                        case (mem_addr - TIMER_ADDR)
-                            32'h0: timer_ctrl    <= mem_wdata;
-                            32'h4: timer_compare <= mem_wdata;
-                            32'h8: timer_counter <= 32'h0; // write resets counter
-                            default: ;
-                        endcase
                     end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                         logic [31:0] offset;
                         offset = mem_addr - MEM_BASE;
@@ -228,12 +239,18 @@ initial begin
     end
     $display("==============================================");
     
+    if (gpio_reg == 32'hAABBCCDD)
+        $display("[RESULT] PASS");
+    else
+        $display("[RESULT] FAIL (GPIO = 0x%08h)", gpio_reg);
+    
     $finish;
 end
 
 initial begin
     #(CLK_PERIOD * MAX_CYCLES * 2);
     $display("ERROR: Timeout!");
+    $display("[RESULT] FAIL (timeout)");
     $finish;
 end
 

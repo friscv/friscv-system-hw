@@ -12,6 +12,7 @@ parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
 parameter DRAM_BASE = 32'h00100000;     // Memory base address (Memory view)
 parameter GPIO_ADDR = 32'h40000000;     // GPIO address
 parameter UART_ADDR = 32'h40600000;     // UART address
+parameter TIMER_ADDR = 32'h40100000;    // Timer base address
 parameter RESULT_ADDR = 32'h80000500;   // Result address (CPU view)
 // AXI Base address for RAM is 0x0 because of translation
 
@@ -66,6 +67,63 @@ logic [31:0] gpio_reg;
 int cycle_count;
 int mem_read_count;
 int mem_write_count;
+
+// =========================================================================
+// Address-based AXI routing: timer vs memory/GPIO/UART slave
+// =========================================================================
+logic wr_to_timer, rd_to_timer;
+assign wr_to_timer = (m_axi_awaddr >= TIMER_ADDR) && (m_axi_awaddr < (TIMER_ADDR + 32'h10));
+assign rd_to_timer = (m_axi_araddr >= TIMER_ADDR) && (m_axi_araddr < (TIMER_ADDR + 32'h10));
+
+// Timer AXI slave signals
+logic        tmr_awready, tmr_wready, tmr_bvalid;
+logic [1:0]  tmr_bresp;
+logic        tmr_arready, tmr_rvalid;
+logic [31:0] tmr_rdata;
+logic [1:0]  tmr_rresp;
+
+// Memory/GPIO/UART slave AXI signals
+logic        mem_awready, mem_wready, mem_bvalid;
+logic [1:0]  mem_bresp;
+logic        mem_arready, mem_rvalid, mem_rlast;
+logic [31:0] mem_rdata;
+logic [1:0]  mem_rresp;
+
+// Mux slave responses back to master
+assign m_axi_awready = wr_to_timer ? tmr_awready : mem_awready;
+assign m_axi_wready  = wr_to_timer ? tmr_wready  : mem_wready;
+assign m_axi_bvalid  = wr_to_timer ? tmr_bvalid  : mem_bvalid;
+assign m_axi_bresp   = wr_to_timer ? tmr_bresp   : mem_bresp;
+assign m_axi_arready = rd_to_timer ? tmr_arready : mem_arready;
+assign m_axi_rvalid  = rd_to_timer ? tmr_rvalid  : mem_rvalid;
+assign m_axi_rdata   = rd_to_timer ? tmr_rdata   : mem_rdata;
+assign m_axi_rresp   = rd_to_timer ? tmr_rresp   : mem_rresp;
+assign m_axi_rlast   = rd_to_timer ? tmr_rvalid  : mem_rlast;
+
+// =========================================================================
+// Real timer hardware (friscv_timer.v)
+// =========================================================================
+friscv_timer timer_inst (
+    .clk_in         ( clk ),
+    .rstn_in        ( rstn ),
+    .s_axi_awaddr   ( m_axi_awaddr ),
+    .s_axi_awvalid  ( m_axi_awvalid & wr_to_timer ),
+    .s_axi_awready  ( tmr_awready ),
+    .s_axi_wdata    ( m_axi_wdata ),
+    .s_axi_wvalid   ( m_axi_wvalid & wr_to_timer ),
+    .s_axi_wready   ( tmr_wready ),
+    .s_axi_bresp    ( tmr_bresp ),
+    .s_axi_bvalid   ( tmr_bvalid ),
+    .s_axi_bready   ( m_axi_bready & wr_to_timer ),
+    .s_axi_araddr   ( m_axi_araddr ),
+    .s_axi_arvalid  ( m_axi_arvalid & rd_to_timer ),
+    .s_axi_arready  ( tmr_arready ),
+    .s_axi_rdata    ( tmr_rdata ),
+    .s_axi_rresp    ( tmr_rresp ),
+    .s_axi_rvalid   ( tmr_rvalid ),
+    .s_axi_rready   ( m_axi_rready & rd_to_timer ),
+    .timer_irq      ( i_timer_irq_sim )
+);
 
 // DUT Instantiation
 friscv_soc dut (
@@ -134,10 +192,9 @@ always_ff @(posedge clk or negedge rstn) begin
 end
 
 // =========================================================================
-// AXI Slave Implementation (Memory + GPIO)
+// AXI Slave: Memory + GPIO + UART
 // =========================================================================
 
-// Internal state for AXI Slave
 logic [31:0] write_addr;
 logic [31:0] read_addr;
 logic        write_addr_received;
@@ -145,42 +202,41 @@ logic        read_addr_received;
 
 always_ff @(posedge clk or negedge rstn) begin
     if (!rstn) begin
-        m_axi_awready <= 0;
-        m_axi_wready  <= 0;
-        m_axi_bvalid  <= 0;
-        m_axi_bresp   <= 0;
-        m_axi_arready <= 0;
-        m_axi_rvalid  <= 0;
-        m_axi_rdata   <= 0;
-        m_axi_rresp   <= 0;
-        m_axi_rlast   <= 0;
-        
+        mem_awready <= 0;
+        mem_wready  <= 0;
+        mem_bvalid  <= 0;
+        mem_bresp   <= 0;
+        mem_arready <= 0;
+        mem_rvalid  <= 0;
+        mem_rdata   <= 0;
+        mem_rresp   <= 0;
+        mem_rlast   <= 0;
+
         write_addr_received <= 0;
-        read_addr_received <= 0;
+        read_addr_received  <= 0;
         write_addr <= 0;
-        read_addr <= 0;
-        
+        read_addr  <= 0;
+
         gpio_reg <= 0;
-        mem_read_count <= 0;
+        mem_read_count  <= 0;
         mem_write_count <= 0;
     end else begin
         // -----------------------
         // Write Channel
         // -----------------------
-        
-        // Write Address
-        if (m_axi_awvalid && !m_axi_awready && !write_addr_received) begin
-            m_axi_awready <= 1;
+
+        // Write Address (ignore timer-addressed transactions)
+        if (m_axi_awvalid && !wr_to_timer && !mem_awready && !write_addr_received) begin
+            mem_awready <= 1;
             write_addr <= m_axi_awaddr;
             write_addr_received <= 1;
         end else begin
-            m_axi_awready <= 0;
+            mem_awready <= 0;
         end
 
         // Write Data
-        if (m_axi_wvalid && !m_axi_wready && write_addr_received) begin
-            m_axi_wready <= 1;
-            // Perform Write
+        if (m_axi_wvalid && !wr_to_timer && !mem_wready && write_addr_received) begin
+            mem_wready <= 1;
             if (write_addr == GPIO_ADDR) begin
                 if (m_axi_wstrb[0]) gpio_reg[7:0]   <= m_axi_wdata[7:0];
                 if (m_axi_wstrb[1]) gpio_reg[15:8]  <= m_axi_wdata[15:8];
@@ -198,16 +254,16 @@ always_ff @(posedge clk or negedge rstn) begin
             end
             mem_write_count <= mem_write_count + 1;
         end else begin
-            m_axi_wready <= 0;
+            mem_wready <= 0;
         end
 
         // Write Response
-        if (write_addr_received && m_axi_wvalid && m_axi_wready) begin
-            m_axi_bvalid <= 1;
-            m_axi_bresp <= 2'b00;
+        if (write_addr_received && m_axi_wvalid && !wr_to_timer && mem_wready) begin
+            mem_bvalid <= 1;
+            mem_bresp  <= 2'b00;
             write_addr_received <= 0;
-        end else if (m_axi_bvalid && m_axi_bready) begin
-            m_axi_bvalid <= 0;
+        end else if (mem_bvalid && m_axi_bready) begin
+            mem_bvalid <= 0;
         end
 
         // -----------------------
@@ -215,36 +271,36 @@ always_ff @(posedge clk or negedge rstn) begin
         // -----------------------
 
         // Read Address
-        if (m_axi_arvalid && !m_axi_arready && !m_axi_rvalid) begin
-            m_axi_arready <= 1;
+        if (m_axi_arvalid && !rd_to_timer && !mem_arready && !mem_rvalid) begin
+            mem_arready <= 1;
             read_addr <= m_axi_araddr;
             read_addr_received <= 1;
         end else begin
-            m_axi_arready <= 0;
+            mem_arready <= 0;
         end
 
         // Read Data
-        if (read_addr_received && !m_axi_rvalid) begin
-            m_axi_rvalid <= 1;
-            m_axi_rlast <= 1;
-            m_axi_rresp <= 2'b00;
-            
+        if (read_addr_received && !mem_rvalid) begin
+            mem_rvalid <= 1;
+            mem_rlast  <= 1;
+            mem_rresp  <= 2'b00;
+
             if (read_addr >= GPIO_ADDR && read_addr < (GPIO_ADDR + 32'h20)) begin
-                m_axi_rdata <= 32'h0;  // Boot mode 0: DRAM direct jump
+                mem_rdata <= 32'h0;  // Boot mode 0: DRAM direct jump
             end else if (read_addr >= UART_ADDR && read_addr < (UART_ADDR + 32'h20)) begin
                 // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
-                m_axi_rdata <= (read_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
+                mem_rdata <= (read_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
             end else if (read_addr >= DRAM_BASE && read_addr < DRAM_BASE + MEM_SIZE) begin
                 automatic logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
-                m_axi_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};
+                mem_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};
             end else begin
-                m_axi_rdata <= 32'hDEADC0DE;
+                mem_rdata <= 32'hDEADC0DE;
             end
             mem_read_count <= mem_read_count + 1;
             read_addr_received <= 0;
-        end else if (m_axi_rvalid && m_axi_rready) begin
-            m_axi_rvalid <= 0;
-            m_axi_rlast <= 0;
+        end else if (mem_rvalid && m_axi_rready) begin
+            mem_rvalid <= 0;
+            mem_rlast  <= 0;
         end
     end
 end
@@ -316,22 +372,19 @@ initial begin
     end
     $display("==============================================");
     
+    if (gpio_reg == 32'hAABBCCDD)
+        $display("[RESULT] PASS");
+    else
+        $display("[RESULT] FAIL (GPIO = 0x%08h)", gpio_reg);
+    
     $finish;
 end
 
 initial begin
     #(CLK_PERIOD * MAX_CYCLES * 2);
     $display("ERROR: Timeout!");
+    $display("[RESULT] FAIL (timeout)");
     $finish;
-end
-
-initial begin
-    i_timer_irq_sim = 0;
-    wait(rstn == 1);
-    repeat (500) @(posedge clk);
-    i_timer_irq_sim = 1;
-    repeat (5) @(posedge clk);
-    i_timer_irq_sim = 0;
 end
 
 endmodule

@@ -34,6 +34,9 @@ package friscv_pkg;
     // Set 2048 for FPGA, 0 for simulation
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
 
+    // Set 2_000_000 for FPGA, 10 for simulation
+    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 2_000_000;
+
     // Parametrized feature generation
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
 
@@ -52,8 +55,6 @@ package friscv_pkg;
     localparam int unsigned REGISTER_NUM  = 32;
 
     localparam int unsigned NOP = 32'h00000013;  // addi x0,x0,0
-
-    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 2_000_000;
 
     typedef logic [ADDR_WIDTH-1:0]    addr_t;
     typedef logic [DATA_WIDTH-1:0]    data_t;

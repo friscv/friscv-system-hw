@@ -46,29 +46,36 @@ module friscv_if_stage (
 (* max_fanout = 50 *) addr_t pc_reg;
 inst_t ir_buff;
 logic  r_fetch_active;
+// Set when a redirect (interrupt/jump/mret/flush) fires while a fetch is in-flight.
+// The in-flight AXI response will arrive for the old address,
+// we must discard it and re-issue the fetch for the redirect target.
+logic  r_flush_pending;
 
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
-        pc_reg         <= RESET_VEC;
-        r_fetch_active <= 1'b1;
-        ir_buff        <= NOP;
+        pc_reg          <= RESET_VEC;
+        r_fetch_active  <= 1'b1;
+        ir_buff         <= NOP;
+        r_flush_pending <= 1'b0;
     end else begin
-        if (flush_in || jump_ok_in  || interrupt_in || mret_in) begin
-            //pc_reg         <= jump_ok_in ? {jump_target_in[ADDR_WIDTH-1:2], 2'b0} : RESET_VEC;
+        if (flush_in || jump_ok_in || interrupt_in || mret_in) begin
             if(mret_in) begin
                 pc_reg <= {mepc_in[ADDR_WIDTH-1:2], 2'b00};
-            end
-            else if(interrupt_in) begin
-                 pc_reg <= {mtvec_in[ADDR_WIDTH-1:2], 2'b00};
-            end
-            else if(jump_ok_in) begin
+            end else if(interrupt_in) begin
+                pc_reg <= {mtvec_in[ADDR_WIDTH-1:2], 2'b00};
+            end else if(jump_ok_in) begin
                 pc_reg <= {jump_target_in[ADDR_WIDTH-1:2], 2'b0};
-            end
-            else begin
+            end else begin
                 pc_reg <= RESET_VEC;
             end
-            r_fetch_active <= 1'b1;
-            ir_buff        <= NOP;
+            r_fetch_active  <= 1'b1;
+            ir_buff         <= NOP;
+            r_flush_pending <= r_fetch_active;
+        end else if (r_flush_pending && !i_mem_wait_in) begin
+            // Stale AXI response arrived for the old address.
+            // Discard it, hold pc_reg at the redirect target, restart fetch.
+            r_fetch_active  <= 1'b1;
+            r_flush_pending <= 1'b0;
         end else if (!stage_stall_in) begin
             pc_reg         <= pc_plus_4_out;
             r_fetch_active <= 1'b1;
@@ -85,7 +92,10 @@ always_comb begin
     i_mem_addr_out = pc_reg;
     i_mem_en_out = r_fetch_active;
 
-    if (r_fetch_active) begin
+    if (r_flush_pending) begin
+        // Suppress stale data from reaching the ID stage
+        ir_out = NOP;
+    end else if (r_fetch_active) begin
         if (i_mem_wait_in) begin
             ir_out = NOP;
         end else begin

@@ -2,18 +2,6 @@
 # Tests: interrupt clears LR reservation (SC.W must fail after IRQ),
 #        SC.W succeeds without interrupt (control test).
 #
-# Register allocation (stable across all tests):
-#   x28 = accumulator     x29 = test counter
-#   x30 = result addr     x31 = checkpoint base
-#   x4  = LR/SC target (0x80000400)
-#   x10 = interrupt fired flag (handler sets)
-#
-# Timer peripheral (0x40100000):
-#   +0  = control  (bit 31 = enable)
-#   +4  = compare  (IRQ fires when counter >= compare)
-#   +8  = counter  (write resets to 0)
-#
-# LR/SC target: 0x80000400  (word-aligned, within DMEM)
 # Final result: 0xAABBCCDD only if all tests pass
 
 .option arch, +zicsr
@@ -23,12 +11,12 @@
 
 _start:
     lui  x31, 0x80000          # Checkpoint base: 0x80000000
-    addi x31, x31, 0x700       # → 0x80000700
+    addi x31, x31, 0x700       # 0x80000700
     lui  x30, 0x40000          # Final result addr: 0x40000000
     li   x28, 0                # Accumulator
     li   x29, 0                # Test counter
     lui  x4, 0x80000           # LR/SC target high: 0x80000000
-    addi x4, x4, 0x400         # → 0x80000400
+    addi x4, x4, 0x400         # 0x80000400
     j    main_start
 
 # ============================================================
@@ -37,8 +25,9 @@ _start:
 handler:
     addi x10, x10, 1
     lui  x5, 0x40100           # timer base = 0x40100000
-    sw   x0, 0(x5)             # disable timer (clear enable bit)
-    sw   x0, 8(x5)             # clear counter
+    li   x6, -1
+    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -59,11 +48,11 @@ test1:
     lr.w x2, (x4)              # load-reserve (establishes reservation)
 
     lui  x5, 0x40100           # timer base
-    li   x6, 0x80000000
-    sw   x6, 0(x5)             # enable timer
-    sw   x0, 8(x5)             # reset counter
+    sw   x0, 8(x5)             # counter[31:0]  = 0
+    sw   x0, 12(x5)            # counter[63:32] = 0
     li   x6, 64
-    sw   x6, 4(x5)             # compare = 64 ticks
+    sw   x6, 0(x5)             # target[31:0]  = 64 (fire after 64 ticks)
+    sw   x0, 4(x5)             # target[63:32] = 0
 
     li   x1, 8
     csrw 0x300, x1             # mstatus.MIE = 1

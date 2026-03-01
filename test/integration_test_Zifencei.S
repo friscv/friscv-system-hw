@@ -9,6 +9,7 @@
 #
 # Final result: 0xAABBCCDD at 0x40000000 on pass, 0xBADC0DE on fail.
 
+.option arch, +zifencei
 .text
 .globl _start
 
