@@ -126,7 +126,7 @@ friscv_timer timer_inst (
 );
 
 // DUT Instantiation
-friscv_soc dut (
+friscv_cpu_subsystem dut (
     .i_clk         ( clk           ),
     .i_rstn        ( rstn          ),
     .o_end         ( end_signal    ),

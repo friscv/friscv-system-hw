@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_soc (
+module friscv_cpu_subsystem (
     input  logic        i_clk,
     input  logic        i_rstn,
     output logic        o_end,

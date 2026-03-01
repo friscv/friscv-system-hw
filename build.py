@@ -195,7 +195,7 @@ def target_bitstream() -> None:
     for sub in [
         "impl_1",
         "synth_1",
-        "design_1_friscv_soc_wrapper_0_synth_1",
+        "design_1_friscv_cpu_subsystem_wrapper_0_synth_1",
         "design_1_ps_0_synth_1",
     ]:
         remove_if_exists(runs_dir / sub)
@@ -203,7 +203,7 @@ def target_bitstream() -> None:
     remove_if_exists(PROJECT_DIR / f"{PROJECT_NAME}.cache")
     remove_if_exists(PROJECT_DIR / f"{PROJECT_NAME}.gen")
 
-    bd_ip_dir = ROOT / "bd/design_1/ip/design_1_friscv_soc_wrapper_0"
+    bd_ip_dir = ROOT / "bd/design_1/ip/design_1_friscv_cpu_subsystem_wrapper_0"
     if bd_ip_dir.exists():
         for f in bd_ip_dir.glob("*.dcp"):
             f.unlink()
