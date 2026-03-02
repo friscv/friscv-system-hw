@@ -1,1 +1,133 @@
-# FRISCV-system HW design
+# FRISC-V
+
+FRISC-V is a 32-bit RISC-V processor developed at [FER](https://www.fer.unizg.hr/en), University of Zagreb, targeting the [PYNQ-Z2](https://www.tulembedded.com/fpga/ProductsPYNQ-Z2.html) FPGA board.
+
+**ISA:** RV32I + A (atomics) + Zifencei
+
+## Prerequisites
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| [Vivado 2025.2](https://www.xilinx.com/support/download.html) | Synthesis and programming | Add `bin/` to `PATH` |
+| Python 3.9+ | `build.py` and helper scripts | Standard library only |
+| `riscv32-unknown-elf` toolchain | Building test programs | [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain) |
+| `make` | Building test programs | Linux/macOS native; Windows: WSL2 |
+
+> [!IMPORTANT]
+> On Windows, Vivado's `bin/` must be on `PATH`. Test programs in `test/` must be assembled inside WSL2 or another environment that has the RISC-V toolchain.
+
+## Quick Start
+
+```bash
+git clone git@github.com:friscv/friscv-system-hw.git
+cd friscv-system-hw
+
+python build.py project    # create Vivado project
+python build.py bitstream  # build bitstream → overlay/friscv.bit
+```
+
+See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a full walkthrough from clone to running a program on hardware.
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Step-by-step setup: clone → bitstream → program → run |
+| [docs/GIT.md](docs/GIT.md) | Repository workflow: project setup, file conventions, pre-commit checklist |
+| [docs/BOOT.md](docs/BOOT.md) | Boot modes, ZSBL boot process, switch encoding |
+| [docs/UART.md](docs/UART.md) | UART pinout, register map, host connection, C examples |
+
+## Build Script
+
+`build.py` is the cross-platform build entry point (Windows, Linux).
+
+```
+python build.py <target> [--bin FILE]
+```
+
+| Target | Description |
+|--------|-------------|
+| `project` | Create the Vivado project *(default)* |
+| `export-bd` | Export block designs to TCL |
+| `bitstream` | Clean, rebuild bitstream, deploy `.bit`/`.hwh` to `overlay/` |
+| `program` | Program FPGA via JTAG |
+| `status` | Check FPGA status via XSDB |
+| `load` | Load `test/prog.bin` (or `--bin FILE`) into DDR via XSDB |
+| `run` | Release FRISC-V from reset |
+| `go` | `program` + `load` + `run` in one step |
+| `open` | Open project in Vivado GUI |
+| `clean` | Remove Vivado project and generated files |
+| `zsbl-rom [TEST]` | Regenerate boot ROM from `software/zsbl.S`, or from `test/TEST.S` |
+| `help` | Show usage |
+
+> [!NOTE]
+> `bitstream` deletes all cached synthesis and implementation runs before building to ensure a clean result. All CPU cores will be used during synthesis by default - ensure sufficient RAM.
+
+## Building Test Programs
+
+Test programs are RISC-V assembly files in `test/`. They require the `riscv32-unknown-elf` toolchain and `make`:
+
+```bash
+cd test
+make test_I.S        # assemble test_I.S → prog.bin, prog.elf, prog.dis
+```
+
+All targets write to the same output files (`prog.bin`, `prog.elf`, `prog.dis`). `test/prog.bin` is what `build.py load` and `xmodem_load.py` consume.
+
+Available tests: `test_I.S`, `test_Zaamo.S`, `test_Zalrsc.S`, `test_Zifencei.S`.
+
+## Running Programs
+
+### Via JTAG (XSDB)
+
+The PYNQ-Z2 exposes a USB JTAG interface. With the board powered on and connected:
+
+```bash
+python build.py program   # load bitstream
+python build.py load      # write test/prog.bin to DDR
+python build.py run       # release FRISC-V from reset
+# or in one step:
+python build.py go
+```
+
+### Via UART (XMODEM boot)
+
+Set switch `SW0` = 1, `SW1` = 0 before powering on, then transfer the binary over the serial port:
+
+```bash
+pip install pyserial
+python scripts/xmodem_load.py --port /dev/ttyUSB0 --baud 115200
+# Windows: --port COM3 (check Device Manager)
+```
+
+The bootloader prints `[ZSBL] Mode: UART` over the same serial port when ready to receive.
+
+## Boot Modes
+
+The ZSBL (Zero-Stage Boot Loader, embedded in the bitstream ROM) reads the slide switches at reset to select a boot mode:
+
+| Switches (SW1:SW0) | Mode | Action |
+|--------------------|------|--------|
+| `00` | DRAM | Jump directly to DDR base (`0x8000_0000`) |
+| `01` | UART | Receive binary over UART via XMODEM-CRC, then execute |
+| `10` | SD | Load from SD card *(not yet implemented)* |
+| `11` | Wait | Wait for BTN0 press, then jump to DDR |
+
+The ZSBL source is in `software/zsbl.S`. After modifying it, regenerate the ROM and rebuild the bitstream:
+
+```bash
+python build.py zsbl-rom
+python build.py bitstream
+```
+
+## Bitstream Artifacts
+
+Pre-built artifacts are committed under `overlay/` and `scripts/`:
+
+| File | Description |
+|------|-------------|
+| `overlay/friscv.bit` | FPGA bitstream |
+| `overlay/friscv.hwh` | Hardware handoff (PYNQ overlay system) |
+| `scripts/ps7_init.tcl` | Zynq PS7 initialisation (extracted from XSA) |
+
+These are regenerated by `python build.py bitstream` and must not be edited manually.

@@ -1,0 +1,110 @@
+# Repository Workflow Guide
+
+This document describes the conventions and required steps for working with this repository.
+
+## Cloning
+
+```bash
+git clone git@github.com:friscv/friscv-system-hw.git
+cd friscv-system-hw
+```
+
+## Creating the Vivado Project
+
+The Vivado project is not committed. It must be generated from the TCL scripts in `scripts/`:
+
+```bash
+python build.py project
+```
+
+This sources `scripts/create_project.tcl`, which recreates the project, adds all source files, and rebuilds the block designs from `scripts/export_bd.tcl`. The resulting project directory `friscv-system-hw/` is git-ignored.
+
+To open the project in the GUI afterward:
+
+```bash
+python build.py open
+```
+
+## Adding New RTL or Simulation Files
+
+**Never create new source files from within Vivado.** Vivado writes files into the project directory, which is not tracked by git.
+
+Instead:
+
+1. Create the file manually in `rtl/` (for synthesizable RTL) or `sim/` (for simulation-only files).
+2. Open the project in Vivado.
+3. In the Sources panel, right-click → **Add Sources** and add the file from its location in `rtl/` or `sim/`.
+4. Verify the file appears under the correct source set (Design Sources or Simulation Sources).
+
+All synthesizable RTL must live under `rtl/`. All simulation files must live under `sim/`. Files outside these directories will not be picked up when the project is recreated from TCL.
+
+## Modifying Block Designs
+
+After making any change to a block design in the Vivado GUI, you **must** export it back to TCL before committing. The `.bd` files are not tracked; only the TCL export is.
+
+```bash
+python build.py export-bd
+```
+
+This runs `scripts/export_bd.tcl` and overwrites the TCL files under `bd/`. Stage and commit those updated TCL files.
+
+> [!CAUTION]
+> **Never commit without running export-bd after a block design change.** If the TCL is out of date, other contributors will get a different design when they recreate the project.
+
+## Pre-Commit Checklist
+
+Before committing any RTL or simulation change:
+
+### 1. Run all integration tests
+
+All `integration_test_*.S` files in `sim/` must pass in `tb_integration`. From within Vivado's simulation flow, or via the Makefile in `sim/`, run each test in turn:
+
+- `integration_test_I.S`
+- `integration_test_Zaamo.S`
+- `integration_test_Zalrsc.S`
+- `integration_test_Zalrsc_irq.S`
+- `integration_test_Zifencei.S`
+- `integration_test_timer_irq.S`
+
+A test passes when the simulation writes the expected result to the GPIO address (`0x40000000`) and halts cleanly at `0x50000000`.
+
+`[RESULT] PASS` must be the last output to the console.
+
+### 2. Verify the project can be cleanly recreated
+
+Clean the project and recreate it from scratch to confirm that all source files are correctly registered in the TCL scripts and that nothing depends on stale cached state:
+
+```bash
+python build.py clean
+python build.py project
+```
+
+If the project fails to recreate, find what is missing from `scripts/create_project.tcl` or `scripts/export_bd.tcl` and fix it before committing.
+
+## Delivering a New Feature on FPGA
+
+When a new feature has been verified working on hardware, provide the bitstream artifacts alongside the RTL commit by running:
+
+```bash
+python build.py bitstream
+```
+
+This performs a clean synthesis and implementation run and copies the outputs to `overlay/`:
+
+| File | Description |
+|------|-------------|
+| `overlay/friscv.bit` | FPGA bitstream |
+| `overlay/friscv.hwh` | Hardware handoff file |
+| `scripts/ps7_init.tcl` | Zynq PS7 initialisation |
+
+Commit these files together with the RTL change so that the bitstream in `overlay/` always corresponds to the committed source.
+
+## Summary of Rules
+
+| Rule | Command |
+|------|---------|
+| Create new source files in `rtl/` or `sim/`, then add them from the Vivado GUI | — |
+| Export block designs after any BD change | `python build.py export-bd` |
+| Run all `integration_test_*.S` tests before committing | Vivado sim |
+| Verify clean project recreation before committing | `python build.py clean && python build.py project` |
+| Provide updated bitstream when a feature is verified on hardware | `python build.py bitstream` |

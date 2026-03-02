@@ -1,0 +1,6 @@
+*.bit binary
+*.hwh linguist-generated=true
+*.tcl linguist-vendored
+ps7_init.tcl linguist-generated=true
+*.xdc linguist-vendored
+*.ps1 linguist-vendored
