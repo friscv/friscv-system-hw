@@ -33,6 +33,7 @@ See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a full walkthrough from clone t
 | Document | Description |
 |----------|-------------|
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | Step-by-step setup: clone → bitstream → program → run |
+| [docs/GIT.md](docs/GIT.md) | Repository workflow: project setup, file conventions, pre-commit checklist |
 | [docs/BOOT.md](docs/BOOT.md) | Boot modes, ZSBL boot process, switch encoding |
 | [docs/UART.md](docs/UART.md) | UART pinout, register map, host connection, C examples |
 

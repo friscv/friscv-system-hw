@@ -240,7 +240,6 @@ end
 // Output selection
 // ============================================================
 
-// TODO: move this mux to WB stage and implement forwarding
 always_comb begin
     case (wb_data_sel_buff)
         WB_DATA_SEL_PC_PLUS_4: rd_data_out = pc_plus_4_buff;
