@@ -12,12 +12,12 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="49,959.927 ns"></ZoomStartTime>
-      <ZoomEndTime time="50,147.957 ns"></ZoomEndTime>
-      <Cursor1Time time="51,000.000 ns"></Cursor1Time>
+      <ZoomStartTime time="590,681.214 ns"></ZoomStartTime>
+      <ZoomEndTime time="591,063.758 ns"></ZoomEndTime>
+      <Cursor1Time time="591,000.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="325"></NameColumnWidth>
+      <NameColumnWidth column_width="318"></NameColumnWidth>
       <ValueColumnWidth column_width="103"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="22" />
@@ -342,6 +342,41 @@
       <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr" type="array">
          <obj_property name="ElementShortName">csr</obj_property>
          <obj_property name="ObjectShortName">csr</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mstatus" type="array">
+            <obj_property name="ElementShortName">.mstatus[31:0]</obj_property>
+            <obj_property name="ObjectShortName">.mstatus[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mtvec" type="array">
+            <obj_property name="ElementShortName">.mtvec[31:0]</obj_property>
+            <obj_property name="ObjectShortName">.mtvec[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mcounteren" type="array">
+            <obj_property name="ElementShortName">.mcounteren[31:0]</obj_property>
+            <obj_property name="ObjectShortName">.mcounteren[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mscratch" type="array">
+            <obj_property name="ElementShortName">.mscratch[31:0]</obj_property>
+            <obj_property name="ObjectShortName">.mscratch[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mepc" type="array">
+            <obj_property name="ElementShortName">.mepc[31:0]</obj_property>
+            <obj_property name="ObjectShortName">.mepc[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mcycle" type="array">
+            <obj_property name="ElementShortName">.mcycle[63:0]</obj_property>
+            <obj_property name="ObjectShortName">.mcycle[63:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.minstret" type="array">
+            <obj_property name="ElementShortName">.minstret[63:0]</obj_property>
+            <obj_property name="ObjectShortName">.minstret[63:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr.mcountinhibit" type="array">
+            <obj_property name="ElementShortName">.mcountinhibit[31:0]</obj_property>
+            <obj_property name="ObjectShortName">.mcountinhibit[31:0]</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/regfile" type="array">
          <obj_property name="ElementShortName">regfile[0:31][31:0]</obj_property>

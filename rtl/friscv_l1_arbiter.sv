@@ -72,7 +72,7 @@ end
 // Next State Logic
 always_comb begin
     next_state = state;
-    unique case (state)
+    case (state)
         S_IDLE: begin
             if (i_data_en && i_inst_en) begin
                 next_state = (priority_flag) ? S_GRANT_DATA : S_GRANT_INST;
@@ -88,6 +88,7 @@ always_comb begin
         S_GRANT_DATA: begin
             if (!i_mem_wait) next_state = S_IDLE;
         end
+        default: ;
     endcase
 end
 
@@ -101,7 +102,7 @@ always_comb begin
     o_data_wait = 1'b0;
     o_amo_op    = AMO_NONE;
 
-    unique case (state)
+    case (state)
         S_IDLE: begin
             // If requesting, insert wait cycle for arbitration
             if (i_inst_en) o_inst_wait = 1'b1;
@@ -123,6 +124,7 @@ always_comb begin
             o_amo_op    = i_amo_op;
             if (i_inst_en) o_inst_wait = 1'b1;
         end
+        default: ;
     endcase
 end
 

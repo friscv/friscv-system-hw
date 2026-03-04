@@ -15,7 +15,9 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_core_complex (
+module friscv_core_complex #(
+    parameter int HART_ID = 0
+) (
     input  logic       i_clk,
     input  logic       i_rstn,
     output logic       o_end,
@@ -125,7 +127,9 @@ assign w_stall_if = w_inst_wait || r_end_signal;
 // Core instance
 // ============================================================
 
-friscv_core cpu_0 (
+friscv_core #(
+    .HART_ID(HART_ID)
+) cpu_0 (
     .i_clk            ( i_clk        ),
     .i_rstn           ( i_rstn       ),
     .i_irq            ( i_timer_irq  ),

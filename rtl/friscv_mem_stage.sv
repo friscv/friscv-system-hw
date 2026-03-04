@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -30,6 +30,10 @@ module friscv_mem_stage (
     input  mem_instr_sel_e mem_instr_sel_in,
 	input  mem_width_e     load_store_width_in,
 	input  wb_data_sel_e   wb_data_sel_in,
+    input  csr_addr_e      csr_sel_in,
+    input  data_t          csr_readback_in,
+    input  logic           csr_en_in,
+    input  logic           instr_valid_in,
 
     // AMO control
     input  logic           reserve_in,
@@ -40,6 +44,10 @@ module friscv_mem_stage (
     // Outputs to WB stage
     output data_t          rd_data_out,
     output reg_addr_t      rd_sel_out,
+    output csr_addr_e      csr_sel_out,
+    output data_t          csr_data_out,
+    output logic           csr_en_out,
+    output logic           inst_ret_out,
 
     // Data memory interface
     output addr_t          d_mem_addr_out,
@@ -63,6 +71,14 @@ wb_data_sel_e   wb_data_sel_buff;
 logic           conditional_buff;
 logic           clear_reserve_buff;
 amo_op_e        amo_op_buff;
+csr_addr_e      csr_sel_buff;
+data_t          csr_readback_buff;
+logic           csr_en_buff;
+logic           instr_valid_buff;
+
+assign csr_sel_out  = csr_sel_buff;
+assign csr_data_out = alu_data_buff;
+assign csr_en_out   = csr_en_buff;
 
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
@@ -72,6 +88,9 @@ logic r_load_data_valid;  // Flag indicating load data has been captured
 
 logic w_is_mem_instr;
 assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
+
+// Detect retired instruction
+assign inst_ret_out = instr_valid_buff && !stage_stall_in;
 
 // Reservation register for AMO LR/SC
 logic  reserve_valid;
@@ -113,6 +132,10 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         clear_reserve_buff    <= 1'b0;
         cond_valid_r          <= 1'b0;
         amo_op_buff           <= AMO_NONE;
+        csr_sel_buff          <= CSR_ZERO;
+        csr_readback_buff     <= 32'b0;
+        csr_en_buff           <= 1'b0;
+        instr_valid_buff      <= 1'b0;
     end
 
     else begin
@@ -135,6 +158,10 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             clear_reserve_buff    <= clear_reserve_in;
             amo_op_buff           <= amo_op_in;
             cond_valid_r          <= cond_valid;
+            csr_sel_buff          <= csr_sel_in;
+            csr_readback_buff     <= csr_readback_in;
+            csr_en_buff           <= csr_en_in;
+            instr_valid_buff      <= instr_valid_in;
 
             if (!clear_reserve_in) begin
                 if (reserve_in) begin
@@ -180,8 +207,8 @@ always_comb begin
             WIDTH_U16: d_mem_size_out = WIDTH_I16;
             default:   d_mem_size_out = load_store_width_buff;
         endcase
-        case (load_store_width_buff) 
-            WIDTH_I8, WIDTH_U8:   d_mem_addr_out = alu_data_buff;              
+        case (load_store_width_buff)
+            WIDTH_I8, WIDTH_U8:   d_mem_addr_out = alu_data_buff;
             WIDTH_I16, WIDTH_U16: d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
             WIDTH_I32:            d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:2], 2'b00};
             default:              d_mem_addr_out = alu_data_buff;
@@ -203,7 +230,7 @@ assign d_mem_amo_op_out = amo_op_buff;
 always_comb begin
     case (load_store_width_buff)
         WIDTH_I8: begin
-            case (alu_data_buff[1:0]) 
+            case (alu_data_buff[1:0])
                 2'b00: load_data = {{24{d_mem_data_in[ 7]}}, d_mem_data_in[ 7: 0]};
                 2'b01: load_data = {{24{d_mem_data_in[15]}}, d_mem_data_in[15: 8]};
                 2'b10: load_data = {{24{d_mem_data_in[23]}}, d_mem_data_in[23:16]};
@@ -211,7 +238,7 @@ always_comb begin
             endcase
         end
         WIDTH_U8: begin
-            case (alu_data_buff[1:0]) 
+            case (alu_data_buff[1:0])
                 2'b00: load_data = {24'h0, d_mem_data_in[ 7: 0]};
                 2'b01: load_data = {24'h0, d_mem_data_in[15: 8]};
                 2'b10: load_data = {24'h0, d_mem_data_in[23:16]};
@@ -246,6 +273,8 @@ always_comb begin
         WB_DATA_SEL_ALU:       rd_data_out = alu_data_buff;
         WB_DATA_SEL_MEM:       rd_data_out = r_load_data_valid ? load_data_buff : load_data;
         WB_DATA_SEL_SC_RES:    rd_data_out = {31'h0, (r_sc_res_valid) ? r_sc_res : !cond_valid_r};
+        WB_DATA_SEL_CSR:       rd_data_out = csr_readback_buff;
+        default:               rd_data_out = 32'b0;
     endcase
 end
 

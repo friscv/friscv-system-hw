@@ -29,7 +29,9 @@ module friscv_ex_stage (
     input  data_t          rs1_in,
     input  data_t          rs2_in,
     input  data_t          imm32_in,
+    input  data_t          csr_in,
     input  reg_addr_t      rd_sel_in,
+    input  reg_addr_t      rs1_sel_in,
     input  instr_ex_t      instr_ex_in,
 
     // Outputs to MEM stage
@@ -43,6 +45,10 @@ module friscv_ex_stage (
     output logic           reserve_out,
     output logic           conditional_out,
     output amo_op_e        amo_op_out,
+    output csr_addr_e      csr_sel_out,
+    output data_t          csr_readback_out,
+    output logic           csr_en_out,
+    output logic           instr_valid_out,
 
     // Outputs to control logic
     output logic           branch_ok_out,
@@ -57,8 +63,10 @@ addr_t pc_plus_4_buff;
 data_t rs1_buff;
 data_t rs2_buff;
 data_t imm32_buff;
+data_t csr_buff;
 
 reg_addr_t rd_sel_buff;
+reg_addr_t rs1_sel_buff;
 instr_ex_t instr_buff;
 
 friscv_ex_stage_branch_unit branch_unit (
@@ -71,18 +79,20 @@ friscv_ex_stage_branch_unit branch_unit (
 
 instr_ex_t NOP_CTRL;
 assign NOP_CTRL = '{
+    instr_valid: 1'b0,
     branch_jal_sel: BRANCH_JAL_NONE,
     branch_cond: COND_EQ,
-    mux1_sel: RS,
-    mux2_sel: RS,
+    a_bus_sel: RS1,
+    b_bus_sel: RS2,
     alu_op: ADD_OP,
+    invert_op_a: 1'b0,
     mem_instr_sel: MEM_INSTR_NONE,
     load_store_width: WIDTH_I32,
     wb_data_sel: WB_DATA_SEL_ALU,
     reserve: 1'b0,
     conditional: 1'b0,
     amo_op: AMO_NONE,
-    csr_wr_en: 1'b0,   
+    csr_op: 1'b0,
     mret_en: 1'b0,   
     csr_addr: CSR_ZERO
 };
@@ -91,12 +101,14 @@ assign NOP_CTRL = '{
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
         pc_plus_4_buff <= 32'h0;
-        pc_buff     <= 32'h0;
-        rs1_buff    <= 32'h0;
-        rs2_buff    <= 32'h0;
-        imm32_buff  <= 32'h0;
-        rd_sel_buff <= 5'b0;
-        instr_buff  <= NOP_CTRL;
+        pc_buff      <= 32'h0;
+        rs1_buff     <= 32'h0;
+        rs2_buff     <= 32'h0;
+        imm32_buff   <= 32'h0;
+        csr_buff     <= 32'h0;
+        rd_sel_buff  <= 5'b0;
+        rs1_sel_buff <= 5'b0;
+        instr_buff   <= NOP_CTRL;
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
             rd_sel_buff <= 5'b0;
@@ -107,7 +119,9 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             rs1_buff       <= rs1_in;
             rs2_buff       <= rs2_in;
             imm32_buff     <= imm32_in;
+            csr_buff       <= csr_in;
             rd_sel_buff    <= rd_sel_in;
+            rs1_sel_buff   <= rs1_sel_in;
             instr_buff     <= instr_ex_in;
         end
     end
@@ -122,13 +136,36 @@ assign reserve_out          = instr_buff.reserve;
 assign conditional_out      = instr_buff.conditional;
 assign amo_op_out           = instr_buff.amo_op;
 assign rd_sel_out           = rd_sel_buff;
+assign csr_sel_out          = instr_buff.csr_addr;
+assign csr_readback_out     = csr_buff;
+assign csr_en_out           = instr_buff.csr_op;
+assign instr_valid_out      = instr_buff.instr_valid;
 
 // Select ALU inputs
+
+data_t a_bus;
+data_t b_bus;
 data_t alu_input_a;
 data_t alu_input_b;
 
-assign alu_input_a = (instr_buff.mux1_sel == RS) ? rs1_buff : pc_buff;
-assign alu_input_b = (instr_buff.mux2_sel == RS) ? rs2_buff : imm32_buff;
+always_comb begin
+    case (instr_buff.a_bus_sel)
+        RS1:     a_bus = rs1_buff;
+        PC:      a_bus = pc_buff;
+        RS1_SEL: a_bus = {27'b0, rs1_sel_buff};
+        default: a_bus = 32'b0;
+    endcase
+
+    case (instr_buff.b_bus_sel)
+        RS2:     b_bus = rs2_buff;
+        IMM:     b_bus = imm32_buff;
+        CSR:     b_bus = csr_buff;
+        default: b_bus = 32'b0;
+    endcase
+end
+
+assign alu_input_a = (instr_buff.invert_op_a) ? ~a_bus : a_bus;
+assign alu_input_b = b_bus;
 
 // Execute ALU op
 always_comb begin

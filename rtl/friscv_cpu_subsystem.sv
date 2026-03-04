@@ -111,7 +111,9 @@ end
 logic w_core_rstn;
 assign w_core_rstn = r_rstn_debounced;
 
-friscv_core_complex cc_0 (
+friscv_core_complex #(
+    .HART_ID(0)
+) cc_0 (
     .i_clk       ( i_clk       ),
     .i_rstn      ( w_core_rstn ),
     .o_end       ( o_end       ),

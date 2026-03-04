@@ -25,7 +25,7 @@ module friscv_pipeline_control (
     output logic      stall_ex_out,
     output logic      stall_mem_out,
 
-    // IF stage    
+    // IF stage
     output logic      jump_ok_out,
     output addr_t     jump_target_out,
 
@@ -34,11 +34,19 @@ module friscv_pipeline_control (
     input  reg_addr_t id_rs2_sel_in,
     input  logic      jal_ok_in,
     input  addr_t     jal_target_in,
+    input  logic      id_csr_en_in,
+    input  csr_addr_e id_csr_sel_in,
 
-    // EX stage   
+    // EX stage
     input  reg_addr_t ex_rd_sel_in,
     input  logic      branch_ok_in,
     input  addr_t     branch_target_in,
+    input  logic      ex_csr_en_in,
+    input  csr_addr_e ex_csr_sel_in,
+
+    // MEM stage
+    input  logic      mem_csr_en_in,
+    input  csr_addr_e mem_csr_sel_in,
 
     // Memory wait signals
     input  logic      if_wait_in,
@@ -49,6 +57,7 @@ module friscv_pipeline_control (
     input logic       mret_in
 );
 
+logic reg_hazard, csr_hazard;
 logic mem_stall, hazard_stall;
 
 // Early JAL/JALR must be suppressed when
@@ -57,8 +66,13 @@ logic mem_stall, hazard_stall;
 logic effective_jal;
 
 always_comb begin
-    mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+    mem_stall = if_wait_in || mem_wait_in;
+    
+    reg_hazard = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+    csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in)) ||
+                 (id_csr_en_in && mem_csr_en_in && (id_csr_sel_in == mem_csr_sel_in));
+
+    hazard_stall = reg_hazard || csr_hazard;
 
     effective_jal = jal_ok_in && !mem_stall && !hazard_stall;
 

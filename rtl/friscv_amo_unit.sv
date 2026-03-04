@@ -86,7 +86,7 @@ always_comb begin
     w_next_state = r_state;
     o_mem_rw = RW_IDLE;
     
-    unique case (r_state)
+    case (r_state)
         S_IDLE: begin
             if (i_amo_op != AMO_NONE) begin
                 w_next_state = S_LOAD;
@@ -101,6 +101,7 @@ always_comb begin
             w_next_state = (i_mem_wait) ? S_STORE : S_IDLE;
             o_mem_rw = RW_WRITE;
         end
+        default: ;
     endcase
 end
 
