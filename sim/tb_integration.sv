@@ -5,7 +5,9 @@ module tb_integration;
 
 parameter CLK_PERIOD = 20;      // 20ns clock period (50MHz)
 parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
-parameter PROG_FILE = "../../../../../test/prog.bin";
+// PROG_FILE is set at runtime via +PROG_FILE=<path> (xsim plusarg)
+// Default: ../../../../../test/prog.bin
+string PROG_FILE;
 
 parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
@@ -321,7 +323,11 @@ initial begin
     $display("==============================================");
     
     rstn = 0;
-    
+
+    // Resolve program file: +PROG_FILE=<path> overrides the default
+    if (!$value$plusargs("PROG_FILE=%s", PROG_FILE))
+        PROG_FILE = "../../../../../test/prog.bin";
+
     // Initialize memory
     for (int i = 0; i < MEM_SIZE; i++) memory[i] = 8'h0;
     
