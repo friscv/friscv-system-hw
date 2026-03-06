@@ -236,6 +236,8 @@ always_comb begin
 
         // Machine Trap Setup
         CSR_MSTATUS:       csr_out = csr.mstatus;
+        //                                mx----zyxwvutsrqponmlkjihgfedcb a
+        CSR_MISA:          csr_out = {31'b0100000000000000000000010000000,{ENABLE_EXTENSION_A}};
         CSR_MTVEC:         csr_out = csr.mtvec;
         CSR_MCOUNTEREN:    csr_out = csr.mcounteren;
 
