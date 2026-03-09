@@ -21,8 +21,12 @@ module friscv_id_stage #(
     input  logic      clk_in,
     input  logic      rst_n_in,
     
-    input  logic      irq_in,
     input  logic      branch_ok_in,
+
+    // Interrupt pending inputs
+    input  logic      msip_in,
+    input  logic      mtip_in,
+    input  logic      meip_in,
 
     // Stage control signals
     input  logic      flush_in,
@@ -64,8 +68,7 @@ module friscv_id_stage #(
     output addr_t     mtvec_out,
     output addr_t     mepc_out,
     output logic      interrupt_out,
-    output logic      mret_id_out,
-    input  addr_t     pc_ex_in
+    output logic      mret_id_out
 );
 
 data_t regfile [REGISTER_NUM];
@@ -80,7 +83,7 @@ endgenerate
 
 instr_op_t ir_buff;
 addr_t     pc_in_buff;
-addr_t     pc_plus_4_in_buff;
+addr_t     pc_plus_4_buff;
 imm_e      imm_sel;
 
 // MEM-EX forwarding
@@ -88,7 +91,7 @@ assign rs1_out = (rd_sel_in != 0 && rs1_sel_out == rd_sel_in) ? rd_data_in : reg
 assign rs2_out = (rd_sel_in != 0 && rs2_sel_out == rd_sel_in) ? rd_data_in : regfile[rs2_sel_out];
 
 assign pc_out = pc_in_buff;
-assign pc_plus_4_out = pc_plus_4_in_buff;
+assign pc_plus_4_out = pc_plus_4_buff;
 
 // ============================================================
 // Input capture
@@ -97,22 +100,22 @@ assign pc_plus_4_out = pc_plus_4_in_buff;
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
         // Do not reset regfile to synthesize as distributed RAM
-        pc_in_buff <= 32'h0;
-        pc_plus_4_in_buff <= 32'h0;
-        ir_buff <= NOP;
+        ir_buff        <= NOP;
+        pc_in_buff     <= 32'h0;
+        pc_plus_4_buff <= 32'h0;
     end else begin
         if (rd_sel_in != 0) begin
             regfile[rd_sel_in] <= rd_data_in;
         end
 
         if (flush_in) begin
-            ir_buff           <= NOP;
-            pc_in_buff        <= 32'h0;
-            pc_plus_4_in_buff <= 32'h0;
+            ir_buff        <= NOP;
+            pc_in_buff     <= 32'h0;
+            pc_plus_4_buff <= 32'h0;
         end else if (!stage_stall_in) begin
             ir_buff <= ir_in;
             pc_in_buff <= pc_in;
-            pc_plus_4_in_buff <= pc_plus_4_in;
+            pc_plus_4_buff <= pc_plus_4_in;
         end
     end
 end
@@ -121,18 +124,24 @@ end
 // Control and Status Registers
 // ============================================================
 
+privilege_e r_current_privilege = M_MODE;
+
 typedef struct packed {
     // Machine Information Registers
     // Hardwired in read block
 
     // Machine Trap Setup
-    data_t mstatus;
+    mstatus_t mstatus;
+    data_t medeleg;
+    data_t mideleg;
+    data_t mie;
     data_t mtvec;
     data_t mcounteren;
 
     // Machine Trap Handling
     data_t mscratch;
     data_t mepc;
+    data_t mcause;
 
     // Machine Counter/Timers
     logic [63:0] mcycle;
@@ -173,17 +182,45 @@ end
 // Interrupt signals
 logic [1:0] r_mret_inhibit;
 
-assign mtvec_out = csr.mtvec;
-assign mepc_out  = csr.mepc;
+// Check if an enabled interrupt source is pending
+logic meip_active_and_enabled;
+logic mtip_active_and_enabled;
+logic msip_active_and_enabled;
 
-assign interrupt_out = irq_in && csr.mstatus[3] && (r_mret_inhibit == 2'b00) && !branch_ok_in;
-assign mret_id_out   = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (selected_csr == 12'h302);
+assign meip_active_and_enabled = meip_in && csr.mie[11];
+assign mtip_active_and_enabled = mtip_in && csr.mie[7];
+assign msip_active_and_enabled = msip_in && csr.mie[3];
+
+// Calculate handler address
+logic [31:0] current_cause;
+assign current_cause = meip_active_and_enabled ? 32'd11 :
+                       mtip_active_and_enabled ? 32'd7  : 32'd3;
+
+assign mtvec_out = (csr.mtvec[1:0] == 2'b01)
+                   ? {csr.mtvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
+                   : {csr.mtvec[31:2], 2'b0};
+
+assign mepc_out = csr.mepc;
+
+// Check if interrupt is safe to execute - safe if
+//  1) Not returning from a previous interrupt,
+//  2) Not executing a branch and
+//  3) Not in the middle of a fetch
+logic interrupt_safe;
+assign interrupt_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
+
+// Entering an interrupt if interrupts enabled and safe, and a source that is individually enabled is pending
+assign interrupt_out = csr.mstatus.mie && interrupt_safe && (meip_active_and_enabled || mtip_active_and_enabled || msip_active_and_enabled);
+
+// Decode mret separate of main decoder for external signal
+assign mret_id_out = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (selected_csr == 12'h302);
 
 // Handle interrupts and CSR write-back
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if(!rst_n_in) begin
-        csr            <= '0;
+        csr <= '0;
         r_mret_inhibit <= 2'b00;
+        r_current_privilege <= M_MODE;
     end else begin
         // Only advance countdown when pipeline is not stalled
         if (mret_id_out) begin
@@ -193,20 +230,42 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         end
 
         if (interrupt_out) begin
-            csr.mepc       <= (|pc_in_buff) ? pc_in_buff : pc_in;
-            csr.mstatus[3] <= 1'b0;
+            csr.mepc         <= pc_in_buff;
+            csr.mstatus.mpie <= csr.mstatus.mie;
+            csr.mstatus.mie  <= 1'b0;
+            csr.mstatus.mpp  <= M_MODE;
+
+            if (meip_active_and_enabled)
+                csr.mcause <= {1'b1, 31'd11};
+            else if (mtip_active_and_enabled)
+                csr.mcause <= {1'b1, 31'd7};
+            else if (msip_active_and_enabled)
+                csr.mcause <= {1'b1, 31'd3};
+
         end else if (mret_id_out) begin
-            csr.mstatus[3] <= 1'b1;
-        end else if (csr_en_in && !wb_csr_ro) begin
+            csr.mstatus.mie   <= csr.mstatus.mpie;
+            csr.mstatus.mpie  <= 1'b1;
+            r_current_privilege <= csr.mstatus.mpp;
+            csr.mstatus.mpp   <= U_MODE;
+
+        end else if (csr_en_in && instr_ret_in && !wb_csr_ro) begin
             case (csr_sel_in)
                 // Machine Trap Setup
-                CSR_MSTATUS:       csr.mstatus       <= csr_data_in;
-                CSR_MTVEC:         csr.mtvec         <= csr_data_in;
-                CSR_MCOUNTEREN:    csr.mcounteren    <= csr_data_in;
+                CSR_MSTATUS: begin  // Only writable fields; WPRI fields stay 0 from reset
+                    csr.mstatus.mie  <= csr_data_in[3];
+                    csr.mstatus.mpie <= csr_data_in[7];
+                    csr.mstatus.mpp  <= privilege_e'(csr_data_in[12:11]);
+                end
+                CSR_MEDELEG:    csr.medeleg    <= csr_data_in;
+                CSR_MIDELEG:    csr.mideleg    <= csr_data_in;
+                CSR_MIE:        csr.mie        <= csr_data_in;
+                CSR_MTVEC:      csr.mtvec      <= csr_data_in;
+                CSR_MCOUNTEREN: csr.mcounteren <= csr_data_in;
 
                 // Machine Trap Handling
-                CSR_MSCRATCH:      csr.mscratch      <= csr_data_in;
-                CSR_MEPC:          csr.mepc          <= csr_data_in;
+                CSR_MSCRATCH: csr.mscratch <= csr_data_in;
+                CSR_MEPC:     csr.mepc     <= csr_data_in;
+                CSR_MCAUSE:   csr.mcause   <= csr_data_in;
 
                 // Machine Counter Setup
                 CSR_MCOUNTINHIBIT: csr.mcountinhibit <= csr_data_in;
@@ -238,12 +297,19 @@ always_comb begin
         CSR_MSTATUS:       csr_out = csr.mstatus;
         //                                mx----zyxwvutsrqponmlkjihgfedcb a
         CSR_MISA:          csr_out = {31'b0100000000000000000000010000000,{ENABLE_EXTENSION_A}};
+        CSR_MEDELEG:       csr_out = csr.medeleg;
+        CSR_MIDELEG:       csr_out = csr.mideleg;
+        CSR_MIE:           csr_out = csr.mie;
         CSR_MTVEC:         csr_out = csr.mtvec;
         CSR_MCOUNTEREN:    csr_out = csr.mcounteren;
+        CSR_MSTATUSH:      csr_out = 32'h0;
 
         // Machine Trap Handling
         CSR_MSCRATCH:      csr_out = csr.mscratch;
         CSR_MEPC:          csr_out = csr.mepc;
+        CSR_MCAUSE:        csr_out = csr.mcause;
+        CSR_MTVAL:         csr_out = 32'h0;
+        CSR_MIP:           csr_out = {20'b0, meip_in, 3'b0, mtip_in, 3'b0, msip_in, 3'b0};  // Read-only, [11]=MEIP, [7]=MTIP, [3]=MSIP
 
         // Machine Counter/Timers
         CSR_MCYCLE:        csr_out = csr.mcycle[31:0];
@@ -271,7 +337,7 @@ always_comb begin
         U_TYPE:  imm32_out = {ir_buff.b[31], ir_buff.b[30:12], 12'b0};
         J_TYPE:  imm32_out = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
         ZERO:    imm32_out = 32'h0;
-        NEXT_PC: imm32_out = pc_plus_4_in_buff;
+        NEXT_PC: imm32_out = pc_plus_4_buff;
     endcase
 end
 
@@ -583,7 +649,8 @@ always_comb begin
                 rs1_sel_out = ir_buff.r.rs1;
                 rd_sel_out  = ir_buff.r.rd;
 
-                illegal_inst = decode_csr_ro && is_csr_write;  // Check privilege when implemented
+                illegal_inst = (decode_csr_ro && is_csr_write) ||
+                               (r_current_privilege < decode_csr_privilege);
 
                 case (ir_buff.r.funct3)
                     3'b001: begin  //  CSRRW

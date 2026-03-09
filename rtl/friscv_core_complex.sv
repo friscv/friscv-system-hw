@@ -21,7 +21,9 @@ module friscv_core_complex #(
     input  logic       i_clk,
     input  logic       i_rstn,
     output logic       o_end,
-    input  logic       i_timer_irq,
+    input  logic       i_msip,
+    input  logic       i_mtip,
+    input  logic       i_meip,
 
     output mem_width_e o_mem_size,
     output addr_t      o_mem_addr,
@@ -132,7 +134,9 @@ friscv_core #(
 ) cpu_0 (
     .i_clk            ( i_clk        ),
     .i_rstn           ( i_rstn       ),
-    .i_irq            ( i_timer_irq  ),
+    .i_msip           ( i_msip       ),
+    .i_mtip           ( i_mtip       ),
+    .i_meip           ( i_meip       ),
 
     // Instruction Memory Interface
     .i_mem_addr_out   ( w_inst_addr  ),

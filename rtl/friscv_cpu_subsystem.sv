@@ -20,7 +20,9 @@ module friscv_cpu_subsystem (
     input  logic        i_rstn,
     output logic        o_end,
     
-    input  logic        i_timer_irq,
+    input  logic        i_msip,
+    input  logic        i_mtip,
+    input  logic        i_meip,
  
     // AXI4 Master Write Address Channel
     output logic        m_axi_awvalid,
@@ -117,7 +119,9 @@ friscv_core_complex #(
     .i_clk       ( i_clk       ),
     .i_rstn      ( w_core_rstn ),
     .o_end       ( o_end       ),
-    .i_timer_irq ( i_timer_irq ),
+    .i_msip      ( i_msip      ),
+    .i_mtip      ( i_mtip      ),
+    .i_meip      ( i_meip      ),
     .o_mem_size  ( w_size      ),
     .o_mem_addr  ( w_phy_addr  ),
     .o_mem_wdata ( w_wdata     ),

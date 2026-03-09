@@ -20,16 +20,19 @@ logic clk;
 logic rstn;
 logic end_signal;
 
-logic i_timer_irq_sim;
+logic w_mtip;
+logic w_msip;
 
-logic [31:0] timer_target_lo;
-logic [31:0] timer_target_hi;
-logic [31:0] timer_counter_lo;
-logic [31:0] timer_counter_hi;
+logic [31:0] clint_msip;
+logic [31:0] clint_mtimecmp_lo;
+logic [31:0] clint_mtimecmp_hi;
+logic [31:0] clint_mtime_lo;
+logic [31:0] clint_mtime_hi;
 
-logic timer_counter_carry;
-assign timer_counter_carry = (timer_counter_lo == 32'hFFFF_FFFF);
-assign i_timer_irq_sim = ({timer_counter_hi, timer_counter_lo} >= {timer_target_hi, timer_target_lo});
+logic clint_mtime_carry;
+assign clint_mtime_carry = (clint_mtime_lo == 32'hFFFF_FFFF);
+assign w_msip = clint_msip[0];
+assign w_mtip = ({clint_mtime_hi, clint_mtime_lo} >= {clint_mtimecmp_hi, clint_mtimecmp_lo});
 
 logic [2:0]  mem_size;
 logic [31:0] mem_addr;
@@ -51,7 +54,9 @@ friscv_core_complex dut (
     .i_clk       ( clk        ),
     .i_rstn      ( rstn       ),
     .o_end       ( end_signal ),
-    .i_timer_irq ( i_timer_irq_sim ),
+    .i_msip      ( w_msip     ),
+    .i_mtip      ( w_mtip     ),
+    .i_meip      ( 1'b0       ),
     .o_mem_size  ( mem_size   ),
     .o_mem_addr  ( mem_addr   ),
     .o_mem_wdata ( mem_wdata  ),
@@ -81,13 +86,14 @@ always_comb begin
                 end else if (mem_addr >= UART_ADDR && mem_addr < (UART_ADDR + 32'h20)) begin
                     // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
                     mem_rdata = (mem_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
-                end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h10)) begin
-                    case (mem_addr - TIMER_ADDR)
-                        32'h0:   mem_rdata = timer_target_lo;
-                        32'h4:   mem_rdata = timer_target_hi;
-                        32'h8:   mem_rdata = timer_counter_lo;
-                        32'hC:   mem_rdata = timer_counter_hi;
-                        default: mem_rdata = 32'h0;
+                end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'hC000)) begin
+                    case (mem_addr[15:0])
+                        16'h0000: mem_rdata = {31'b0, clint_msip[0]};
+                        16'h4000: mem_rdata = clint_mtimecmp_lo;
+                        16'h4004: mem_rdata = clint_mtimecmp_hi;
+                        16'hBFF8: mem_rdata = clint_mtime_lo;
+                        16'hBFFC: mem_rdata = clint_mtime_hi;
+                        default:  mem_rdata = 32'h0;
                     endcase
                 end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                     logic [31:0] aligned_offset;
@@ -103,24 +109,26 @@ end
 
 always_ff @(posedge clk or negedge rstn) begin
     if (!rstn) begin
-        timer_target_lo  <= 32'hFFFF_FFFF;  // IRQ suppressed at reset
-        timer_target_hi  <= 32'hFFFF_FFFF;
-        timer_counter_lo <= 32'h0;
-        timer_counter_hi <= 32'h0;
+        clint_msip        <= 32'h0;
+        clint_mtimecmp_lo <= 32'hFFFF_FFFF;  // IRQ suppressed at reset
+        clint_mtimecmp_hi <= 32'hFFFF_FFFF;
+        clint_mtime_lo    <= 32'h0;
+        clint_mtime_hi    <= 32'h0;
     end else if (mem_rw == 2'b01 &&
-                 mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'h10) &&
+                 mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'hC000) &&
                  mem_delay_counter >= MEM_DELAY_CYCLES) begin
-        case (mem_addr - TIMER_ADDR)
-            32'h0: timer_target_lo  <= mem_wdata;
-            32'h4: timer_target_hi  <= mem_wdata;
-            32'h8: timer_counter_lo <= mem_wdata;
-            32'hC: timer_counter_hi <= mem_wdata;
+        case (mem_addr[15:0])
+            16'h0000: clint_msip[0]    <= mem_wdata[0];
+            16'h4000: clint_mtimecmp_lo <= mem_wdata;
+            16'h4004: clint_mtimecmp_hi <= mem_wdata;
+            16'hBFF8: clint_mtime_lo    <= mem_wdata;
+            16'hBFFC: clint_mtime_hi    <= mem_wdata;
             default: ;
         endcase
     end else begin
-        if (timer_counter_carry)
-            timer_counter_hi <= timer_counter_hi + 1;
-        timer_counter_lo <= timer_counter_lo + 1;
+        if (clint_mtime_carry)
+            clint_mtime_hi <= clint_mtime_hi + 1;
+        clint_mtime_lo <= clint_mtime_lo + 1;
     end
 end
 

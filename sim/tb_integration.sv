@@ -11,18 +11,18 @@ string PROG_FILE;
 
 parameter MEM_SIZE = 2 * 1024;          // 2 KiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
-parameter DRAM_BASE = 32'h00100000;     // Memory base address (Memory view)
-parameter GPIO_ADDR = 32'h40000000;     // GPIO address
-parameter UART_ADDR = 32'h40600000;     // UART address
-parameter TIMER_ADDR = 32'h40100000;    // Timer base address
-parameter RESULT_ADDR = 32'h80000500;   // Result address (CPU view)
-// AXI Base address for RAM is 0x0 because of translation
+parameter DRAM_BASE    = 32'h00100000;  // Memory base address (Memory view)
+parameter GPIO_ADDR    = 32'h40000000;  // GPIO address
+parameter UART_ADDR    = 32'h40600000;  // UART address
+parameter TIMER_ADDR   = 32'h40100000;  // Timer base address
+parameter RESULT_ADDR  = 32'h80000500;  // Result address (CPU view)
 
 logic clk;
 logic rstn;
 logic end_signal;
 
-logic i_timer_irq_sim;
+logic w_mtip;
+logic w_msip;
 
 // AXI Signals
 logic        m_axi_awvalid;
@@ -74,8 +74,8 @@ int mem_write_count;
 // Address-based AXI routing: timer vs memory/GPIO/UART slave
 // =========================================================================
 logic wr_to_timer, rd_to_timer;
-assign wr_to_timer = (m_axi_awaddr >= TIMER_ADDR) && (m_axi_awaddr < (TIMER_ADDR + 32'h10));
-assign rd_to_timer = (m_axi_araddr >= TIMER_ADDR) && (m_axi_araddr < (TIMER_ADDR + 32'h10));
+assign wr_to_timer = (m_axi_awaddr >= TIMER_ADDR) && (m_axi_awaddr < (TIMER_ADDR + 32'hC000));
+assign rd_to_timer = (m_axi_araddr >= TIMER_ADDR) && (m_axi_araddr < (TIMER_ADDR + 32'hC000));
 
 // Timer AXI slave signals
 logic        tmr_awready, tmr_wready, tmr_bvalid;
@@ -102,29 +102,28 @@ assign m_axi_rdata   = rd_to_timer ? tmr_rdata   : mem_rdata;
 assign m_axi_rresp   = rd_to_timer ? tmr_rresp   : mem_rresp;
 assign m_axi_rlast   = rd_to_timer ? tmr_rvalid  : mem_rlast;
 
-// =========================================================================
-// Real timer hardware (friscv_timer.v)
-// =========================================================================
-friscv_timer timer_inst (
-    .clk_in         ( clk ),
-    .rstn_in        ( rstn ),
-    .s_axi_awaddr   ( m_axi_awaddr ),
+// Timer hardware
+friscv_clint clint_inst (
+    .clk_in         ( clk                         ),
+    .rstn_in        ( rstn                        ),
+    .s_axi_awaddr   ( m_axi_awaddr                ),
     .s_axi_awvalid  ( m_axi_awvalid & wr_to_timer ),
-    .s_axi_awready  ( tmr_awready ),
-    .s_axi_wdata    ( m_axi_wdata ),
-    .s_axi_wvalid   ( m_axi_wvalid & wr_to_timer ),
-    .s_axi_wready   ( tmr_wready ),
-    .s_axi_bresp    ( tmr_bresp ),
-    .s_axi_bvalid   ( tmr_bvalid ),
-    .s_axi_bready   ( m_axi_bready & wr_to_timer ),
-    .s_axi_araddr   ( m_axi_araddr ),
+    .s_axi_awready  ( tmr_awready                 ),
+    .s_axi_wdata    ( m_axi_wdata                 ),
+    .s_axi_wvalid   ( m_axi_wvalid & wr_to_timer  ),
+    .s_axi_wready   ( tmr_wready                  ),
+    .s_axi_bresp    ( tmr_bresp                   ),
+    .s_axi_bvalid   ( tmr_bvalid                  ),
+    .s_axi_bready   ( m_axi_bready & wr_to_timer  ),
+    .s_axi_araddr   ( m_axi_araddr                ),
     .s_axi_arvalid  ( m_axi_arvalid & rd_to_timer ),
-    .s_axi_arready  ( tmr_arready ),
-    .s_axi_rdata    ( tmr_rdata ),
-    .s_axi_rresp    ( tmr_rresp ),
-    .s_axi_rvalid   ( tmr_rvalid ),
-    .s_axi_rready   ( m_axi_rready & rd_to_timer ),
-    .timer_irq      ( i_timer_irq_sim )
+    .s_axi_arready  ( tmr_arready                 ),
+    .s_axi_rdata    ( tmr_rdata                   ),
+    .s_axi_rresp    ( tmr_rresp                   ),
+    .s_axi_rvalid   ( tmr_rvalid                  ),
+    .s_axi_rready   ( m_axi_rready & rd_to_timer  ),
+    .msip_out       ( w_msip                      ),
+    .mtip_out       ( w_mtip                      )
 );
 
 // DUT Instantiation
@@ -133,7 +132,9 @@ friscv_cpu_subsystem dut (
     .i_rstn        ( rstn          ),
     .o_end         ( end_signal    ),
     
-    .i_timer_irq   ( i_timer_irq_sim ),
+    .i_msip        ( w_msip        ),
+    .i_mtip        ( w_mtip        ),
+    .i_meip        ( 1'b0          ),
 
     // AXI4 Master Write Address Channel
     .m_axi_awvalid ( m_axi_awvalid ),

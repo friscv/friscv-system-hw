@@ -80,20 +80,20 @@ package friscv_pkg;
         // Machine Trap Setup
         CSR_MSTATUS    = 12'h300,
         CSR_MISA       = 12'h301,
-        // CSR_MEDELEG    = 12'h302,
-        // CSR_MIDELEG    = 12'h303,
-        // CSR_MIE        = 12'h304,
+        CSR_MEDELEG    = 12'h302,
+        CSR_MIDELEG    = 12'h303,
+        CSR_MIE        = 12'h304,
         CSR_MTVEC      = 12'h305,
         CSR_MCOUNTEREN = 12'h306,
-        // CSR_MSTATUSH   = 12'h310,
+        CSR_MSTATUSH   = 12'h310,
         // CSR_MEDELEGH   = 12'h312,
 
         // Machine Trap Handling
         CSR_MSCRATCH = 12'h340,
         CSR_MEPC     = 12'h341,
-        // CSR_MCAUSE   = 12'h342,
-        // CSR_MTVAL    = 12'h343,
-        // CSR_MIP      = 12'h344,
+        CSR_MCAUSE   = 12'h342,
+        CSR_MTVAL    = 12'h343,
+        CSR_MIP      = 12'h344,
         // CSR_MTINST   = 12'h34A,
         // CSR_MTVAL2   = 12'h34B,
 
@@ -113,6 +113,30 @@ package friscv_pkg;
         H_MODE = 2'b10,
         M_MODE = 2'b11
     } privilege_e;
+
+    typedef struct packed {
+        logic        sd;          // [31]    State Dirty (RO, OR of FS/XS/VS)
+        logic [7:0]  wpri_30_23;  // [30:23] Reserved (WPRI)
+        logic        tsr;         // [22]    Trap SRET (WPRI)
+        logic        tw;          // [21]    Timeout Wait (WPRI)
+        logic        tvm;         // [20]    Trap Virtual Memory (WPRI)
+        logic        mxr;         // [19]    Make eXecutable Readable (WPRI)
+        logic        sum;         // [18]    Supervisor User Memory access (WPRI)
+        logic        mprv;        // [17]    Modify PRiVilege (WPRI)
+        logic [1:0]  xs;          // [16:15] eXtension Status (WPRI)
+        logic [1:0]  fs;          // [14:13] Floating-point Status (WPRI)
+        privilege_e  mpp;         // [12:11] M Previous Privilege
+        logic [1:0]  vs;          // [10:9]  Vector Status (WPRI)
+        logic        spp;         // [8]     S Previous Privilege (WPRI)
+        logic        mpie;        // [7]     M Previous Interrupt Enable
+        logic        ube;         // [6]     U Big-Endian (WPRI)
+        logic        spie;        // [5]     S Previous Interrupt Enable (WPRI)
+        logic        wpri_4;      // [4]     Reserved (WPRI)
+        logic        mie;         // [3]     M Interrupt Enable
+        logic        wpri_2;      // [2]     Reserved (WPRI)
+        logic        sie;         // [1]     S Interrupt Enable (WPRI)
+        logic        wpri_0;      // [0]     Reserved (WPRI)
+    } mstatus_t;
 
     typedef enum logic [2:0] {
         I_TYPE  = 3'b000,

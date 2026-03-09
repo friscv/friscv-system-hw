@@ -21,7 +21,9 @@ module friscv_core #(
     input  logic       i_clk,
     input  logic       i_rstn,
     
-    input  logic       i_irq,
+    input  logic       i_msip,
+    input  logic       i_mtip,
+    input  logic       i_meip,
     
     // Instruction Memory Interface
     output addr_t      i_mem_addr_out,
@@ -84,7 +86,6 @@ logic      mem_inst_ret_out;
 // Interrupts
 addr_t id_mtvec_out, id_mepc_out;
 logic  id_interrupt_out, id_mret_out;
-addr_t real_ex_pc;
 
 friscv_pipeline_control control_unit (
     // Control signals
@@ -162,7 +163,9 @@ friscv_id_stage #(
     .clk_in         ( i_clk            ), 
     .rst_n_in       ( i_rstn           ),
     
-    .irq_in         ( i_irq            ),
+    .msip_in        ( i_msip           ),
+    .mtip_in        ( i_mtip           ),
+    .meip_in        ( i_meip           ),
     .branch_ok_in   ( branch_ok        ),
 
     // Stage control signals
@@ -203,8 +206,7 @@ friscv_id_stage #(
     .mtvec_out      ( id_mtvec_out      ), 
     .mepc_out       ( id_mepc_out       ),
     .interrupt_out  ( id_interrupt_out  ),
-    .mret_id_out    ( id_mret_out       ),
-    .pc_ex_in       ( real_ex_pc        )
+    .mret_id_out    ( id_mret_out       )
 );
 
 friscv_ex_stage ex_stage (
@@ -243,10 +245,7 @@ friscv_ex_stage ex_stage (
     .instr_valid_out      ( ex_instr_valid_out      ),
 
     // Outputs to control logic
-    .branch_ok_out        ( branch_ok               ),
-    
-    // Interrupts
-    .pc_out               ( real_ex_pc              )
+    .branch_ok_out        ( branch_ok               )
 );
 
 friscv_mem_stage mem_stage (

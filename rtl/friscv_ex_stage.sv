@@ -51,10 +51,7 @@ module friscv_ex_stage (
     output logic           instr_valid_out,
 
     // Outputs to control logic
-    output logic           branch_ok_out,
-    
-    // Output to id stage for mepc
-    output addr_t          pc_out
+    output logic           branch_ok_out
 );
 
 // Input registers
@@ -111,6 +108,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         instr_buff   <= NOP_CTRL;
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
+            pc_buff     <= 32'h0;
             rd_sel_buff <= 5'b0;
             instr_buff  <= NOP_CTRL;
         end else begin
@@ -203,7 +201,5 @@ always_comb begin
         default: store_data_out = 32'h0;
     endcase
 end
-
-assign pc_out = pc_buff;
 
 endmodule
