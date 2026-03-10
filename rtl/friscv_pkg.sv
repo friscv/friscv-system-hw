@@ -34,15 +34,16 @@ package friscv_pkg;
     // Set 2048 for FPGA, 0 for simulation
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
 
-    // Set 2_000_000 for FPGA, 10 for simulation
-    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 10;
-
     // Parametrized feature generation
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
 
     // Extension selection
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
+
+    // CLINT address workaround
+    // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
+    localparam logic ENABLE_REMAP_CLINT = 1;
 
     // --- Configurable parameter definitions end ---
 
@@ -61,11 +62,13 @@ package friscv_pkg;
     typedef logic [31:0]              inst_t;
     typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
-    localparam addr_t ZSBL_BASE     = 32'h1000;
-    localparam addr_t END_ADDRESS   = 32'h50000000;
-    localparam addr_t DRAM_BASE     = 32'h80000000;
-    localparam addr_t RESET_VEC     = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;
-    localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
+    localparam addr_t ZSBL_BASE       = 32'h1000;      // RISC-V convention
+    localparam addr_t END_ADDRESS     = 32'h50000000;  // FRISC convention
+    localparam addr_t DRAM_BASE       = 32'h80000000;  // RISC-V convention
+    localparam addr_t DRAM_START_AT   = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
+    localparam addr_t CLINT_REAL_BASE = 32'h40100000;  // Must match AXI address map
+    localparam addr_t CLINT_PHY_BASE  = 32'h02000000;  // RISC-V convention
+    localparam addr_t RESET_VEC       = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;  // Reset to ZSBL if enabled, else jump to RAM
 
     typedef enum logic [11:0] {
         CSR_ZERO = 12'h000,

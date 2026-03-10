@@ -51,7 +51,7 @@ logic  r_fetch_active;
 // we must discard it and re-issue the fetch for the redirect target.
 logic  r_flush_pending;
 
-always_ff @(posedge clk_in or negedge rst_n_in) begin
+always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
         pc_reg          <= RESET_VEC;
         r_fetch_active  <= 1'b1;

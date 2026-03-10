@@ -76,12 +76,16 @@ logic [31:0] w_rdata;
 rw_cmd_e     w_rw;
 logic        w_wait;
 
-if (DRAM_BASE == 32'h8000_0000) begin
-    assign w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
-end else if (DRAM_BASE == 32'h0) begin
-    assign w_dram_addr = w_phy_addr + DRAM_START_AT;
-end else begin
-    assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
+always_comb begin
+    if (ENABLE_REMAP_CLINT && w_phy_addr[31:16] == CLINT_PHY_BASE[31:16] && w_phy_addr[15:0] <= 16'hBFFF) begin
+        w_dram_addr = {CLINT_REAL_BASE[31:16], w_phy_addr[15:0]};
+    end else if (DRAM_BASE == 32'h8000_0000) begin
+        w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
+    end else if (DRAM_BASE == 32'h0) begin
+        w_dram_addr = w_phy_addr + DRAM_START_AT;
+    end else begin
+        w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
+    end
 end
 
 // Metastability protection for reset
@@ -91,43 +95,21 @@ always_ff @(posedge i_clk) begin
     r_rstn_sync <= {r_rstn_sync[0], i_rstn};
 end
 
-// Reset debouncer
-logic        r_rstn_debounced = 1'b0;
-logic [20:0] r_debounce_cnt = 21'd0;
-
-always_ff @(posedge i_clk) begin
-    if (r_rstn_sync[1] == r_rstn_debounced) begin
-        // Signal is stable, reset counter
-        r_debounce_cnt <= '0;
-    end else begin
-        // Signal changed, increment counter
-        if (r_debounce_cnt < RST_DEBOUNCE_CYCLES) begin
-            r_debounce_cnt <= r_debounce_cnt + 1'b1;
-        end else begin
-            // Signal has been stable for debounce period, update output
-            r_rstn_debounced <= r_rstn_sync[1];
-        end
-    end
-end
-
-logic w_core_rstn;
-assign w_core_rstn = r_rstn_debounced;
-
 friscv_core_complex #(
     .HART_ID(0)
 ) cc_0 (
-    .i_clk       ( i_clk       ),
-    .i_rstn      ( w_core_rstn ),
-    .o_end       ( o_end       ),
-    .i_msip      ( i_msip      ),
-    .i_mtip      ( i_mtip      ),
-    .i_meip      ( i_meip      ),
-    .o_mem_size  ( w_size      ),
-    .o_mem_addr  ( w_phy_addr  ),
-    .o_mem_wdata ( w_wdata     ),
-    .i_mem_rdata ( w_rdata     ),
-    .o_mem_rw    ( w_rw        ),
-    .i_mem_wait  ( w_wait      )
+    .i_clk       ( i_clk          ),
+    .i_rstn      ( r_rstn_sync[1] ),
+    .o_end       ( o_end          ),
+    .i_msip      ( i_msip         ),
+    .i_mtip      ( i_mtip         ),
+    .i_meip      ( i_meip         ),
+    .o_mem_size  ( w_size         ),
+    .o_mem_addr  ( w_phy_addr     ),
+    .o_mem_wdata ( w_wdata        ),
+    .i_mem_rdata ( w_rdata        ),
+    .o_mem_rw    ( w_rw           ),
+    .i_mem_wait  ( w_wait         )
 );
 
 // AXI master reset sequencer
@@ -135,8 +117,8 @@ friscv_core_complex #(
 logic r_axi_reset_req;
 logic r_axi_in_reset = 1'b1;  // Start in reset
 
-always_ff @(posedge i_clk or negedge r_rstn_debounced) begin
-    if (!r_rstn_debounced) begin
+always_ff @(posedge i_clk or negedge r_rstn_sync[1]) begin
+    if (!r_rstn_sync[1]) begin
         r_axi_reset_req <= 1'b1;  // Request reset when button pressed
     end else begin
         r_axi_reset_req <= 1'b0;  // Clear request when button released

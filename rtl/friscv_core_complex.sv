@@ -114,7 +114,7 @@ friscv_l1_arbiter l1_arbiter (
 
 logic r_end_signal;
 
-always_ff @(posedge i_clk or negedge i_rstn) begin
+always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_end_signal <= 1'b0;
     end else if (w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
@@ -202,7 +202,7 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
 
     // ROM has 1 cycle latency
     // Only update when we detect a new address change
-    always_ff @(posedge i_clk or negedge i_rstn) begin
+    always_ff @(posedge i_clk) begin
         if (!i_rstn) begin
             r_rom_addr_prev <= '0;
         end else if (w_l2_is_rom && (w_l2_addr != r_rom_addr_prev)) begin

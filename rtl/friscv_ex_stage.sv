@@ -95,7 +95,7 @@ assign NOP_CTRL = '{
 };
 
 // Stage inputs buffering
-always_ff @(posedge clk_in or negedge rst_n_in) begin
+always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
         pc_plus_4_buff <= 32'h0;
         pc_buff      <= 32'h0;

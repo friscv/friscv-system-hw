@@ -56,7 +56,7 @@ state_t state, next_state;
 logic priority_flag; // 0=Inst, 1=Data
 
 // FSM Update
-always_ff @(posedge i_clk or negedge i_rstn) begin
+always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         state <= S_IDLE;
         priority_flag <= 1'b0;

@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# friscv_cpu_subsystem_wrapper, friscv_clint
+# friscv_cpu_subsystem_wrapper, friscv_clint, debounce
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -171,6 +171,7 @@ if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 friscv_cpu_subsystem_wrapper\
 friscv_clint\
+debounce\
 "
 
    set list_mods_missing ""
@@ -917,6 +918,19 @@ proc create_root_design { parentCell } {
   set_property CONFIG.CONST_VAL {0} $zero
 
 
+  # Create instance: debounce_rstn, and set properties
+  set block_name debounce
+  set block_cell_name debounce_rstn
+  if { [catch {set debounce_rstn [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $debounce_rstn eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+    set_property CONFIG.COUNT {2000000} $debounce_rstn
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins fv_interconnect/S00_AXI] [get_bd_intf_pins friscv_cpu_subsystem/m_axi]
   connect_bd_intf_net -intf_net axi_interconnect_0_M01_AXI [get_bd_intf_pins fv_gpio_0/S_AXI] [get_bd_intf_pins fv_interconnect/M01_AXI]
@@ -937,6 +951,8 @@ proc create_root_design { parentCell } {
   [get_bd_ports uart_tx]
   connect_bd_net -net concat_rstn_dout  [get_bd_pins concat_rstn/dout] \
   [get_bd_pins merge_rstn_vec/Op1]
+  connect_bd_net -net debounce_0_o_sig  [get_bd_pins debounce_rstn/o_sig] \
+  [get_bd_pins concat_rstn/In1]
   connect_bd_net -net extract_btns_Dout  [get_bd_pins extract_btns/Dout] \
   [get_bd_pins fv_gpio_1/gpio_io_i]
   connect_bd_net -net extract_extern_rst_Dout  [get_bd_pins extract_extern_rst/Dout] \
@@ -969,7 +985,8 @@ proc create_root_design { parentCell } {
   [get_bd_pins fv_uartlite_0/s_axi_aresetn] \
   [get_bd_pins gpio_aresetn/s_axi_aresetn] \
   [get_bd_pins fv_interconnect/M04_ARESETN] \
-  [get_bd_pins friscv_clint/rstn_in]
+  [get_bd_pins friscv_clint/rstn_in] \
+  [get_bd_pins debounce_rstn/rst_n]
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins debug_interconnect/ACLK] \
   [get_bd_pins debug_interconnect/S00_ACLK] \
@@ -989,15 +1006,16 @@ proc create_root_design { parentCell } {
   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
   [get_bd_pins fv_interconnect/M04_ACLK] \
   [get_bd_pins friscv_cpu_subsystem/aclk] \
-  [get_bd_pins friscv_clint/clk_in]
+  [get_bd_pins friscv_clint/clk_in] \
+  [get_bd_pins debounce_rstn/clk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins proc_sys_reset_0/ext_reset_in]
+  connect_bd_net -net rst_to_rstn_Res  [get_bd_pins rst_to_rstn/Res] \
+  [get_bd_pins debounce_rstn/i_sig]
   connect_bd_net -net rx_0_1  [get_bd_ports uart_rx] \
   [get_bd_pins fv_uartlite_0/rx]
   connect_bd_net -net util_vector_logic_0_Res  [get_bd_pins util_vector_logic_0/Res] \
   [get_bd_ports rst_out]
-  connect_bd_net -net util_vector_logic_2_Res  [get_bd_pins rst_to_rstn/Res] \
-  [get_bd_pins concat_rstn/In1]
   connect_bd_net -net zero_dout  [get_bd_pins zero/dout] \
   [get_bd_pins friscv_cpu_subsystem/i_msip] \
   [get_bd_pins friscv_cpu_subsystem/i_meip]

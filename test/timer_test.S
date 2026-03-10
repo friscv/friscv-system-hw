@@ -2,7 +2,7 @@
 .globl _start
 
 _start:
-    li x10, 0x40100000    #timer address
+    li x10, 0x02000000    #timer address
     li x11, 0x40000000    #LED address
     
 loop:

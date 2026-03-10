@@ -97,7 +97,7 @@ assign pc_plus_4_out = pc_plus_4_buff;
 // Input capture
 // ============================================================
 
-always_ff @(posedge clk_in or negedge rst_n_in) begin
+always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
         // Do not reset regfile to synthesize as distributed RAM
         ir_buff        <= NOP;
@@ -216,7 +216,7 @@ assign interrupt_out = csr.mstatus.mie && interrupt_safe && (meip_active_and_ena
 assign mret_id_out = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (selected_csr == 12'h302);
 
 // Handle interrupts and CSR write-back
-always_ff @(posedge clk_in or negedge rst_n_in) begin
+always_ff @(posedge clk_in) begin
     if(!rst_n_in) begin
         csr <= '0;
         r_mret_inhibit <= 2'b00;

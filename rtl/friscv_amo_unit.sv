@@ -51,7 +51,7 @@ assign w_load_data = (r_state == S_LOAD && !i_mem_wait) ? i_mem_load_data : r_lo
 assign o_core_load_data = r_load_data;
 assign o_core_wait = w_next_state != S_IDLE;
 
-always_ff @(posedge i_clk or negedge i_rstn) begin
+always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_state     <= S_IDLE;
         r_load_data <= 32'b0;
