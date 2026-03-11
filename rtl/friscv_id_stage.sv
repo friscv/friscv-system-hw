@@ -64,11 +64,16 @@ module friscv_id_stage #(
     input  logic      csr_en_in,
     input  logic      instr_ret_in,
 
+    // CSR write-in-flight visibility
+    input  logic      ex_csr_en_in,
+    input  logic      mem_csr_en_in,
+
     // Outputs and inputs for handling interrupts
     output addr_t     mtvec_out,
     output addr_t     mepc_out,
-    output logic      interrupt_out,
-    output logic      mret_id_out
+    output logic      trap_out,
+    output logic      trap_pending_out,
+    output logic      mret_out
 );
 
 data_t regfile [REGISTER_NUM];
@@ -126,6 +131,7 @@ end
 
 privilege_e r_current_privilege = M_MODE;
 
+// CSR file definition
 typedef struct packed {
     // Machine Information Registers
     // Hardwired in read block
@@ -149,10 +155,10 @@ typedef struct packed {
 
     // Machine Counter Setup
     data_t mcountinhibit;
-} csr_t;
+} csr_file_t;
 
 // Initialize CSRs to 0
-csr_t csr = '0;
+csr_file_t csr = '0;
 
 csr_addr_e selected_csr;  // Extract selected CSR from ir_buff
 assign selected_csr = csr_addr_e'(ir_buff.b[31:20]);
@@ -179,7 +185,10 @@ always_comb begin
     endcase
 end
 
-// Interrupt signals
+// ============================================================
+// Trap logic
+// ============================================================
+
 logic [1:0] r_mret_inhibit;
 
 // Check if an enabled interrupt source is pending
@@ -196,26 +205,42 @@ logic [31:0] current_cause;
 assign current_cause = meip_active_and_enabled ? 32'd11 :
                        mtip_active_and_enabled ? 32'd7  : 32'd3;
 
-assign mtvec_out = (csr.mtvec[1:0] == 2'b01)
-                   ? {csr.mtvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
-                   : {csr.mtvec[31:2], 2'b0};
-
-assign mepc_out = csr.mepc;
-
 // Check if interrupt is safe to execute - safe if
 //  1) Not returning from a previous interrupt,
 //  2) Not executing a branch and
 //  3) Not in the middle of a fetch
-logic interrupt_safe;
-assign interrupt_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
+logic trap_safe;
+assign trap_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
+
+logic interrupt_active, exception_active;
+
+// Detected synchronous exceptions
+logic ecall_active, ebreak_active;
 
 // Entering an interrupt if interrupts enabled and safe, and a source that is individually enabled is pending
-assign interrupt_out = csr.mstatus.mie && interrupt_safe && (meip_active_and_enabled || mtip_active_and_enabled || msip_active_and_enabled);
+assign interrupt_active = csr.mstatus.mie && trap_safe && (meip_active_and_enabled || mtip_active_and_enabled || msip_active_and_enabled);
+assign exception_active = trap_safe && (ecall_active || ebreak_active);  // trap_safe is possibly too strict here
 
-// Decode mret separate of main decoder for external signal
-assign mret_id_out = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (selected_csr == 12'h302);
+// Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
+// trap fires. Suppress the effective trap (flush + CSR state write) until the pipeline
+// is clear. trap_pending_out lets pipeline_control stall so the instruction is not lost
+// from ir_buff while waiting.
+logic trap_raw, trap_csr_hazard;
+assign trap_raw         = interrupt_active || exception_active;
+assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in);
+assign trap_out         = trap_raw && !trap_csr_hazard;
+assign trap_pending_out = trap_raw;
 
-// Handle interrupts and CSR write-back
+assign mret_out  = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (selected_csr == 12'h302);
+assign mepc_out  = csr.mepc;
+assign mtvec_out = (csr.mtvec[1:0] == 2'b01 && interrupt_active)
+                   ? {csr.mtvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
+                   : {csr.mtvec[31:2], 2'b0};
+
+// ============================================================
+// CSR read and write
+// ============================================================
+
 always_ff @(posedge clk_in) begin
     if(!rst_n_in) begin
         csr <= '0;
@@ -223,13 +248,13 @@ always_ff @(posedge clk_in) begin
         r_current_privilege <= M_MODE;
     end else begin
         // Only advance countdown when pipeline is not stalled
-        if (mret_id_out) begin
+        if (mret_out) begin
             r_mret_inhibit <= 2'd2;
         end else if (r_mret_inhibit != 2'b00 && !stage_stall_in) begin
             r_mret_inhibit <= r_mret_inhibit - 1;
         end
 
-        if (interrupt_out) begin
+        if (trap_out) begin
             csr.mepc         <= pc_in_buff;
             csr.mstatus.mpie <= csr.mstatus.mie;
             csr.mstatus.mie  <= 1'b0;
@@ -241,8 +266,12 @@ always_ff @(posedge clk_in) begin
                 csr.mcause <= {1'b1, 31'd7};
             else if (msip_active_and_enabled)
                 csr.mcause <= {1'b1, 31'd3};
+            else if (ecall_active)
+                csr.mcause <= 32'd11;
+            else if (ebreak_active)
+                csr.mcause <= 32'd3;
 
-        end else if (mret_id_out) begin
+        end else if (mret_out) begin
             csr.mstatus.mie   <= csr.mstatus.mpie;
             csr.mstatus.mpie  <= 1'b1;
             r_current_privilege <= csr.mstatus.mpp;
@@ -346,7 +375,7 @@ end
 // ============================================================
 
 always_comb begin
-    if (ENABLE_EARLY_JAL_JALR && !interrupt_out) begin
+    if (ENABLE_EARLY_JAL_JALR && !trap_out) begin
         addr_t jal_target_base;
         data_t jal_imm;
         jal_target_base = 32'h0;
@@ -402,6 +431,8 @@ always_comb begin
     instr_ex_out.csr_op = 1'b0;
     instr_ex_out.mret_en = 1'b0;
     instr_ex_out.csr_addr = selected_csr;
+    ecall_active = 1'b0;
+    ebreak_active = 1'b0;
 
     case (ir_buff.r.opcode)
         LOAD: begin
@@ -635,11 +666,17 @@ always_comb begin
         SYSTEM: begin
             if (ir_buff.r.funct3 == 3'b0) begin
                 case (ir_buff.b[31:20])
-                    12'b000000000000: ;  // ECALL
-                    12'b000000000001: ;  // EBREAK
-                    12'b001100000010: instr_ex_out.mret_en = 1;  // MRET
+                    12'b000000000000: ecall_active  = 1'b1;  // ECALL
+                    12'b000000000001: ebreak_active = 1'b1;  // EBREAK
+                    12'b001100000010: instr_ex_out.mret_en = 1'b1;  // MRET
                     12'b000100000010: ;  // SRET
-                    12'b000100000101: ;  // WFI
+                    12'b000100000101: begin  // WFI - jump to self until interrupt
+                        instr_ex_out.branch_jal_sel = JAL_INSTR;
+                        instr_ex_out.a_bus_sel = PC;
+                        instr_ex_out.b_bus_sel = IMM;
+                        instr_ex_out.alu_op = ADD_OP;
+                        imm_sel = ZERO;  // target = PC + 0
+                    end
                     default: illegal_inst = 1'b1;
                 endcase
             end else begin

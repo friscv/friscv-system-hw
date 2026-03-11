@@ -285,7 +285,7 @@ package friscv_pkg;
         amo_op_e        amo_op;
         logic           csr_op;
         logic           mret_en;
-		csr_addr_e      csr_addr;
+        csr_addr_e      csr_addr;
     } instr_ex_t;
 
     typedef enum logic [1:0] {

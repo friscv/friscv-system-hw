@@ -76,6 +76,7 @@ logic [31:0] w_rdata;
 rw_cmd_e     w_rw;
 logic        w_wait;
 
+// Address translation
 always_comb begin
     if (ENABLE_REMAP_CLINT && w_phy_addr[31:16] == CLINT_PHY_BASE[31:16] && w_phy_addr[15:0] <= 16'hBFFF) begin
         w_dram_addr = {CLINT_REAL_BASE[31:16], w_phy_addr[15:0]};

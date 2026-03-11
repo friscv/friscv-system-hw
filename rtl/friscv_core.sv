@@ -85,7 +85,7 @@ logic      mem_inst_ret_out;
 
 // Interrupts
 addr_t id_mtvec_out, id_mepc_out;
-logic  id_interrupt_out, id_mret_out;
+logic  id_trap_out, id_trap_pending, id_mret_out, id_effective_mret;
 
 friscv_pipeline_control control_unit (
     // Control signals
@@ -100,6 +100,7 @@ friscv_pipeline_control control_unit (
     // IF stage
     .jump_ok_out      ( jump_ok            ),
     .jump_target_out  ( jump_target        ),
+    .eff_mret_out     ( id_effective_mret  ),  
 
     // ID stage
     .id_rs1_sel_in    ( id_rs1_sel_out     ),
@@ -125,36 +126,37 @@ friscv_pipeline_control control_unit (
     .mem_wait_in      ( d_mem_wait_in      ),
     
     // Interrupts
-    .interrupt_in     ( id_interrupt_out   ),
+    .trap_in          ( id_trap_out        ),
+    .trap_pending_in  ( id_trap_pending    ),
     .mret_in          ( id_mret_out        )
 );
 
 friscv_if_stage if_stage (
-    .clk_in         ( i_clk            ),
-    .rst_n_in       ( i_rstn           ),
+    .clk_in         ( i_clk             ),
+    .rst_n_in       ( i_rstn            ),
 
     // Stage control signals
-    .flush_in       ( flush_if         ),
-    .stage_stall_in ( stall_if         ),
-    .i_mem_wait_in  ( i_mem_wait_in    ),
-    .jump_ok_in     ( jump_ok          ),
-    .jump_target_in ( jump_target      ),
+    .flush_in       ( flush_if          ),
+    .stage_stall_in ( stall_if          ),
+    .i_mem_wait_in  ( i_mem_wait_in     ),
+    .jump_ok_in     ( jump_ok           ),
+    .jump_target_in ( jump_target       ),
 
     // Outputs to ID stage
-    .pc_out         ( if_pc_out        ),
-    .pc_plus_4_out  ( if_pc_plus_4_out ),
-    .ir_out         ( if_ir_out        ),
+    .pc_out         ( if_pc_out         ),
+    .pc_plus_4_out  ( if_pc_plus_4_out  ),
+    .ir_out         ( if_ir_out         ),
 
     // Instruction memory interface
-    .i_mem_addr_out ( i_mem_addr_out   ),
-    .i_mem_data_in  ( i_mem_data_in    ),
-    .i_mem_en_out   ( i_mem_en_out     ),
-    
-    //Interrupts
-    .interrupt_in   ( id_interrupt_out ),
-    .mret_in        ( id_mret_out      ),
-    .mtvec_in       ( id_mtvec_out     ),
-    .mepc_in        ( id_mepc_out      )
+    .i_mem_addr_out ( i_mem_addr_out    ),
+    .i_mem_data_in  ( i_mem_data_in     ),
+    .i_mem_en_out   ( i_mem_en_out      ),
+
+    // Interrupts
+    .trap_in        ( id_trap_out       ),
+    .mret_in        ( id_effective_mret ),
+    .mtvec_in       ( id_mtvec_out      ),
+    .mepc_in        ( id_mepc_out       )
 );
 
 friscv_id_stage #(
@@ -201,12 +203,17 @@ friscv_id_stage #(
     .csr_data_in    ( mem_csr_data_out ),
     .csr_en_in      ( mem_csr_en_out   ),
     .instr_ret_in   ( mem_inst_ret_out ),
+
+    // CSR write-in-flight visibility
+    .ex_csr_en_in   ( ex_csr_en_out    ),
+    .mem_csr_en_in  ( mem_csr_en_out   ),
     
     //Interrupts
     .mtvec_out      ( id_mtvec_out      ), 
     .mepc_out       ( id_mepc_out       ),
-    .interrupt_out  ( id_interrupt_out  ),
-    .mret_id_out    ( id_mret_out       )
+    .trap_out       ( id_trap_out       ),
+    .trap_pending_out ( id_trap_pending ),
+    .mret_out       ( id_mret_out       )
 );
 
 friscv_ex_stage ex_stage (
@@ -271,7 +278,7 @@ friscv_mem_stage mem_stage (
     // AMO control
     .reserve_in          ( ex_reserve_out          ),
     .conditional_in      ( ex_conditional_out      ),
-    .clear_reserve_in    ( id_interrupt_out        ),
+    .clear_reserve_in    ( id_trap_out             ),
     .amo_op_in           ( ex_amo_op_out           ),
 
     // Outputs to WB stage
