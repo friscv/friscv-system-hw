@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 # Toolchain
 PREFIX = riscv32-unknown-elf-
 AS = $(PREFIX)as
@@ -5,58 +7,44 @@ LD = $(PREFIX)ld
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 
-# Flags
 ASFLAGS = -march=rv32i -mabi=ilp32
 LDFLAGS = -T linker.ld
 
-# Output files
-OUTPUT = prog
-ELF = $(OUTPUT).elf
-BIN = $(OUTPUT).bin
-DIS = $(OUTPUT).dis
+# Default target: build all integration tests into individual .bin files
+INTEGRATION_SRCS = $(wildcard integration_test_*.S)
+INTEGRATION_BINS = $(INTEGRATION_SRCS:.S=.bin)
 
-# Default target
 .PHONY: all clean help
 
-all:
-	@echo "Usage: make <filename>.S"
-	@echo "Example: make jump.S"
+all: $(INTEGRATION_BINS)
+	@echo ""
+	@echo "Built $(words $(INTEGRATION_BINS)) integration test(s)"
+
+# Pattern rule: integration_test_X.S -> integration_test_X.bin
+integration_test_%.bin: integration_test_%.S
+	@$(AS) $(ASFLAGS) -o $(basename $<).o $< && \
+	$(LD) $(LDFLAGS) -o $(basename $<).elf $(basename $<).o && \
+	$(OBJCOPY) -O binary $(basename $<).elf $@ && \
+	$(OBJDUMP) -d -M no-aliases,numeric $(basename $<).elf > $(basename $<).dis && \
+	rm -f $(basename $<).o && \
+	echo "Built $< -> $@"
 
 help:
 	@echo "Usage:"
-	@echo "  make <filename>.S   - Build any assembly file"
-	@echo "  Example: make tests.S"
-	@echo ""
-	@echo "  Produces: prog.elf, prog.bin, prog.dis"
-	@echo "  make clean          - Remove build artifacts"
+	@echo "  make                        - Build all integration tests into <name>.bin"
+	@echo "  make prog TEST=<name>       - Build <name>.S into prog.bin (for GUI sim)"
+	@echo "  make clean                  - Remove build artifacts"
 
-# Generic rule to build any .S file (always rebuild)
-# Use filter to only match files that exist
-.PHONY: $(wildcard *.S)
-$(wildcard *.S):
-	@$(AS) $(ASFLAGS) -o $(basename $@).o $@ && \
-	$(LD) $(LDFLAGS) -o $(ELF) $(basename $@).o && \
-	$(OBJCOPY) -O binary $(ELF) $(BIN) && \
-	$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS) && \
-	rm -f $(basename $@).o && \
-	echo "" && \
-	echo "Built $@ -> $(BIN), $(DIS)"
-
-# Catch-all for .S files that don't exist yet
-%.S:
-	@if [ -f "$@" ]; then \
-		$(AS) $(ASFLAGS) -o $(basename $@).o $@ && \
-		$(LD) $(LDFLAGS) -o $(ELF) $(basename $@).o && \
-		$(OBJCOPY) -O binary $(ELF) $(BIN) && \
-		$(OBJDUMP) -d -M no-aliases,numeric $(ELF) > $(DIS) && \
-		rm -f $(basename $@).o && \
-		echo "" && \
-		echo "Built $@ -> $(BIN), $(DIS)"; \
-	else \
-		echo "Error: File $@ not found"; \
-		exit 1; \
-	fi
+.PHONY: prog
+prog:
+	@test -n "$(TEST)" || (echo "Error: specify TEST=<name>  e.g. make prog TEST=integration_test_Zaamo"; exit 1)
+	@test -f "$(TEST).S" || (echo "Error: $(TEST).S not found"; exit 1)
+	@$(AS) $(ASFLAGS) -o $(TEST).o $(TEST).S && \
+	$(LD) $(LDFLAGS) -o prog.elf $(TEST).o && \
+	$(OBJCOPY) -O binary prog.elf prog.bin && \
+	$(OBJDUMP) -d -M no-aliases,numeric prog.elf > prog.dis && \
+	rm -f $(TEST).o && \
+	echo "Built $(TEST).S -> prog.bin"
 
 clean:
-	rm -f *.o $(ELF) $(BIN) $(DIS)
-	@echo "Cleaned build artifacts"
+	rm -f *.o *.elf *.bin *.dis

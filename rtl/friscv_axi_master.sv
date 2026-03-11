@@ -127,7 +127,7 @@ assign m_axi_arqos   = 4'h0;
 assign o_wait = w_next_state != S_IDLE;
 
 // Clocked logic
-always_ff @(posedge i_clk or negedge i_rstn) begin
+always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_rw <= RW_IDLE;
         r_state <= S_IDLE;

@@ -12,15 +12,19 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="49,959.927 ns"></ZoomStartTime>
-      <ZoomEndTime time="50,147.957 ns"></ZoomEndTime>
-      <Cursor1Time time="51,000.000 ns"></Cursor1Time>
+      <ZoomStartTime time="30,349.242 ns"></ZoomStartTime>
+      <ZoomEndTime time="31,427.214 ns"></ZoomEndTime>
+      <Cursor1Time time="31,920.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="325"></NameColumnWidth>
+      <NameColumnWidth column_width="311"></NameColumnWidth>
       <ValueColumnWidth column_width="103"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="22" />
+   <wave_markers>
+      <marker time="30940000" label="" />
+      <marker time="31680000" label="" />
+   </wave_markers>
    <wvobject fp_name="/tb_cc/rstn" type="logic">
       <obj_property name="ElementShortName">rstn</obj_property>
       <obj_property name="ObjectShortName">rstn</obj_property>
@@ -123,30 +127,67 @@
       <obj_property name="label">Control</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/trap_in" type="logic">
+         <obj_property name="ElementShortName">trap_in</obj_property>
+         <obj_property name="ObjectShortName">trap_in</obj_property>
+      </wvobject>
       <wvobject fp_name="group132" type="group">
          <obj_property name="label">Hazard control</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs1_sel_in" type="array">
-            <obj_property name="ElementShortName">id_rs1_sel_in[4:0]</obj_property>
-            <obj_property name="ObjectShortName">id_rs1_sel_in[4:0]</obj_property>
-            <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/mret_in" type="logic">
+            <obj_property name="ElementShortName">mret_in</obj_property>
+            <obj_property name="ObjectShortName">mret_in</obj_property>
          </wvobject>
-         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs2_sel_in" type="array">
-            <obj_property name="ElementShortName">id_rs2_sel_in[4:0]</obj_property>
-            <obj_property name="ObjectShortName">id_rs2_sel_in[4:0]</obj_property>
-            <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_csr_en_in" type="logic">
+            <obj_property name="ElementShortName">id_csr_en_in</obj_property>
+            <obj_property name="ObjectShortName">id_csr_en_in</obj_property>
+            <obj_property name="CustomSignalColor">#00FF7F</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/ex_rd_sel_in" type="array">
-            <obj_property name="ElementShortName">ex_rd_sel_in[4:0]</obj_property>
-            <obj_property name="ObjectShortName">ex_rd_sel_in[4:0]</obj_property>
-            <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_csr_sel_in" type="array">
+            <obj_property name="ElementShortName">id_csr_sel_in[11:0]</obj_property>
+            <obj_property name="ObjectShortName">id_csr_sel_in[11:0]</obj_property>
+            <obj_property name="CustomSignalColor">#00FF7F</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/ex_csr_en_in" type="logic">
+            <obj_property name="ElementShortName">ex_csr_en_in</obj_property>
+            <obj_property name="ObjectShortName">ex_csr_en_in</obj_property>
+            <obj_property name="CustomSignalColor">#FFD700</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/ex_csr_sel_in" type="array">
+            <obj_property name="ElementShortName">ex_csr_sel_in[11:0]</obj_property>
+            <obj_property name="ObjectShortName">ex_csr_sel_in[11:0]</obj_property>
+            <obj_property name="CustomSignalColor">#FFD700</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject fp_name="group170" type="group">
+            <obj_property name="label">Reg</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs1_sel_in" type="array">
+               <obj_property name="ElementShortName">id_rs1_sel_in[4:0]</obj_property>
+               <obj_property name="ObjectShortName">id_rs1_sel_in[4:0]</obj_property>
+               <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_rs2_sel_in" type="array">
+               <obj_property name="ElementShortName">id_rs2_sel_in[4:0]</obj_property>
+               <obj_property name="ObjectShortName">id_rs2_sel_in[4:0]</obj_property>
+               <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/ex_rd_sel_in" type="array">
+               <obj_property name="ElementShortName">ex_rd_sel_in[4:0]</obj_property>
+               <obj_property name="ObjectShortName">ex_rd_sel_in[4:0]</obj_property>
+               <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
          </wvobject>
       </wvobject>
       <wvobject fp_name="group123" type="group">
@@ -189,10 +230,6 @@
             <obj_property name="CustomSignalColor">#FAAFBE</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
-      </wvobject>
-      <wvobject fp_name="/tb_cc/dut/cpu_0/i_irq" type="logic">
-         <obj_property name="ElementShortName">i_irq</obj_property>
-         <obj_property name="ObjectShortName">i_irq</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="divider" fp_name="divider421">
@@ -285,10 +322,6 @@
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/pc_plus_4_in_buff" type="array">
-         <obj_property name="ElementShortName">pc_plus_4_in_buff[31:0]</obj_property>
-         <obj_property name="ObjectShortName">pc_plus_4_in_buff[31:0]</obj_property>
-      </wvobject>
       <wvobject fp_name="group118" type="group">
          <obj_property name="label">Early JAL/JALR</obj_property>
          <obj_property name="DisplayName">label</obj_property>
@@ -308,14 +341,6 @@
          <obj_property name="label">IRQ</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/irq_in" type="logic">
-            <obj_property name="ElementShortName">irq_in</obj_property>
-            <obj_property name="ObjectShortName">irq_in</obj_property>
-         </wvobject>
-         <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/mret_id_out" type="logic">
-            <obj_property name="ElementShortName">mret_id_out</obj_property>
-            <obj_property name="ObjectShortName">mret_id_out</obj_property>
-         </wvobject>
          <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/illegal_inst" type="logic">
             <obj_property name="ElementShortName">illegal_inst</obj_property>
             <obj_property name="ObjectShortName">illegal_inst</obj_property>
@@ -342,6 +367,7 @@
       <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr" type="array">
          <obj_property name="ElementShortName">csr</obj_property>
          <obj_property name="ObjectShortName">csr</obj_property>
+         <obj_property name="isExpanded"></obj_property>
       </wvobject>
       <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/regfile" type="array">
          <obj_property name="ElementShortName">regfile[0:31][31:0]</obj_property>

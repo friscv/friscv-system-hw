@@ -15,11 +15,15 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_core_complex (
+module friscv_core_complex #(
+    parameter int HART_ID = 0
+) (
     input  logic       i_clk,
     input  logic       i_rstn,
     output logic       o_end,
-    input  logic       i_timer_irq,
+    input  logic       i_msip,
+    input  logic       i_mtip,
+    input  logic       i_meip,
 
     output mem_width_e o_mem_size,
     output addr_t      o_mem_addr,
@@ -110,7 +114,7 @@ friscv_l1_arbiter l1_arbiter (
 
 logic r_end_signal;
 
-always_ff @(posedge i_clk or negedge i_rstn) begin
+always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_end_signal <= 1'b0;
     end else if (w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
@@ -125,10 +129,14 @@ assign w_stall_if = w_inst_wait || r_end_signal;
 // Core instance
 // ============================================================
 
-friscv_core cpu_0 (
+friscv_core #(
+    .HART_ID(HART_ID)
+) cpu_0 (
     .i_clk            ( i_clk        ),
     .i_rstn           ( i_rstn       ),
-    .i_irq            ( i_timer_irq  ),
+    .i_msip           ( i_msip       ),
+    .i_mtip           ( i_mtip       ),
+    .i_meip           ( i_meip       ),
 
     // Instruction Memory Interface
     .i_mem_addr_out   ( w_inst_addr  ),
@@ -194,7 +202,7 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
 
     // ROM has 1 cycle latency
     // Only update when we detect a new address change
-    always_ff @(posedge i_clk or negedge i_rstn) begin
+    always_ff @(posedge i_clk) begin
         if (!i_rstn) begin
             r_rom_addr_prev <= '0;
         end else if (w_l2_is_rom && (w_l2_addr != r_rom_addr_prev)) begin

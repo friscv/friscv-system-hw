@@ -6,7 +6,7 @@ _start:
     j _start2
 
 interrupt_handler:
-    li t3, 0x40100000
+    li t3, 0x02000000
     li t4, -1
     sw t4, 0(t3)
     sw t4, 4(t3)
@@ -26,7 +26,7 @@ _start2:
     la t0, interrupt_handler
     csrw 0x305, t0 #mtvec 
     
-    li t0, 0x40100000
+    li t0, 0x02000000
     li t1, 0x8FFFFFFF   
     sw t1, 0(t0)
     sw x0, 4(t0)

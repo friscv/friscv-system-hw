@@ -51,7 +51,7 @@ assign w_load_data = (r_state == S_LOAD && !i_mem_wait) ? i_mem_load_data : r_lo
 assign o_core_load_data = r_load_data;
 assign o_core_wait = w_next_state != S_IDLE;
 
-always_ff @(posedge i_clk or negedge i_rstn) begin
+always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_state     <= S_IDLE;
         r_load_data <= 32'b0;
@@ -86,7 +86,7 @@ always_comb begin
     w_next_state = r_state;
     o_mem_rw = RW_IDLE;
     
-    unique case (r_state)
+    case (r_state)
         S_IDLE: begin
             if (i_amo_op != AMO_NONE) begin
                 w_next_state = S_LOAD;
@@ -101,6 +101,7 @@ always_comb begin
             w_next_state = (i_mem_wait) ? S_STORE : S_IDLE;
             o_mem_rw = RW_WRITE;
         end
+        default: ;
     endcase
 end
 

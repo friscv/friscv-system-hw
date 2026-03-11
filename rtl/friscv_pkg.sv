@@ -34,15 +34,16 @@ package friscv_pkg;
     // Set 2048 for FPGA, 0 for simulation
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
 
-    // Set 2_000_000 for FPGA, 10 for simulation
-    localparam logic [20:0] RST_DEBOUNCE_CYCLES = 2_000_000;
-
     // Parametrized feature generation
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
 
     // Extension selection
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
+
+    // CLINT address workaround
+    // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
+    localparam logic ENABLE_REMAP_CLINT = 1;
 
     // --- Configurable parameter definitions end ---
 
@@ -61,17 +62,52 @@ package friscv_pkg;
     typedef logic [31:0]              inst_t;
     typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
-    localparam addr_t ZSBL_BASE     = 32'h1000;
-    localparam addr_t END_ADDRESS   = 32'h50000000;
-    localparam addr_t DRAM_BASE     = 32'h80000000;
-    localparam addr_t RESET_VEC     = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;
-    localparam addr_t DRAM_START_AT = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
+    localparam addr_t ZSBL_BASE       = 32'h1000;      // RISC-V convention
+    localparam addr_t END_ADDRESS     = 32'h50000000;  // FRISC convention
+    localparam addr_t DRAM_BASE       = 32'h80000000;  // RISC-V convention
+    localparam addr_t DRAM_START_AT   = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
+    localparam addr_t CLINT_REAL_BASE = 32'h40100000;  // Must match AXI address map
+    localparam addr_t CLINT_PHY_BASE  = 32'h02000000;  // RISC-V convention
+    localparam addr_t RESET_VEC       = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;  // Reset to ZSBL if enabled, else jump to RAM
 
     typedef enum logic [11:0] {
-        CSR_ZERO    = 12'h000,
-        CSR_MSTATUS = 12'h300,
-        CSR_MTVEC   = 12'h305,
-        CSR_MEPC    = 12'h341
+        CSR_ZERO = 12'h000,
+
+        // Machine Information Registers
+        CSR_MVENDORID  = 12'hF11,
+        CSR_MARCHID    = 12'hF12,
+        CSR_MIMPID     = 12'hF13,
+        CSR_MHARTID    = 12'hF14,
+        CSR_MCONFIGPTR = 12'hF15,
+
+        // Machine Trap Setup
+        CSR_MSTATUS    = 12'h300,
+        CSR_MISA       = 12'h301,
+        CSR_MEDELEG    = 12'h302,
+        CSR_MIDELEG    = 12'h303,
+        CSR_MIE        = 12'h304,
+        CSR_MTVEC      = 12'h305,
+        CSR_MCOUNTEREN = 12'h306,
+        CSR_MSTATUSH   = 12'h310,
+        // CSR_MEDELEGH   = 12'h312,
+
+        // Machine Trap Handling
+        CSR_MSCRATCH = 12'h340,
+        CSR_MEPC     = 12'h341,
+        CSR_MCAUSE   = 12'h342,
+        CSR_MTVAL    = 12'h343,
+        CSR_MIP      = 12'h344,
+        // CSR_MTINST   = 12'h34A,
+        // CSR_MTVAL2   = 12'h34B,
+
+        // Machine Counter/Timers
+        CSR_MCYCLE    = 12'hB00,
+        CSR_MINSTRET  = 12'hB02,
+        CSR_MCYCLEH   = 12'hB80,
+        CSR_MINSTRETH = 12'hB82,
+
+        // Machine Counter Setup
+        CSR_MCOUNTINHIBIT = 12'h320
     } csr_addr_e;
 
     typedef enum logic [1:0] {
@@ -80,6 +116,30 @@ package friscv_pkg;
         H_MODE = 2'b10,
         M_MODE = 2'b11
     } privilege_e;
+
+    typedef struct packed {
+        logic        sd;          // [31]    State Dirty (RO, OR of FS/XS/VS)
+        logic [7:0]  wpri_30_23;  // [30:23] Reserved (WPRI)
+        logic        tsr;         // [22]    Trap SRET (WPRI)
+        logic        tw;          // [21]    Timeout Wait (WPRI)
+        logic        tvm;         // [20]    Trap Virtual Memory (WPRI)
+        logic        mxr;         // [19]    Make eXecutable Readable (WPRI)
+        logic        sum;         // [18]    Supervisor User Memory access (WPRI)
+        logic        mprv;        // [17]    Modify PRiVilege (WPRI)
+        logic [1:0]  xs;          // [16:15] eXtension Status (WPRI)
+        logic [1:0]  fs;          // [14:13] Floating-point Status (WPRI)
+        privilege_e  mpp;         // [12:11] M Previous Privilege
+        logic [1:0]  vs;          // [10:9]  Vector Status (WPRI)
+        logic        spp;         // [8]     S Previous Privilege (WPRI)
+        logic        mpie;        // [7]     M Previous Interrupt Enable
+        logic        ube;         // [6]     U Big-Endian (WPRI)
+        logic        spie;        // [5]     S Previous Interrupt Enable (WPRI)
+        logic        wpri_4;      // [4]     Reserved (WPRI)
+        logic        mie;         // [3]     M Interrupt Enable
+        logic        wpri_2;      // [2]     Reserved (WPRI)
+        logic        sie;         // [1]     S Interrupt Enable (WPRI)
+        logic        wpri_0;      // [0]     Reserved (WPRI)
+    } mstatus_t;
 
     typedef enum logic [2:0] {
         I_TYPE  = 3'b000,
@@ -157,10 +217,17 @@ package friscv_pkg;
         COND_GEU = 3'b111
     } branch_cond_e;
 
-    typedef enum logic {
-        RS    = 1'b0,
-        OTHER = 1'b1
-    } mux_sel_e;
+    typedef enum logic [1:0] {
+        RS1     = 2'b00,
+        PC      = 2'b10,
+        RS1_SEL = 2'b11
+    } a_bus_sel_e;
+
+    typedef enum logic [1:0] {
+        RS2 = 2'b00,
+        IMM = 2'b01,
+        CSR = 2'b10
+    } b_bus_sel_e;
 
     typedef enum logic [3:0] {
         ADD_OP  = 4'b0000,
@@ -194,28 +261,31 @@ package friscv_pkg;
         MEM_INSTR_STORE = 2'b10
     } mem_instr_sel_e;
 
-    typedef enum logic [1:0] {
-        WB_DATA_SEL_PC_PLUS_4 = 2'b00,
-        WB_DATA_SEL_ALU       = 2'b01,
-        WB_DATA_SEL_MEM       = 2'b10,
-        WB_DATA_SEL_SC_RES    = 2'b11
+    typedef enum logic [2:0] {
+        WB_DATA_SEL_PC_PLUS_4 = 3'b000,
+        WB_DATA_SEL_ALU       = 3'b001,
+        WB_DATA_SEL_MEM       = 3'b010,
+        WB_DATA_SEL_SC_RES    = 3'b011,
+        WB_DATA_SEL_CSR       = 3'b100
     } wb_data_sel_e;
 
     typedef struct packed {
+        logic           instr_valid;
         jump_sel_e      branch_jal_sel;
         branch_cond_e   branch_cond;
-        mux_sel_e       mux1_sel;
-        mux_sel_e       mux2_sel;
+        a_bus_sel_e     a_bus_sel;
+        b_bus_sel_e     b_bus_sel;
         alu_op_e        alu_op;
+        logic           invert_op_a;
         mem_instr_sel_e mem_instr_sel;
         mem_width_e     load_store_width;
         wb_data_sel_e   wb_data_sel;
         logic           reserve;
         logic           conditional;
         amo_op_e        amo_op;
-        logic           csr_wr_en;
+        logic           csr_op;
         logic           mret_en;
-		csr_addr_e      csr_addr;
+        csr_addr_e      csr_addr;
     } instr_ex_t;
 
     typedef enum logic [1:0] {

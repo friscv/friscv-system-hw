@@ -25,54 +25,81 @@ module friscv_pipeline_control (
     output logic      stall_ex_out,
     output logic      stall_mem_out,
 
-    // IF stage    
+    // IF stage
     output logic      jump_ok_out,
     output addr_t     jump_target_out,
+    output logic      eff_mret_out,
 
     // ID stage
     input  reg_addr_t id_rs1_sel_in,
     input  reg_addr_t id_rs2_sel_in,
     input  logic      jal_ok_in,
     input  addr_t     jal_target_in,
+    input  logic      id_csr_en_in,
+    input  csr_addr_e id_csr_sel_in,
 
-    // EX stage   
+    // EX stage
     input  reg_addr_t ex_rd_sel_in,
     input  logic      branch_ok_in,
     input  addr_t     branch_target_in,
+    input  logic      ex_csr_en_in,
+    input  csr_addr_e ex_csr_sel_in,
+
+    // MEM stage
+    input  logic      mem_csr_en_in,
+    input  csr_addr_e mem_csr_sel_in,
 
     // Memory wait signals
     input  logic      if_wait_in,
     input  logic      mem_wait_in,
     
     // Interrupts
-    input logic       interrupt_in,
+    input logic       trap_in,
+    input logic       trap_pending_in,
     input logic       mret_in
 );
 
+logic reg_hazard, csr_hazard, mret_csr_hazard;
 logic mem_stall, hazard_stall;
 
 // Early JAL/JALR must be suppressed when
 //  1) EX cannot capture the decoded instruction (mem_stall) or
 //  2) JALR's rs1 has a data hazard with EX (hazard_stall)
-logic effective_jal;
+logic effective_jal, effective_mret;
 
 always_comb begin
-    mem_stall    = if_wait_in || mem_wait_in;
-    hazard_stall = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+    mem_stall = if_wait_in || mem_wait_in;
+    
+    reg_hazard = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
 
-    effective_jal = jal_ok_in && !mem_stall && !hazard_stall;
+    // mret implicitly reads mepc; stall if a csrw is still in EX or MEM
+    mret_csr_hazard = mret_in && (ex_csr_en_in || mem_csr_en_in);
+
+    // Stall while trap is pending
+    csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in)) ||
+                 (id_csr_en_in && mem_csr_en_in && (id_csr_sel_in == mem_csr_sel_in)) ||
+                 mret_csr_hazard ||
+                 (trap_pending_in && (ex_csr_en_in || mem_csr_en_in));
+
+    hazard_stall = reg_hazard || csr_hazard;
+
+    // Suppress mret redirect until the hazard clears so IF sees the committed mepc
+    effective_mret = mret_in && !mret_csr_hazard;
+    effective_jal  = jal_ok_in  && !mem_stall && !hazard_stall;
 
     stall_if_out  = mem_stall || hazard_stall;
     stall_id_out  = mem_stall || hazard_stall;
     stall_ex_out  = mem_stall;
     stall_mem_out = mem_stall;
 
-    flush_if_out = branch_ok_in || effective_jal || interrupt_in || mret_in;
-    flush_id_out = branch_ok_in || effective_jal || interrupt_in || mret_in;
-    flush_ex_out = (hazard_stall && !mem_stall) || interrupt_in;
+    // Flush only when trap committed
+    flush_if_out = branch_ok_in || effective_jal || trap_in || effective_mret;
+    flush_id_out = branch_ok_in || effective_jal || trap_in || effective_mret;
+    flush_ex_out = (hazard_stall && !mem_stall) || trap_in;
 
     jump_ok_out     = branch_ok_in || effective_jal;
     jump_target_out = (branch_ok_in) ? branch_target_in : jal_target_in;
+    eff_mret_out    = effective_mret;
 end
 
 endmodule

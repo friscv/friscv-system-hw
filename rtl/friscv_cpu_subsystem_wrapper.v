@@ -24,7 +24,9 @@ module friscv_cpu_subsystem_wrapper (
     input  wire aresetn,
 
     output wire done,
-    input  wire i_timer_irq,
+    input  wire i_msip,
+    input  wire i_mtip,
+    input  wire i_meip,
 
     // AXI4 Master Write Address Channel
     output wire        m_axi_awvalid,
@@ -74,7 +76,9 @@ friscv_cpu_subsystem cpu_subsystem (
     .i_clk          ( aclk          ),
     .i_rstn         ( aresetn       ),
     .o_end          ( done          ),
-    .i_timer_irq    ( i_timer_irq   ),
+    .i_msip         ( i_msip        ),
+    .i_mtip         ( i_mtip        ),
+    .i_meip         ( i_meip        ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

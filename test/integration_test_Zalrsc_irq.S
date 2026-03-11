@@ -3,6 +3,11 @@
 #        SC.W succeeds without interrupt (control test).
 #
 # Final result: 0xAABBCCDD only if all tests pass
+#
+# CLINT register map (base = 0x02000000):
+#   +0x0000        : msip[0]
+#   +0x4000/+0x4004: mtimecmp[63:0]  (lo/hi)
+#   +0xBFF8/+0xBFFC: mtime[63:0]     (lo/hi)
 
 .option arch, +zicsr
 .option arch, +a
@@ -24,10 +29,10 @@ _start:
 # ============================================================
 handler:
     addi x10, x10, 1
-    lui  x5, 0x40100           # timer base = 0x40100000
+    lui  x5, 0x2004            # mtimecmp base: 0x02004000
     li   x6, -1
-    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
-    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -47,13 +52,19 @@ test1:
 
     lr.w x2, (x4)              # load-reserve (establishes reservation)
 
-    lui  x5, 0x40100           # timer base
-    sw   x0, 8(x5)             # counter[31:0]  = 0
-    sw   x0, 12(x5)            # counter[63:32] = 0
-    li   x6, 64
-    sw   x6, 0(x5)             # target[31:0]  = 64 (fire after 64 ticks)
-    sw   x0, 4(x5)             # target[63:32] = 0
+    # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0  (0x0200BFF8)
+    sw   x0, -4(x5)            # mtime[63:32] = 0  (0x0200BFFC)
 
+    # Set mtimecmp = 64 (addr 0x02004000)
+    lui  x5, 0x2004
+    li   x6, 64
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64 (fire after 64 ticks)
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
+
+    li   x1, 0x80
+    csrw 0x304, x1             # mie.MTIE = 1 (bit 7)
     li   x1, 8
     csrw 0x300, x1             # mstatus.MIE = 1
 
