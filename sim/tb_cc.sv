@@ -43,6 +43,7 @@ logic        mem_wait;
 
 logic [7:0]  memory [MEM_SIZE];
 logic [31:0] gpio_reg;
+logic [7:0]  uart_lcr;   // UART Line Control Register
 
 int mem_delay_counter;
 
@@ -84,8 +85,12 @@ always_comb begin
                 if (mem_addr >= GPIO_ADDR && mem_addr < (GPIO_ADDR + 32'h20)) begin
                     mem_rdata = 32'h0;  // Boot mode 0: DRAM direct jump
                 end else if (mem_addr >= UART_ADDR && mem_addr < (UART_ADDR + 32'h20)) begin
-                    // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
-                    mem_rdata = (mem_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
+                    // UART 16550 register reads
+                    case (mem_addr - UART_ADDR)
+                        32'h08: mem_rdata = 32'h01;  // IIR: no interrupt pending
+                        32'h14: mem_rdata = 32'h60;  // LSR: THRE(5)|TEMT(6) always set
+                        default: mem_rdata = 32'h0;
+                    endcase
                 end else if (mem_addr >= TIMER_ADDR && mem_addr < (TIMER_ADDR + 32'hC000)) begin
                     case (mem_addr[15:0])
                         16'h0000: mem_rdata = {31'b0, clint_msip[0]};
@@ -136,6 +141,7 @@ always_ff @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         mem_delay_counter <= 0;
         gpio_reg          <= 32'h0;
+        uart_lcr          <= 8'h0;
         mem_read_count    <= 0;
         mem_write_count   <= 0;
     end else begin
@@ -148,8 +154,12 @@ always_ff @(posedge clk or negedge rstn) begin
                     if (mem_addr == GPIO_ADDR) begin
                         gpio_reg <= mem_wdata;
                         $display("[%0t] GPIO write: 0x%08h", $time, mem_wdata);
-                    end else if (mem_addr == (UART_ADDR + 32'h4)) begin
-                        $write("%c", mem_wdata[7:0]);
+                    end else if (mem_addr >= UART_ADDR && mem_addr < (UART_ADDR + 32'h20)) begin
+                        case (mem_addr - UART_ADDR)
+                            32'h00: if (!uart_lcr[7]) $write("%c", mem_wdata[7:0]); // THR (DLAB=0)
+                            32'h0C: uart_lcr <= mem_wdata[7:0];  // LCR
+                            default: ;
+                        endcase
                     end else if (mem_addr >= MEM_BASE && mem_addr < (MEM_BASE + MEM_SIZE)) begin
                         logic [31:0] offset;
                         offset = mem_addr - MEM_BASE;

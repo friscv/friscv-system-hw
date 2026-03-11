@@ -27,15 +27,19 @@
 .equ GPIO_BTN_BIT, 0x1
 .equ GPIO_BTN_OFFSET, 0x0
 
-.equ UART_STATUS, 0x8
-.equ UART_TX, 0x4
-.equ UART_RX, 0x0
-.equ UART_CTRL, 0xC
+.equ RBR, 0x00  # Receive Buffer Register (read)
+.equ THR, 0x00  # Transmit Holding Register (write)
+.equ IER, 0x04  # Interrupt Enable Register
+.equ FCR, 0x08  # FIFO Control Register (write)
+.equ LCR, 0x0C  # Line Control Register
+.equ MCR, 0x10  # Modem Control Register
+.equ LSR, 0x14  # Line Status Register
+.equ DLL, 0x00  # Divisor Latch Low (when LCR[7]=1)
+.equ DLM, 0x04  # Divisor Latch High (when LCR[7]=1)
 
-.equ UART_RST, 0x3
-.equ UART_SR_RX_VALID, 0x01
-.equ UART_SR_TX_EMPTY, 0x04
-.equ UART_SR_TX_FULL, 0x08
+.equ LSR_DR, 0x01    # Data Ready
+.equ LSR_THRE, 0x20  # TX Holding Register Empty
+.equ LSR_TEMT, 0x40  # Transmitter Empty
 
 .equ XMODEM_START, 'C'
 .equ XMODEM_EOT, 0x04
@@ -50,10 +54,8 @@
 .equ MODE_WAIT, 0x3
 
 _start:
-    li t2, UART_BASE
-    li t0, UART_RST            # Reset TX and RX FIFOs
-    sw t0, UART_CTRL(t2)
-    sw zero, UART_CTRL(t2)     # Release reset
+    li a0, 49                  # UART divisor = 90_909_088 / (16 * 115200) = 49
+    call uart_init
 
     la a0, ready_msg
     call uart_puts
@@ -109,39 +111,71 @@ execute_loaded:
 # UART routines
 # -----------------------------------------------------------------------------
 
+# ----- Initialize UART 16550 at UART_BASE -----
+# a0 = divisor value (baud rate = clk / (16 * divisor))
+uart_init:
+    li t1, UART_BASE
+
+    # Disable all interrupts
+    sb zero, IER(t1)
+
+    # Set DLAB=1 to access divisor latches
+    li t0, 0x80
+    sb t0, LCR(t1)
+
+    # Write divisor
+    sb a0, DLL(t1)  # low byte
+    srli t0, a0, 8
+    sb t0, DLM(t1)  # high byte
+
+    # Set 8N1
+    li t0, 0x03
+    sb t0, LCR(t1)
+
+    # Enable and reset FIFOs, 1-byte trigger
+    li t0, 0x07
+    sb t0, FCR(t1)
+
+    # No modem control needed
+    sb zero, MCR(t1)
+
+    ret
+
 # ----- Put character in a0 to UART, wait until ready -----
 uart_putc:
     li t1, UART_BASE
-    1:  lw t0, UART_STATUS(t1)
-        andi t0, t0, UART_SR_TX_FULL
-        bnez t0, 1b            # Wait while TX FIFO is full
-    sw a0, UART_TX(t1)
+1:  lb t0, LSR(t1)
+    andi t0, t0, LSR_THRE      # TX holding register empty?
+    beqz t0, 1b                # No, try again
+    sb a0, THR(t1)
     ret
 
 # ----- Wait for character from UART and return it in a0 -----
 uart_getc:
     li t1, UART_BASE
-    1:  lw t0, UART_STATUS(t1)
-        andi t0, t0, UART_SR_RX_VALID
-        beqz t0, 1b            # Wait while RX FIFO is empty
-    lbu a0, UART_RX(t1)
+1:  lb t0, LSR(t1)
+    andi t0, t0, LSR_DR        # Data ready?
+    beqz t0, 1b                # No, try again
+    lbu a0, RBR(t1)
     ret
 
 # ----- Put null-terminated string at a0 to UART -----
 uart_puts:
     mv s3, ra                  # Save ra in s3 (ZSBL doesn't use it)
     mv t2, a0                  # t2 = string pointer
-    1:  lbu a0, (t2)
-        beqz a0, 2f            # Return if null terminator
-        call uart_putc
-        addi t2, t2, 1
-        j 1b
-    2:
-    li t2, UART_BASE           # Wait until TX FIFO is fully drained
-    3:  lw t0, UART_STATUS(t2)
-        andi t0, t0, UART_SR_TX_EMPTY
-        beqz t0, 3b
-    mv ra, s3                  # Restore ra from s3
+    li t3, UART_BASE
+1:  lbu a0, (t2)
+    beqz a0, 3f
+2:  lb t0, LSR(t3)
+    andi t0, t0, LSR_THRE
+    beqz t0, 2b
+    sb a0, THR(t3)
+    addi t2, t2, 1
+    j 1b
+3:  lb t0, LSR(t3)
+    andi t0, t0, LSR_TEMT
+    beqz t0, 3b
+    mv ra, s3
     ret
 
 # -----------------------------------------------------------------------------
@@ -153,14 +187,14 @@ uart_puts:
 # a1 = timeout loop count
 uart_getc_timeout:
     li t1, UART_BASE
-    1:  lw t0, UART_STATUS(t1)
-        andi t0, t0, UART_SR_RX_VALID
-        bnez t0, 2f            # Character available
-        addi a1, a1, -1
-        bnez a1, 1b            # Keep polling while count > 0
-    li a0, -1                  # Timeout - no character received
+1:  lb t0, LSR(t1)
+    andi t0, t0, LSR_DR
+    bnez t0, 2f
+    addi a1, a1, -1
+    bnez a1, 1b
+    li a0, -1                  # Timeout
     ret
-    2:  lbu a0, UART_RX(t1)
+2:  lbu a0, RBR(t1)
     ret
 
 uart_boot:
@@ -228,8 +262,8 @@ uart_boot:
     li a0, XMODEM_ACK
     call uart_putc
     li t1, UART_BASE           # Wait for TX FIFO to drain before handing off
-    1:  lw t0, UART_STATUS(t1)
-        andi t0, t0, UART_SR_TX_EMPTY
+    1:  lb t0, LSR(t1)
+        andi t0, t0, LSR_TEMT
         beqz t0, 1b
     # Jump directly to loaded code
     j execute_loaded

@@ -66,6 +66,7 @@ logic [1:0]  m_axi_rresp;
 // Memory Model and GPIO
 logic [7:0]  memory [MEM_SIZE];
 logic [31:0] gpio_reg;
+logic [7:0]  uart_lcr;
 int cycle_count;
 int mem_read_count;
 int mem_write_count;
@@ -221,6 +222,7 @@ always_ff @(posedge clk or negedge rstn) begin
         read_addr  <= 0;
 
         gpio_reg <= 0;
+        uart_lcr <= 8'h0;
         mem_read_count  <= 0;
         mem_write_count <= 0;
     end else begin
@@ -246,8 +248,12 @@ always_ff @(posedge clk or negedge rstn) begin
                 if (m_axi_wstrb[2]) gpio_reg[23:16] <= m_axi_wdata[23:16];
                 if (m_axi_wstrb[3]) gpio_reg[31:24] <= m_axi_wdata[31:24];
                 $display("[%0t] GPIO write: 0x%08h", $time, m_axi_wdata);
-            end else if (write_addr == (UART_ADDR + 32'h4)) begin
-                $write("%c", m_axi_wdata[7:0]);
+            end else if (write_addr >= UART_ADDR && write_addr < (UART_ADDR + 32'h20)) begin
+                case (write_addr - UART_ADDR)
+                    32'h00: if (!uart_lcr[7]) $write("%c", m_axi_wdata[7:0]); // THR (DLAB=0)
+                    32'h0C: uart_lcr <= m_axi_wdata[7:0];  // LCR
+                    default: ;
+                endcase
             end else if (write_addr >= DRAM_BASE && write_addr < DRAM_BASE + MEM_SIZE) begin
                 automatic logic [31:0] idx = write_addr - DRAM_BASE;
                 if (m_axi_wstrb[0]) memory[idx+0] <= m_axi_wdata[7:0];
@@ -291,8 +297,12 @@ always_ff @(posedge clk or negedge rstn) begin
             if (read_addr >= GPIO_ADDR && read_addr < (GPIO_ADDR + 32'h20)) begin
                 mem_rdata <= 32'h0;  // Boot mode 0: DRAM direct jump
             end else if (read_addr >= UART_ADDR && read_addr < (UART_ADDR + 32'h20)) begin
-                // STATUS (offset 0x8): TX_EMPTY=1 so uart_putc/uart_puts don't spin
-                mem_rdata <= (read_addr == (UART_ADDR + 32'h8)) ? 32'h4 : 32'h0;
+                // UART 16550 register reads
+                case (read_addr - UART_ADDR)
+                    32'h08: mem_rdata <= 32'h01;  // IIR: no interrupt pending
+                    32'h14: mem_rdata <= 32'h60;  // LSR: THRE(5)|TEMT(6) always set
+                    default: mem_rdata <= 32'h0;
+                endcase
             end else if (read_addr >= DRAM_BASE && read_addr < DRAM_BASE + MEM_SIZE) begin
                 automatic logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
                 mem_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};

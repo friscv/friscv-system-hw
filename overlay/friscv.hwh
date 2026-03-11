@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Wed Mar 11 09:54:24 2026" VIVADOVERSION="2025.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Wed Mar 11 22:03:34 2026" VIVADOVERSION="2025.2">
 
   <SYSTEMINFO ARCH="zynq" BOARD="tul.com.tw:pynq-z2:part0:1.0" DEVICE="7z020" NAME="design_1" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -137,12 +137,12 @@
     </PORT>
     <PORT DIR="I" NAME="uart_rx" SIGIS="undef" SIGNAME="External_Ports_uart_rx">
       <CONNECTIONS>
-        <CONNECTION INSTANCE="fv_uartlite_0" PORT="rx"/>
+        <CONNECTION INSTANCE="fv_uart16550" PORT="sin"/>
       </CONNECTIONS>
     </PORT>
-    <PORT DIR="O" NAME="uart_tx" SIGIS="undef" SIGNAME="fv_uartlite_0_tx">
+    <PORT DIR="O" NAME="uart_tx" SIGIS="undef" SIGNAME="fv_uart16550_sout">
       <CONNECTIONS>
-        <CONNECTION INSTANCE="fv_uartlite_0" PORT="tx"/>
+        <CONNECTION INSTANCE="fv_uart16550" PORT="sout"/>
       </CONNECTIONS>
     </PORT>
   </EXTERNALPORTS>
@@ -354,7 +354,7 @@
       <DOCUMENTS/>
       <PARAMETERS>
         <PARAMETER NAME="COUNT" VALUE="2000000"/>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_debounce_0_0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_debounce_rstn_0"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
@@ -1565,14 +1565,14 @@
         <MEMRANGE ADDRESSBLOCK="Reg" BASENAME="C_BASEADDR" BASEVALUE="0x40000000" HIGHNAME="C_HIGHADDR" HIGHVALUE="0x4000FFFF" INSTANCE="fv_gpio_0" IS_DATA="TRUE" IS_INSTRUCTION="TRUE" MASTERBUSINTERFACE="m_axi" MEMTYPE="REGISTER" SLAVEBUSINTERFACE="S_AXI"/>
         <MEMRANGE ADDRESSBLOCK="Reg" BASENAME="C_BASEADDR" BASEVALUE="0x40010000" HIGHNAME="C_HIGHADDR" HIGHVALUE="0x4001FFFF" INSTANCE="fv_gpio_1" IS_DATA="TRUE" IS_INSTRUCTION="TRUE" MASTERBUSINTERFACE="m_axi" MEMTYPE="REGISTER" SLAVEBUSINTERFACE="S_AXI"/>
         <MEMRANGE ADDRESSBLOCK="reg0" BASENAME="C_BASEADDR" BASEVALUE="0x40100000" HIGHNAME="C_HIGHADDR" HIGHVALUE="0x4010FFFF" INSTANCE="friscv_clint" IS_DATA="TRUE" IS_INSTRUCTION="TRUE" MASTERBUSINTERFACE="m_axi" MEMTYPE="REGISTER" SLAVEBUSINTERFACE="s_axi"/>
-        <MEMRANGE ADDRESSBLOCK="Reg" BASENAME="C_BASEADDR" BASEVALUE="0x40600000" HIGHNAME="C_HIGHADDR" HIGHVALUE="0x4060FFFF" INSTANCE="fv_uartlite_0" IS_DATA="TRUE" IS_INSTRUCTION="TRUE" MASTERBUSINTERFACE="m_axi" MEMTYPE="REGISTER" SLAVEBUSINTERFACE="S_AXI"/>
+        <MEMRANGE ADDRESSBLOCK="Reg" BASENAME="C_BASEADDR" BASEVALUE="0x40600000" HIGHNAME="C_HIGHADDR" HIGHVALUE="0x4060FFFF" INSTANCE="fv_uart16550" IS_DATA="TRUE" IS_INSTRUCTION="TRUE" MASTERBUSINTERFACE="m_axi" MEMTYPE="REGISTER" SLAVEBUSINTERFACE="S_AXI"/>
       </MEMORYMAP>
       <PERIPHERALS>
         <PERIPHERAL INSTANCE="processing_system7_0"/>
         <PERIPHERAL INSTANCE="fv_gpio_0"/>
         <PERIPHERAL INSTANCE="fv_gpio_1"/>
         <PERIPHERAL INSTANCE="friscv_clint"/>
-        <PERIPHERAL INSTANCE="fv_uartlite_0"/>
+        <PERIPHERAL INSTANCE="fv_uart16550"/>
       </PERIPHERALS>
     </MODULE>
     <MODULE COREREVISION="37" FULLNAME="/fv_gpio_0" HWVERSION="2.0" INSTANCE="fv_gpio_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axi_gpio" VLNV="xilinx.com:ip:axi_gpio:2.0">
@@ -1897,9 +1897,9 @@
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="INSERT_VIP" VALUE="0"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="1"/>
-          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
-          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="PHASE" VALUE="0.0"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4LITE"/>
@@ -2258,9 +2258,9 @@
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="INSERT_VIP" VALUE="0"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="1"/>
-          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
-          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="PHASE" VALUE="0.0"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4LITE"/>
@@ -2614,7 +2614,7 @@
         <PARAMETER NAME="S15_ARB_PRIORITY" VALUE="0"/>
         <PARAMETER NAME="S15_HAS_DATA_FIFO" VALUE="0"/>
         <PARAMETER NAME="S15_HAS_REGSLICE" VALUE="0"/>
-        <PARAMETER NAME="STRATEGY" VALUE="2"/>
+        <PARAMETER NAME="STRATEGY" VALUE="1"/>
         <PARAMETER NAME="SYNCHRONIZATION_STAGES" VALUE="3"/>
         <PARAMETER NAME="XBAR_DATA_WIDTH" VALUE="32"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="BUS"/>
@@ -2910,89 +2910,89 @@
             <CONNECTION INSTANCE="proc_sys_reset_0" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="31" NAME="M02_AXI_araddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_araddr">
+        <PORT DIR="O" LEFT="12" NAME="M02_AXI_araddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_araddr">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_araddr"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_araddr"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M02_AXI_arready" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_arready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_arready"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_arready"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="M02_AXI_arvalid" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_arvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_arvalid"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_arvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="31" NAME="M02_AXI_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_awaddr">
+        <PORT DIR="O" LEFT="12" NAME="M02_AXI_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_awaddr">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_awaddr"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_awaddr"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M02_AXI_awready" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_awready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_awready"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_awready"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="M02_AXI_awvalid" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_awvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_awvalid"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_awvalid"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="M02_AXI_bready" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_bready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_bready"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_bready"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="1" NAME="M02_AXI_bresp" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_bresp">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_bresp"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_bresp"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M02_AXI_bvalid" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_bvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_bvalid"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_bvalid"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="M02_AXI_rdata" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_rdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_rdata"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_rdata"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="M02_AXI_rready" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_rready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_rready"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_rready"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="1" NAME="M02_AXI_rresp" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_rresp">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_rresp"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_rresp"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M02_AXI_rvalid" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_rvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_rvalid"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_rvalid"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="M02_AXI_wdata" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_wdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_wdata"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_wdata"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M02_AXI_wready" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_wready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_wready"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_wready"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="3" NAME="M02_AXI_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_wstrb">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_wstrb"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_wstrb"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="M02_AXI_wvalid" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_wvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_wvalid"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_wvalid"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M03_ACLK" SIGIS="clk" SIGNAME="processing_system7_0_FCLK_CLK0">
@@ -3516,23 +3516,23 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="39" FULLNAME="/fv_uartlite_0" HWVERSION="2.0" INSTANCE="fv_uartlite_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axi_uartlite" VLNV="xilinx.com:ip:axi_uartlite:2.0">
+    <MODULE COREREVISION="39" FULLNAME="/fv_uart16550" HWVERSION="2.0" INSTANCE="fv_uart16550" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axi_uart16550" VLNV="xilinx.com:ip:axi_uart16550:2.0">
       <DOCUMENTS>
-        <DOCUMENT SOURCE="http://www.xilinx.com/cgi-bin/docs/ipdoc?c=axi_uartlite;v=v2_0;d=pg142-axi-uartlite.pdf"/>
+        <DOCUMENT SOURCE="http://www.xilinx.com/cgi-bin/docs/ipdoc?c=axi_uart16550;v=v2_0;d=pg143-axi-uart16550.pdf"/>
       </DOCUMENTS>
       <ADDRESSBLOCKS>
-        <ADDRESSBLOCK ACCESS="read-write" INTERFACE="S_AXI" NAME="Reg" RANGE="4096" USAGE="register">
+        <ADDRESSBLOCK ACCESS="read-write" INTERFACE="S_AXI" NAME="Reg" RANGE="65536" USAGE="register">
           <REGISTERS>
-            <REGISTER NAME="RX_FIFO">
-              <PROPERTY NAME="DESCRIPTION" VALUE="Receive data FIFO"/>
-              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x0"/>
+            <REGISTER NAME="RBR_THR_DLL">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Receiver Buffer Register or Transmitter Holding Register or Divisor Latch (LSB) Register.&#xA;Based on DLAB bit in LCR register following register is selected.&#xA;DLAB = 0 then Read is from RBR register.&#xA;DLAB = 0 then Write in to  THR register.&#xA;DLAB = 1 then DLL register is selected.&#xA;"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x1000"/>
               <PROPERTY NAME="SIZE" VALUE="32"/>
-              <PROPERTY NAME="ACCESS" VALUE="read-only"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
               <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
               <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
               <FIELDS>
-                <FIELD NAME="RX_DATA">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="UART Receive Data&#xA;"/>
+                <FIELD NAME="RBR">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Last received character&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="ACCESS" VALUE="read-only"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
@@ -3541,18 +3541,8 @@
                   <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="8"/>
                 </FIELD>
-              </FIELDS>
-            </REGISTER>
-            <REGISTER NAME="TX_FIFO">
-              <PROPERTY NAME="DESCRIPTION" VALUE="Transmit data FIFO"/>
-              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x4"/>
-              <PROPERTY NAME="SIZE" VALUE="32"/>
-              <PROPERTY NAME="ACCESS" VALUE="write-only"/>
-              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
-              <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
-              <FIELDS>
-                <FIELD NAME="TX_DATA">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="UART Transmit Data&#xA;"/>
+                <FIELD NAME="THR">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Holds the character to be transmitted next&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="ACCESS" VALUE="write-only"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
@@ -3561,130 +3551,240 @@
                   <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="8"/>
                 </FIELD>
+                <FIELD NAME="DLL">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Divisor Latch Least Significant Byte&#xA;Note: On reset, the DLL gets configured for 9600 Baud.&#xA;The DLL reset value, [LSB(divisor)] is calculated from the formula, divisor = AXI CLK frequency/(16 x 9600)).&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="8"/>
+                </FIELD>
               </FIELDS>
             </REGISTER>
-            <REGISTER NAME="CTRL_REG">
-              <PROPERTY NAME="DESCRIPTION" VALUE="UART Lite control register"/>
-              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0xC"/>
+            <REGISTER NAME="IER_DLM">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Interrupt Enable Register or Divisor Latch (MSB) Register.&#xA;Based on DLAB bit in LCR register following register is selected.&#xA;DLAB = 0 then IER register is selected.&#xA;DLAB = 1 then DLM register is selected.&#xA;"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x1004"/>
               <PROPERTY NAME="SIZE" VALUE="32"/>
-              <PROPERTY NAME="ACCESS" VALUE="write-only"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
               <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
               <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
               <FIELDS>
-                <FIELD NAME="RST_TXFIFO">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Reset/clear the transmit FIFO&#xA;Writing a 1 to this bit position clears the transmit FIFO&#xA;  0 - Do nothing&#xA;  1 - Clear the transmit FIFO&#xA;"/>
+                <FIELD NAME="IER_ERBFI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - Disables Received Data Available Interrupts.&#xA;1 - Enables Received Data Available Interrupts.&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
-                  <PROPERTY NAME="ACCESS" VALUE="write-only"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
                   <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
                 </FIELD>
-                <FIELD NAME="RST_RXFIFO">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Reset/clear the receive FIFO&#xA;Writing a 1 to this bit position clears the receive FIFO&#xA;  0 - Do nothing&#xA;  1 - Clear the receive FIFO&#xA;"/>
+                <FIELD NAME="IER_ETBEI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - Disables Transmitter Holding Register Empty Interrupts.&#xA;1 - Enables Transmitter Holding Register Interrupts.&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
-                  <PROPERTY NAME="ACCESS" VALUE="write-only"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
                   <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
                 </FIELD>
-                <FIELD NAME="Enable_Intr">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Enable interrupt for the AXI UART Lite&#xA;  0 - Disable interrupt signal&#xA;  1 - Enable interrupt signal&#xA;"/>
-                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="4"/>
-                  <PROPERTY NAME="ACCESS" VALUE="write-only"/>
-                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
-                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
-                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
-                  <PROPERTY NAME="BIT_OFFSET" VALUE="4"/>
-                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
-                </FIELD>
-              </FIELDS>
-            </REGISTER>
-            <REGISTER NAME="STAT_REG">
-              <PROPERTY NAME="DESCRIPTION" VALUE="UART Lite status register"/>
-              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x8"/>
-              <PROPERTY NAME="SIZE" VALUE="32"/>
-              <PROPERTY NAME="ACCESS" VALUE="read-only"/>
-              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
-              <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
-              <FIELDS>
-                <FIELD NAME="RX_FIFO_Valid_Data">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates if the receive FIFO has data.&#xA;  0 - Receive FIFO is empty&#xA;  1 - Receive FIFO has data&#xA;"/>
-                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
-                  <PROPERTY NAME="ACCESS" VALUE="read-only"/>
-                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
-                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
-                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
-                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
-                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
-                </FIELD>
-                <FIELD NAME="RX_FIFO_Full">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates if the receive FIFO is full.&#xA;  0 - Receive FIFO is not full&#xA;  1 - Receive FIFO is full&#xA;"/>
-                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
-                  <PROPERTY NAME="ACCESS" VALUE="read-only"/>
-                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
-                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
-                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
-                  <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
-                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
-                </FIELD>
-                <FIELD NAME="TX_FIFO_Empty">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates if the transmit FIFO is empty.&#xA;  0 - Transmit FIFO is not empty&#xA;  1 - Transmit FIFO is empty&#xA;"/>
+                <FIELD NAME="IER_ELSI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - Disables Receiver Line Status Interrupts.&#xA;1 - Enables Receiver Line Status Interrupts.&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="2"/>
-                  <PROPERTY NAME="ACCESS" VALUE="read-only"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
                   <PROPERTY NAME="BIT_OFFSET" VALUE="2"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
                 </FIELD>
-                <FIELD NAME="TX_FIFO_Full">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates if the transmit FIFO is full.&#xA;  0 - Transmit FIFO is not full&#xA;  1 - Transmit FIFO is full&#xA;"/>
+                <FIELD NAME="IER_EDSSI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - Disables Modem Status Interrupts.&#xA;1 - Enables Modem Status Interrupts.&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="3"/>
-                  <PROPERTY NAME="ACCESS" VALUE="read-only"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
                   <PROPERTY NAME="BIT_OFFSET" VALUE="3"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
                 </FIELD>
-                <FIELD NAME="Intr_Enabled">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates that interrupts is enabled.&#xA;  0 - Interrupt is disabled&#xA;  1 - Interrupt is enabled&#xA;"/>
-                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="4"/>
+                <FIELD NAME="DLM">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Divisor Latch Most Significant Byte&#xA;Note: On reset, the DLM gets configured for 9600 Baud.&#xA;The DLM reset value, [MSB(divisor)] is calculated from the formula, divisor = (AXI CLK frequency/(16 x 9600)).&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="8"/>
+                </FIELD>
+              </FIELDS>
+            </REGISTER>
+            <REGISTER NAME="IIR_FCR">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Interrupt Identification Register or FIFO Control Register.&#xA;Based on DLAB bit in LCR register following register is selected.&#xA;DLAB = 0 then Read is from IIR register.&#xA;DLAB = 0 then Write in to  FCR register.&#xA;DLAB = 1 then FCR register is selected.&#xA;"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x1008"/>
+              <PROPERTY NAME="SIZE" VALUE="32"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
+              <PROPERTY NAME="RESET_VALUE" VALUE="0x1"/>
+              <FIELDS>
+                <FIELD NAME="IIR_INTPEND">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - Interrupt is pending&#xA;1 - No interrupt is pending&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="ACCESS" VALUE="read-only"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
-                  <PROPERTY NAME="BIT_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
                 </FIELD>
-                <FIELD NAME="Overrun_Error">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates that a overrun error has occurred after the last time the status register was read. Overrun is when a new character has been received but the receive FIFO is full. The received character is ignored and not written into the receive FIFO. This bit is cleared when the status register is read.      0 - No overrun error has occurred      1 - Overrun error has occurred&#xA;"/>
-                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="5"/>
+                <FIELD NAME="IIR_INTID2">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="011 - Receiver Line Status (Highest)&#xA;010 - Received Data Available (Second)&#xA;110 - Character Timeout (Second)&#xA;001 - Transmitter Holding Register Empty (Third)&#xA;000 - Modem Status (Fourth)&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
                   <PROPERTY NAME="ACCESS" VALUE="read-only"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
-                  <PROPERTY NAME="BIT_OFFSET" VALUE="5"/>
-                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="3"/>
                 </FIELD>
-                <FIELD NAME="Frame_Error">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates that a frame error has occurred after the last time the status register was read. Frame error is defined as detection of a stop bit with the value 0. The receive character is ignored and not written to the receive FIFO. This bit is cleared when the status register is read.      0 - No frame error has occurred   1 - Frame error has occurred&#xA;"/>
+                <FIELD NAME="IIR_FIFOEN">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Always zero if not in FIFO mode.&#xA;0 - 16450 mode&#xA;1 - 16550 mode&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="6"/>
                   <PROPERTY NAME="ACCESS" VALUE="read-only"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
                   <PROPERTY NAME="BIT_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="2"/>
+                </FIELD>
+                <FIELD NAME="FCR_FIFOEN">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Enables FIFOs.&#xA;0 - Disables FIFOs&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
                   <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
                 </FIELD>
-                <FIELD NAME="Parity_Error">
-                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates that a parity error has occurred after the last time the status register was read. If the UART is configured without any parity handling, this bit is always 0. The received character is written into the receive FIFO. This bit is cleared when the status register is read.      0 - No parity error has occurred      1 - Parity error has occurred&#xA;"/>
+                <FIELD NAME="FCR_RCVR_FIFO_Reset">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Resets RCVR FIFO&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="FCR_XMIT_FIFO_Reset">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Resets XMIT FIFO&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="FCR_DMA_MODE_Select">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - Mode 0.&#xA;1 - Mode 1&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="FCR_RCVR_FIFO_Trigger_Level">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="RCVR FIFO Trigger Level.&#xA;00 - 1 byte.&#xA;01 - 4 bytes.&#xA;10 - 8 bytes.&#xA;11 - 14 bytes.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="2"/>
+                </FIELD>
+              </FIELDS>
+            </REGISTER>
+            <REGISTER NAME="LCR">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Line Control Register"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x100C"/>
+              <PROPERTY NAME="SIZE" VALUE="32"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
+              <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
+              <FIELDS>
+                <FIELD NAME="WLS">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="00 - 5 bits/character&#xA;01 - 6 bits/character&#xA;10 - 7 bits/character&#xA;11 - 8 bits/character&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="2"/>
+                </FIELD>
+                <FIELD NAME="STB">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - 1 Stop bit.&#xA;1 - 2 Stop bits or 1.5, if 5 bits/character selected.&#xA;The receiver checks for 1 stop bit only regardless of the number of stop bits selected.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="PEN">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Enables parity.&#xA;0 - Disables parity&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="EPS">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Selects Even parity.&#xA;0 - Selects Odd parity.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="Stick_Parity">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - When bits 3, 4 are logic 1 the Parity bit is transmitted and checked as a logic 0. &#xA;If bit 4 is a logic 0 and bit 3 is logic 1 then the Parity bit is transmitted and checked as a logic 1.&#xA;0 - Stick Parity is disabled.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="5"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="5"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="Set_Break">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 = Enables break condition. Sets SOUT to 0 and cause break condition.&#xA;0 = Disables break condition&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="DLAB">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Allows access to the Divisor Latch Registers and reading of the FIFO Control Register.&#xA;0 - Allows access to RBR, THR, IER and IIR registers.&#xA;"/>
                   <PROPERTY NAME="ADDRESS_OFFSET" VALUE="7"/>
-                  <PROPERTY NAME="ACCESS" VALUE="read-only"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
                   <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
                   <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
                   <PROPERTY NAME="READ_ACTION" VALUE=""/>
@@ -3693,40 +3793,311 @@
                 </FIELD>
               </FIELDS>
             </REGISTER>
+            <REGISTER NAME="MCR">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Modem Control Register"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x1010"/>
+              <PROPERTY NAME="SIZE" VALUE="32"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
+              <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
+              <FIELDS>
+                <FIELD NAME="DTR">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Drives DTRN Low.&#xA;0 - Drives DTRN High&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="RTS">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Drives RTSN Low.&#xA;0 - Drives RTSN High.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="Out1">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Drives OUT1N Low.&#xA;0 - Drives OUT1N High&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="Out2">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Drives OUT2N Low.&#xA;0 - Drives OUT2N High.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="Loop">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="1 - Enables loopback&#xA;0 - Disables loopback&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+              </FIELDS>
+            </REGISTER>
+            <REGISTER NAME="LSR">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Line Status Register"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x1014"/>
+              <PROPERTY NAME="SIZE" VALUE="32"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
+              <PROPERTY NAME="RESET_VALUE" VALUE="0x60"/>
+              <FIELDS>
+                <FIELD NAME="DR">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - All the data in RBR or FIFO is read.&#xA;1 - Complete incoming character has been received and transferred into the RBR of FIFO.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="OE">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="RBR not read before next character is received, thereby destroying the previous character. &#xA;In FIFO mode, data continues to fill the FIFO beyond the trigger level, an overrun error &#xA;occurs only after the FIFO is full and the next character has been completely received in &#xA;the shift register. The character in the shift register is overwritten but it is not &#xA;transferred to the FIFO.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="PE">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Indicates that the received data character does not have correct even or odd parity as &#xA;selected by the Even parity select bit. In FIFO mode, this error is associated with a &#xA;particular character in the FIFO.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="FE">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Character missing a stop bit. In framing error, the UART attempts to re-synchronize by &#xA;assuming that the framing error was due to next character start bit, so it samples start &#xA;bit twice and then takes in following data. In FIFO mode, this error is associated with a &#xA;particular character in the FIFO.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="BI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Set when SIN is held Low for an entire character time. (Start + data bits + Parity + Stop bits).&#xA;In FIFO mode, this error is associated with a particular character in FIFO. The next character &#xA;transfer is enabled if the Sin goes to marking state and receives the next valid start bit.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="THRE">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - THR or Transmitter FIFO has data to transmit.&#xA;1 - THR is empty. In FIFO mode, Transmitter FIFO is empty.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="5"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="5"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="TEMT">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="0 - THR or Transmitter shift register contains data.&#xA;1 - THR and Transmitter shift register empty&#xA;In FIFO mode, Transmitter FIFO and shift register are both empty.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="Error_in_RCVR_FIFO">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="RCVR FIFO contains at least one receiver error (Parity, Framing, Break condition).&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="7"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="7"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+              </FIELDS>
+            </REGISTER>
+            <REGISTER NAME="MSR">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Modem Status Register"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x1018"/>
+              <PROPERTY NAME="SIZE" VALUE="32"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
+              <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
+              <FIELDS>
+                <FIELD NAME="DCTS">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Change in CTSN after last MSR read.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="DDSR">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Change in DSRN after last MSR read.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="1"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="TERI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="RIN has changed from a Low to a High.&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="2"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="DDCD">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Change in DCDN after last MSR read&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="3"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="CTS">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Complement of CTSN input&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="4"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="DSR">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Complement of DSRN input&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="5"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="5"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="RI">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Complement of RIN input&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="6"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+                <FIELD NAME="DCD">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Complement of DCDN input&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="7"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="7"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="1"/>
+                </FIELD>
+              </FIELDS>
+            </REGISTER>
+            <REGISTER NAME="SCR">
+              <PROPERTY NAME="DESCRIPTION" VALUE="Scratch Register"/>
+              <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0x101C"/>
+              <PROPERTY NAME="SIZE" VALUE="32"/>
+              <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+              <PROPERTY NAME="IS_ENABLED" VALUE="true"/>
+              <PROPERTY NAME="RESET_VALUE" VALUE="0x0"/>
+              <FIELDS>
+                <FIELD NAME="Scratch">
+                  <PROPERTY NAME="DESCRIPTION" VALUE="Hold user data&#xA;"/>
+                  <PROPERTY NAME="ADDRESS_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="ACCESS" VALUE="read-write"/>
+                  <PROPERTY NAME="MODIFIED_READ_VALUES" VALUE=""/>
+                  <PROPERTY NAME="WRITE_CONSTRAINT" VALUE="0"/>
+                  <PROPERTY NAME="READ_ACTION" VALUE=""/>
+                  <PROPERTY NAME="BIT_OFFSET" VALUE="0"/>
+                  <PROPERTY NAME="BIT_WIDTH" VALUE="8"/>
+                </FIELD>
+              </FIELDS>
+            </REGISTER>
           </REGISTERS>
         </ADDRESSBLOCK>
       </ADDRESSBLOCKS>
       <PARAMETERS>
-        <PARAMETER NAME="C_BAUDRATE" VALUE="115200"/>
-        <PARAMETER NAME="C_DATA_BITS" VALUE="8"/>
+        <PARAMETER NAME="C_EXTERNAL_XIN_CLK_HZ" VALUE="25000000"/>
         <PARAMETER NAME="C_FAMILY" VALUE="zynq"/>
-        <PARAMETER NAME="C_ODD_PARITY" VALUE="0"/>
-        <PARAMETER NAME="C_S_AXI_ACLK_FREQ_HZ" VALUE="90909088"/>
-        <PARAMETER NAME="C_S_AXI_ADDR_WIDTH" VALUE="4"/>
+        <PARAMETER NAME="C_HAS_EXTERNAL_RCLK" VALUE="0"/>
+        <PARAMETER NAME="C_HAS_EXTERNAL_XIN" VALUE="0"/>
+        <PARAMETER NAME="C_IS_A_16550" VALUE="1"/>
+        <PARAMETER NAME="C_SIM_DEVICE" VALUE="VERSAL_AI_CORE_ES1"/>
+        <PARAMETER NAME="C_S_AXI_ACLK_FREQ_HZ" VALUE="90000000"/>
+        <PARAMETER NAME="C_S_AXI_ADDR_WIDTH" VALUE="13"/>
         <PARAMETER NAME="C_S_AXI_DATA_WIDTH" VALUE="32"/>
-        <PARAMETER NAME="C_USE_PARITY" VALUE="0"/>
-        <PARAMETER NAME="C_S_AXI_ACLK_FREQ_HZ_d" VALUE="90.909088"/>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_fv_uartlite_0_0"/>
-        <PARAMETER NAME="PARITY" VALUE="No_Parity"/>
-        <PARAMETER NAME="UARTLITE_BOARD_INTERFACE" VALUE="Custom"/>
+        <PARAMETER NAME="BASE_USER" VALUE="1"/>
+        <PARAMETER NAME="C_EXTERNAL_XIN_CLK_HZ_d" VALUE="25"/>
+        <PARAMETER NAME="C_S_AXI_ACLK_FREQ_HZ_d" VALUE="90"/>
+        <PARAMETER NAME="C_USE_MODEM_PORTS" VALUE="1"/>
+        <PARAMETER NAME="C_USE_USER_PORTS" VALUE="1"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_axi_uart16550_0_0"/>
+        <PARAMETER NAME="UART_BOARD_INTERFACE" VALUE="Custom"/>
         <PARAMETER NAME="USE_BOARD_FLOW" VALUE="false"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
         <PARAMETER NAME="C_BASEADDR" VALUE="0x40600000"/>
         <PARAMETER NAME="C_HIGHADDR" VALUE="0x4060FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" NAME="interrupt" SENSITIVITY="EDGE_RISING" SIGIS="INTERRUPT"/>
-        <PORT DIR="I" NAME="rx" SIGIS="undef" SIGNAME="External_Ports_uart_rx">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="External_Ports" PORT="uart_rx"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" NAME="baudoutn" SIGIS="undef"/>
+        <PORT DIR="I" NAME="ctsn" SIGIS="undef"/>
+        <PORT DIR="I" NAME="dcdn" SIGIS="undef"/>
+        <PORT DIR="O" NAME="ddis" SIGIS="undef"/>
+        <PORT DIR="I" NAME="dsrn" SIGIS="undef"/>
+        <PORT DIR="O" NAME="dtrn" SIGIS="undef"/>
+        <PORT DIR="I" NAME="freeze" SIGIS="undef"/>
+        <PORT DIR="O" NAME="ip2intc_irpt" SENSITIVITY="LEVEL_HIGH" SIGIS="INTERRUPT"/>
+        <PORT DIR="O" NAME="out1n" SIGIS="undef"/>
+        <PORT DIR="O" NAME="out2n" SIGIS="undef"/>
+        <PORT DIR="I" NAME="rin" SIGIS="undef"/>
+        <PORT DIR="O" NAME="rtsn" SIGIS="undef"/>
+        <PORT DIR="O" NAME="rxrdyn" SIGIS="undef"/>
         <PORT CLKFREQUENCY="90909088" DIR="I" NAME="s_axi_aclk" SIGIS="clk" SIGNAME="processing_system7_0_FCLK_CLK0">
           <CONNECTIONS>
             <CONNECTION INSTANCE="processing_system7_0" PORT="FCLK_CLK0"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="s_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_araddr">
+        <PORT DIR="I" LEFT="12" NAME="s_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_araddr">
           <CONNECTIONS>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M02_AXI_araddr"/>
           </CONNECTIONS>
@@ -3746,7 +4117,7 @@
             <CONNECTION INSTANCE="fv_interconnect" PORT="M02_AXI_arvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="s_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_awaddr">
+        <PORT DIR="I" LEFT="12" NAME="s_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M02_AXI_awaddr">
           <CONNECTIONS>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M02_AXI_awaddr"/>
           </CONNECTIONS>
@@ -3816,15 +4187,21 @@
             <CONNECTION INSTANCE="fv_interconnect" PORT="M02_AXI_wvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="tx" SIGIS="undef" SIGNAME="fv_uartlite_0_tx">
+        <PORT DIR="I" NAME="sin" SIGIS="undef" SIGNAME="External_Ports_uart_rx">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="External_Ports" PORT="uart_rx"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="sout" SIGIS="undef" SIGNAME="fv_uart16550_sout">
           <CONNECTIONS>
             <CONNECTION INSTANCE="External_Ports" PORT="uart_tx"/>
           </CONNECTIONS>
         </PORT>
+        <PORT DIR="O" NAME="txrdyn" SIGIS="undef"/>
       </PORTS>
       <BUSINTERFACES>
         <BUSINTERFACE BUSNAME="fv_interconnect_M02_AXI" DATAWIDTH="32" NAME="S_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
-          <PARAMETER NAME="ADDR_WIDTH" VALUE="4"/>
+          <PARAMETER NAME="ADDR_WIDTH" VALUE="13"/>
           <PARAMETER NAME="ARUSER_WIDTH" VALUE="0"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
           <PARAMETER NAME="BUSER_WIDTH" VALUE="0"/>
@@ -3843,9 +4220,9 @@
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="INSERT_VIP" VALUE="0"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="1"/>
-          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
-          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="PHASE" VALUE="0.0"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4LITE"/>
@@ -3877,8 +4254,20 @@
         </BUSINTERFACE>
         <BUSINTERFACE BUSNAME="__NOC__" NAME="UART" TYPE="INITIATOR" VLNV="xilinx.com:interface:uart:1.0">
           <PORTMAPS>
-            <PORTMAP LOGICAL="RxD" PHYSICAL="rx"/>
-            <PORTMAP LOGICAL="TxD" PHYSICAL="tx"/>
+            <PORTMAP LOGICAL="BAUDOUTn" PHYSICAL="baudoutn"/>
+            <PORTMAP LOGICAL="CTSn" PHYSICAL="ctsn"/>
+            <PORTMAP LOGICAL="DCDn" PHYSICAL="dcdn"/>
+            <PORTMAP LOGICAL="DDIS" PHYSICAL="ddis"/>
+            <PORTMAP LOGICAL="DSRn" PHYSICAL="dsrn"/>
+            <PORTMAP LOGICAL="DTRn" PHYSICAL="dtrn"/>
+            <PORTMAP LOGICAL="OUT1n" PHYSICAL="out1n"/>
+            <PORTMAP LOGICAL="OUT2n" PHYSICAL="out2n"/>
+            <PORTMAP LOGICAL="RI" PHYSICAL="rin"/>
+            <PORTMAP LOGICAL="RTSn" PHYSICAL="rtsn"/>
+            <PORTMAP LOGICAL="RXRDYn" PHYSICAL="rxrdyn"/>
+            <PORTMAP LOGICAL="RxD" PHYSICAL="sin"/>
+            <PORTMAP LOGICAL="TXRDYn" PHYSICAL="txrdyn"/>
+            <PORTMAP LOGICAL="TxD" PHYSICAL="sout"/>
           </PORTMAPS>
         </BUSINTERFACE>
       </BUSINTERFACES>
@@ -4307,11 +4696,11 @@
             <CONNECTION INSTANCE="fv_interconnect" PORT="M01_ARESETN"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M02_ARESETN"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M03_ARESETN"/>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="gpio_aresetn" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M04_ARESETN"/>
             <CONNECTION INSTANCE="friscv_clint" PORT="rstn_in"/>
             <CONNECTION INSTANCE="debounce_rstn" PORT="rst_n"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="0" NAME="peripheral_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
@@ -5368,7 +5757,6 @@
             <CONNECTION INSTANCE="fv_interconnect" PORT="M01_ACLK"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M02_ACLK"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M03_ACLK"/>
-            <CONNECTION INSTANCE="fv_uartlite_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="gpio_aresetn" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="proc_sys_reset_0" PORT="slowest_sync_clk"/>
             <CONNECTION INSTANCE="processing_system7_0" PORT="M_AXI_GP0_ACLK"/>
@@ -5377,6 +5765,7 @@
             <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="aclk"/>
             <CONNECTION INSTANCE="friscv_clint" PORT="clk_in"/>
             <CONNECTION INSTANCE="debounce_rstn" PORT="clk"/>
+            <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_aclk"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="FCLK_RESET0_N" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="processing_system7_0_FCLK_RESET0_N">
