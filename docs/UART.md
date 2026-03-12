@@ -1,6 +1,6 @@
 # Connecting to FRISC-V via Serial
 
-FRISC-V has a hardware UART interface connected to the Rasbperry Pi header in the standard pinout (pins 8 and 10). Hardware support is provided by a Xilinx UARTLite module with a fixed baudrate of `115200`.
+FRISC-V has a hardware UART interface connected to the Raspberry Pi header in the standard pinout (pins 8 and 10). Hardware support is provided by a Xilinx AXI UART 16550 module. The baud rate is configured in software via a divisor register; the default divisor of `49` yields `115200` baud with the ~90.9 MHz AXI clock.
 
 ![PYNQ-Z2 Raspberry Pi header pinout](assets/images/pynq-z2-raspi-header-pinout.png)
 
@@ -18,41 +18,65 @@ Pin No. | Board Port Label | ZYNQ Port Label | Function
 
 **Address Map:**
 
-The base address of hardware UART is `0x4060_0000`. Different registers are located at different offsets from the base address.
+The base address of hardware UART is `0x4060_0000`. Each NS16550 register occupies one 32-bit word (only the low 8 bits are used). The address space spans `0x4060_0000`–`0x4060_FFFF`.
 
-Offset | Register      | SDK Name        | Width
------- | ------------- | --------------- | -----
-`0x0`  | Receive Data  | `UART_RX_FIFO`  | 8
-`0x4`  | Transmit Data | `UART_TX_FIFO`  | 8
-`0x8`  | Status        | `UART_STAT_REG` | 4
-`0xC`  | Control       | `UART_CTRL_REG` | 5
+Offset  | Register              | Description
+------- | --------------------- | -----------
+`0x00`  | `RBR` / `THR` / `DLL` | Receive Buffer (read) / Transmit Holding (write) / Divisor Latch Low (when `LCR[7]`=1)
+`0x04`  | `IER` / `DLM`         | Interrupt Enable / Divisor Latch High (when `LCR[7]`=1)
+`0x08`  | `IIR` / `FCR`         | Interrupt Identification (read) / FIFO Control (write)
+`0x0C`  | `LCR`                 | Line Control
+`0x10`  | `MCR`                 | Modem Control
+`0x14`  | `LSR`                 | Line Status
+`0x18`  | `MSR`                 | Modem Status
+`0x1C`  | `SCR`                 | Scratch
 
-**Register Pin Map:**
+**Register Bit Map:**
 
-Read from `UART_RX_FIFO` to read a byte from UART, write to `UART_TX_FIFO` to send a byte.
+Read from `RBR` to receive a byte; write to `THR` to transmit a byte. Access the divisor latches (`DLL`/`DLM`) by setting `LCR[7]` (DLAB) to `1` first.
 
-`UART_RX_FIFO` and `UART_TX_FIFO` pin map:
+`LCR` (Line Control Register):
 
-Bit(s)  | Description
-------- | -----------
-`7`-`0` | Received or transmitted byte.
+Bit(s) | Name   | Description
+------ | ------ | -----------
+`1:0`  | `WLS`  | Word length: `0x3` = 8-bit
+`2`    | `STB`  | Stop bits: `0` = 1 stop bit
+`5:3`  | `PEN`  | Parity: `0` = none
+`7`    | `DLAB` | Divisor Latch Access Bit – set to `1` to access `DLL`/`DLM`
 
-`UART_STAT_REG` pin map:
+`FCR` (FIFO Control Register, write-only):
 
-Bit | SDK Name           | Description
---- | ------------------ | -----------
-`0` | `UART_SR_RX_VALID` | There is a byte which can be read.
-`1` | `UART_SR_RX_FULL`  | The receive queue is full, bytes can't be received.
-`2` | `UART_SR_TX_EMPTY` | All enqueued bytes have been transmitted.
-`3` | `UART_SR_TX_FULL`  | The transmit queue is full, bytes can't be sent.
+Bit(s) | Name     | Description
+------ | -------- | -----------
+`0`    | `FEN`    | FIFO enable
+`1`    | `RFIFOR` | Receiver FIFO reset
+`2`    | `XFIFOR` | Transmitter FIFO reset
+`7:6`  | `RXTRIG` | Receiver trigger level
 
-`UART_CTRL_REG` pin map:
+`LSR` (Line Status Register):
 
-Bit | SDK Name             | Description
---- | -------------------- | -----------
-`0` | `UART_CR_RST_TX`     | Reset transmit and clear queue.
-`1` | `UART_CR_RST_RX`     | Reset receive and clear queue.
-`5` | `UART_CR_ENABLE_INT` | Enable or disable interrupts.
+Bit | Name   | Description
+--- | ------ | -----------
+`0` | `DR`   | Data Ready – received byte available in `RBR`
+`5` | `THRE` | Transmitter Holding Register Empty – safe to write `THR`
+`6` | `TEMT` | Transmitter Empty – all bytes have been shifted out
+
+`IER` (Interrupt Enable Register):
+
+Bit | Name    | Description
+--- | ------- | -----------
+`0` | `ERBFI` | Enable Received Data Available interrupt
+`1` | `ETBEI` | Enable Transmitter Holding Register Empty interrupt
+`2` | `ELSI`  | Enable Receiver Line Status interrupt
+`3` | `EDSSI` | Enable Modem Status interrupt
+
+**Baud Rate Configuration:**
+
+The baud rate is set by writing a 16-bit divisor to `DLL` (low byte) and `DLM` (high byte) while `LCR[7]` (DLAB) is `1`:
+
+$$\text{Divisor} = \frac{f_{\text{clk}}}{16 \times \text{Baud Rate}}$$
+
+With the AXI clock of ~90.909 MHz, the divisor for 115200 baud is `49`.
 
 ### I/O Board Side
 
@@ -143,36 +167,42 @@ sudo screen /dev/ttyUSB0 115200
 
 ## Software Examples
 
-Before using UART, the RX and TX queues must be reset by writing to the appropriate pins of the control register.
+Before using UART, the baud rate divisor and line parameters must be configured. The divisor is written while the Divisor Latch Access Bit (`LCR[7]`, DLAB) is set.
 
 ```c
-void uart_init() {
-    // Reset TX and RX
-    UART_CTRL_REG = UART_CR_RST_TX | UART_CR_RST_RX;
-    // Release reset
-    UART_CTRL_REG = 0;
+// Initialize UART 16550 at UART_BASE
+// divisor: baud rate = clk / (16 * divisor)
+// For 115200 baud @ ~90.909 MHz: divisor = 49
+void uart_init(uint8_t divisor) {
+    UART_IER = 0;           // Disable all interrupts
+
+    UART_LCR = 0x80;        // Set DLAB=1 to access divisor latches
+    UART_DLL = divisor;     // Divisor low byte
+    UART_DLM = 0;           // Divisor high byte
+
+    UART_LCR = 0x03;        // 8N1, DLAB=0
+    UART_FCR = 0x07;        // Enable FIFOs, reset RX and TX, 1-byte trigger
+    UART_MCR = 0;           // No modem control
 }
 ```
 
-When writing a byte, software must check that the transmit queue is not full.
+When writing a byte, software must wait until the Transmitter Holding Register is empty (`LSR[5]`, THRE).
 
 ```c
 void uart_putc(char c) {
-    // Wait if TX FIFO is full
-    while (UART_STAT_REG & UART_SR_TX_FULL);
-    // Put char when not full
-    UART_TX_FIFO = c;
+    // Wait until TX holding register is empty
+    while (!(UART_LSR & UART_LSR_THRE));
+    UART_THR = c;
 }
 ```
 
-When reading a byte, software must check that there is valid data in the receive queue.
+When reading a byte, software must wait for the Data Ready flag (`LSR[0]`, DR).
 
 ```c
 char uart_getc() {
-    // Wait if RX FIFO is empty
-    while (!(UART_STAT_REG & UART_SR_RX_VALID));
-    // Read when valid byte present
-    return UART_RX_FIFO & 0xFF;
+    // Wait until received data is ready
+    while (!(UART_LSR & UART_LSR_DR));
+    return UART_RBR & 0xFF;
 }
 ```
 
@@ -181,21 +211,24 @@ The constant values are defined as in [Pinouts and Addresses](#pinouts-and-addre
 ```c
 #include <stdint.h>
 
-// UARTLite register definitions
-#define UART_BASE      0x40600000
-#define UART_RX_FIFO   (*(volatile uint32_t *)(UART_BASE + 0x0))
-#define UART_TX_FIFO   (*(volatile uint32_t *)(UART_BASE + 0x4))
-#define UART_STAT_REG  (*(volatile uint32_t *)(UART_BASE + 0x8))
-#define UART_CTRL_REG  (*(volatile uint32_t *)(UART_BASE + 0xC))
+// AXI UART 16550 register definitions
+// Each register occupies one 32-bit word, only the low 8 bits are used.
+#define UART_BASE  0x40600000
 
-// Status register bits
-#define UART_SR_RX_VALID    0x01  // Receive FIFO valid data
-#define UART_SR_RX_FULL     0x02  // Receive FIFO full
-#define UART_SR_TX_EMPTY    0x04  // Transmit FIFO empty
-#define UART_SR_TX_FULL     0x08  // Transmit FIFO full
+#define UART_RBR  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Receive Buffer (read)
+#define UART_THR  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Transmit Holding (write)
+#define UART_DLL  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Divisor Latch Low  (DLAB=1)
+#define UART_IER  (*(volatile uint8_t *)(UART_BASE + 0x04))  // Interrupt Enable
+#define UART_DLM  (*(volatile uint8_t *)(UART_BASE + 0x04))  // Divisor Latch High (DLAB=1)
+#define UART_FCR  (*(volatile uint8_t *)(UART_BASE + 0x08))  // FIFO Control (write)
+#define UART_LCR  (*(volatile uint8_t *)(UART_BASE + 0x0C))  // Line Control
+#define UART_MCR  (*(volatile uint8_t *)(UART_BASE + 0x10))  // Modem Control
+#define UART_LSR  (*(volatile uint8_t *)(UART_BASE + 0x14))  // Line Status
+#define UART_MSR  (*(volatile uint8_t *)(UART_BASE + 0x18))  // Modem Status
+#define UART_SCR  (*(volatile uint8_t *)(UART_BASE + 0x1C))  // Scratch
 
-// Control register bits
-#define UART_CR_RST_TX      0x01  // Reset transmit FIFO
-#define UART_CR_RST_RX      0x02  // Reset receive FIFO
-#define UART_CR_ENABLE_INT  0x10  // Enable interrupt
+// LSR bits
+#define UART_LSR_DR    0x01  // Data Ready
+#define UART_LSR_THRE  0x20  // Transmitter Holding Register Empty
+#define UART_LSR_TEMT  0x40  // Transmitter Empty
 ```
