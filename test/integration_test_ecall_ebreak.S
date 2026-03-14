@@ -15,7 +15,7 @@ _start:
     li   x29, 0                # Test counter
 
     # Suppress timer interrupt for the entire test
-    csrw 0x304, x0
+    csrw mie, x0
 
     j    main_start
 
@@ -26,9 +26,9 @@ _start:
 # ============================================================
 handler1:
     addi x10, x10, 1           # x10: handler entry count
-    csrr x1, 0x341             # mepc
+    csrr x1, mepc
     addi x1, x1, 4
-    csrw 0x341, x1             # mepc += 4  (skip past ecall)
+    csrw mepc, x1              # mepc += 4  (skip past ecall)
     mret
 
 # ============================================================
@@ -37,10 +37,10 @@ handler1:
 # Caller verifies x15 == exact address of the ecall instruction.
 # ============================================================
 handler2:
-    csrr x15, 0x341            # save mepc before advancing
-    csrr x1,  0x341
+    csrr x15, mepc             # save mepc before advancing
+    csrr x1,  mepc
     addi x1, x1, 4
-    csrw 0x341, x1
+    csrw mepc, x1
     mret
 
 # ============================================================
@@ -49,9 +49,9 @@ handler2:
 # ============================================================
 handler3:
     addi x11, x11, 1           # x11: ebreak handler entry count
-    csrr x1, 0x341
+    csrr x1, mepc
     addi x1, x1, 4
-    csrw 0x341, x1
+    csrw mepc, x1
     mret
 
 # ============================================================
@@ -59,10 +59,10 @@ handler3:
 # Captures full mstatus at trap entry into x16, advances mepc, returns.
 # ============================================================
 handler4:
-    csrr x16, 0x300            # capture mstatus at trap entry
-    csrr x1,  0x341
+    csrr x16, mstatus          # capture mstatus at trap entry
+    csrr x1,  mepc
     addi x1, x1, 4
-    csrw 0x341, x1
+    csrw mepc, x1
     mret
 
 # ============================================================
@@ -73,9 +73,9 @@ handler4:
 # ============================================================
 handler5:
     addi x14, x14, 1           # x14: vectored-mode handler entry count
-    csrr x1, 0x341
+    csrr x1, mepc
     addi x1, x1, 4
-    csrw 0x341, x1
+    csrw mepc, x1
     mret
 
 # ============================================================
@@ -87,17 +87,17 @@ main_start:
 # ================================================================
 test1:
     li   x10, 0
-    csrw 0x300, x0             # mstatus.MIE = 0
+    csrw mstatus, x0           # mstatus.MIE = 0
 
     la   x1, handler1
-    csrw 0x305, x1             # mtvec = handler1 (direct mode)
+    csrw mtvec, x1             # mtvec = handler1 (direct mode)
 
     ecall                      # cause=11, mepc=&ecall; handler runs and mrets here
 
     li   x1, 1
     bne  x10, x1, test_fail    # handler was not entered
 
-    csrr x2, 0x342             # mcause
+    csrr x2, mcause            # mcause
     li   x1, 11
     bne  x2, x1, test_fail     # mcause != 11
 
@@ -114,7 +114,7 @@ test1_pass:
 # ================================================================
 test2:
     la   x1, handler2
-    csrw 0x305, x1             # mtvec = handler2
+    csrw mtvec, x1             # mtvec = handler2
 
 test2_ecall:
     ecall                      # handler2 saves mepc in x15, advances, mrets
@@ -136,14 +136,14 @@ test3:
     li   x11, 0
 
     la   x1, handler3
-    csrw 0x305, x1             # mtvec = handler3
+    csrw mtvec, x1             # mtvec = handler3
 
     ebreak                     # cause=3, mepc=&ebreak; handler runs and mrets here
 
     li   x1, 1
     bne  x11, x1, test_fail    # ebreak handler not entered
 
-    csrr x2, 0x342             # mcause
+    csrr x2, mcause            # mcause
     li   x1, 3
     bne  x2, x1, test_fail     # mcause != 3
 
@@ -164,10 +164,10 @@ test4:
     li   x16, 0                # will be overwritten by handler4
 
     la   x1, handler4
-    csrw 0x305, x1             # mtvec = handler4
+    csrw mtvec, x1             # mtvec = handler4
 
     li   x1, 8
-    csrw 0x300, x1             # mstatus.MIE = 1 (bit 3); mie reg = 0 so no IRQ fires
+    csrw mstatus, x1           # mstatus.MIE = 1 (bit 3); mie reg = 0 so no IRQ fires
 
     ecall                      # handler4 captures mstatus into x16, advances mepc, mrets
 
@@ -180,11 +180,11 @@ test4:
     beqz x1, test_fail         # mpie was not set to old mie
 
     # Check mstatus.MIE is restored to 1 after MRET (mie <= mpie)
-    csrr x1, 0x300
+    csrr x1, mstatus
     andi x1, x1, 8
     beqz x1, test_fail         # mie not restored after mret
 
-    csrw 0x300, x0             # clear mstatus.MIE for remainder of test
+    csrw mstatus, x0           # clear mstatus.MIE for remainder of test
 
 test4_pass:
     addi x28, x28, 0x444
@@ -201,7 +201,7 @@ test5:
 
     la   x1, handler5
     ori  x1, x1, 1             # set mtvec[0]=1 (vectored mode)
-    csrw 0x305, x1             # mtvec = handler5 | 1
+    csrw mtvec, x1             # mtvec = handler5 | 1
 
     ecall                      # cause=11; must go to base (handler5), not base+44
 

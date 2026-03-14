@@ -26,7 +26,7 @@ _start:
 # ============================================================
 handler1:
     addi x10, x10, 1
-    csrr x15, 0x341            # save mepc for boundary check
+    csrr x15, mepc             # save mepc for boundary check
     lui  x5, 0x2004            # mtimecmp base: 0x02004000
     li   x6, -1
     sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF (suppress IRQ)
@@ -85,9 +85,9 @@ test1:
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x1, 0x80
-    csrw 0x304, x1             # mie.MTIE = 1 (bit 7)
+    csrw mie, x1               # mie.MTIE = 1 (bit 7)
     li   x1, 8
-    csrw 0x300, x1             # mstatus.MIE = 1
+    csrw mstatus, x1           # mstatus.MIE = 1
 
     li   x6, 4096              # spin limit
 test1_spin:
@@ -97,7 +97,7 @@ test1_spin:
     j    test_fail             # timeout: handler never called
 
 test1_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mstatus, x0           # disable MIE
 
     li   x1, 1
     bne  x10, x1, test_fail    # must be exactly 1 (single entry, timer disabled)
@@ -133,7 +133,7 @@ test2:
     li   x13, 0                # post-interrupt step counter
 
     la   x1, handler2
-    csrw 0x305, x1             # mtvec = handler2
+    csrw mtvec, x1             # mtvec = handler2
 
     # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
     lui  x5, 0x200C
@@ -147,9 +147,9 @@ test2:
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x1, 0x80
-    csrw 0x304, x1             # mie.MTIE = 1
+    csrw mie, x1               # mie.MTIE = 1
     li   x1, 8
-    csrw 0x300, x1             # MIE = 1
+    csrw mstatus, x1           # MIE = 1
 
     li   x6, 4096
     li   x7, 0xBEEF
@@ -160,7 +160,7 @@ test2_spin:
     j    test_fail             # timeout: MRET never returned to main code
 
 test2_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mstatus, x0           # disable MIE
     addi x13, x13, 1           # main code continues here after MRET
 
     li   x1, 0xAA55
@@ -187,7 +187,7 @@ test3:
     li   x14, 0                # spurious-entry counter
 
     la   x1, handler3
-    csrw 0x305, x1             # mtvec = handler3
+    csrw mtvec, x1             # mtvec = handler3
 
     # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
     lui  x5, 0x200C

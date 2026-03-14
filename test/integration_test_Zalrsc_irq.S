@@ -45,7 +45,7 @@ test1:
     li   x10, 0                # interrupt fired flag
 
     la   x1, handler
-    csrw 0x305, x1             # mtvec = handler
+    csrw mtvec, x1             # mtvec = handler
 
     li   x7, 0xCAFEBABE
     sw   x7, 0(x4)             # store sentinel at LR/SC target
@@ -64,9 +64,9 @@ test1:
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x1, 0x80
-    csrw 0x304, x1             # mie.MTIE = 1 (bit 7)
+    csrw mie, x1               # mie.MTIE = 1 (bit 7)
     li   x1, 8
-    csrw 0x300, x1             # mstatus.MIE = 1
+    csrw mstatus, x1           # mstatus.MIE = 1
 
     li   x6, 4096
 test1_spin:
@@ -76,7 +76,7 @@ test1_spin:
     j    test_fail             # timeout: handler never called
 
 test1_irq_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mie, x0               # disable MIE
 
     li   x7, 0x12345678        # value to attempt to store
     sc.w x8, x7, (x4)          # SC.W: must FAIL (reservation cleared by IRQ)

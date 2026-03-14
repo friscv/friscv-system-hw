@@ -12,15 +12,18 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="43,766.100 ns"></ZoomStartTime>
-      <ZoomEndTime time="45,007.093 ns"></ZoomEndTime>
-      <Cursor1Time time="44,333.655 ns"></Cursor1Time>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="42.750001 us"></ZoomEndTime>
+      <Cursor1Time time="21.550000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="304"></NameColumnWidth>
+      <NameColumnWidth column_width="297"></NameColumnWidth>
       <ValueColumnWidth column_width="103"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="22" />
+   <wave_markers>
+      <marker time="21550000" label="" />
+   </wave_markers>
    <wvobject fp_name="/tb_cc/rstn" type="logic">
       <obj_property name="ElementShortName">rstn</obj_property>
       <obj_property name="ObjectShortName">rstn</obj_property>
