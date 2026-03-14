@@ -46,7 +46,23 @@ handler2:
     mret
 
 # ============================================================
-# HANDLER 3 - test 4 (MIE gate)
+# HANDLER 4 - test 4 (WFI)
+# Disables timer, advances mepc past WFI, returns.
+# WFI loops to itself; handler must advance mepc+4 or we return to WFI again.
+# ============================================================
+handler4:
+    addi x10, x10, 1
+    lui  x5, 0x2004            # disable timer
+    li   x6, -1
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
+    csrr x1, mepc              # mepc points at the WFI instruction
+    addi x1, x1, 4
+    csrw mepc, x1              # advance past WFI so MRET resumes after it
+    mret
+
+# ============================================================
+# HANDLER 3 - test 3 (MIE gate)
 # Must NEVER execute: IRQ cannot be taken with MIE = 0.
 # Increments x14 to leave a detectable trace if called.
 # ============================================================
@@ -221,12 +237,50 @@ test3_pass:
     bne  x28, x27, test_fail
 
 # ================================================================
+# TEST 4 - WFI suspends execution until interrupt wakes it
+# ================================================================
+test4:
+    li   x10, 0                # handler entry counter
+
+    la   x1, handler4
+    csrw mtvec, x1             # mtvec = handler4
+
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0
+    sw   x0, -4(x5)            # mtime[63:32] = 0
+
+    lui  x5, 0x2004
+    li   x6, 64
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
+
+    li   x1, 0x80
+    csrw mie, x1               # mie.MTIE = 1
+    li   x1, 8
+    csrw mstatus, x1           # mstatus.MIE = 1
+
+    wfi                        # suspend here until timer fires
+
+    # MRET from handler resumes
+    csrw mstatus, x0           # disable MIE
+
+    li   x1, 1
+    bne  x10, x1, test_fail    # handler must have been entered exactly once
+
+test4_pass:
+    addi x28, x28, 0x444
+    sw   x10, 12(x31)          # checkpoint 3: handler entry count (expect 1)
+    addi x29, x29, 1
+    li   x27, 0xAAA
+    bne  x28, x27, test_fail
+
+# ================================================================
 # All tests passed
 # ================================================================
 all_tests_pass:
-    li   x1, 3
+    li   x1, 4
     bne  x29, x1, test_fail
-    li   x2, 0x666
+    li   x2, 0xAAA
     bne  x28, x2, test_fail
 
     li   x1, 0xAABBCCDD
