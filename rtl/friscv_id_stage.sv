@@ -216,7 +216,8 @@ assign exception_safe = !branch_ok_in && (|pc_in_buff);
 
 logic m_interrupt_active, s_interrupt_active;
 
-assign m_interrupt_active = interrupt_safe && csr.mstatus.mie &&
+assign m_interrupt_active = interrupt_safe &&
+                            (csr.mstatus.mie || r_current_privilege != M_MODE) &&
                             (msip_in && csr.mie[3] ||
                              mtip_in && csr.mie[7] ||
                              meip_in && csr.mie[11]);
@@ -265,10 +266,12 @@ end
 
 // A trap is delegated to S-mode when:
 //   - Not already in M-mode (traps never transition to less-privileged mode)
+//   - No M-mode interrupt is active (M-mode interrupts take priority over S-mode)
 //   - s_interrupt_active (already checks mideleg bits), or
 //   - exception cause bit is set in medeleg
 logic is_delegated;
 assign is_delegated = (r_current_privilege != M_MODE) &&
+                      !m_interrupt_active &&
                       (s_interrupt_active || (exception_active && csr.medeleg[exception_cause_code]));
 
 logic trap_to_s_mode;
