@@ -16,11 +16,14 @@
 # s9-s11 - Free to use
 # =============================================================================
 
+.option arch, +zicsr
+
 .equ DRAM_BASE, 0x80000000
 .equ GPIO0_BASE, 0x40000000
 .equ GPIO1_BASE, 0x40010000
 .equ UART_BASE, 0x40600000
 .equ HALT_ADDR, 0x50000000
+.equ DTB_BASE, 0x80200000
 
 .equ GPIO_LED_OFFSET, 0x0
 .equ GPIO_SW_OFFSET, 0x8
@@ -68,7 +71,7 @@ _start:
     la a0, dram_msg
     call uart_puts
     j execute_loaded
-    .skip_direct_jump:
+.skip_direct_jump:
 
     li t1, MODE_UART           # mode 1 = UART (xmodem) boot
     bne s0, t1, .skip_uart
@@ -76,36 +79,38 @@ _start:
     call uart_puts
     call uart_boot
     j .try_sd
-    .skip_uart:
+.skip_uart:
 
     li t1, MODE_SD             # mode 2 = SD card boot
     bne s0, t1, .skip_sd
-    .try_sd:
+.try_sd:
     la a0, sd_msg
     call uart_puts
     call sd_boot
     j .try_wait
-    .skip_sd:
+.skip_sd:
 
     li t1, MODE_WAIT           # mode 3 = wait for button press
     bne s0, t1, .invalid_mode
-    .try_wait:
+.try_wait:
     la a0, wait_msg
     call uart_puts
-    1:  lw t1, GPIO_BTN_OFFSET(s2)
-        andi t1, t1, GPIO_BTN_BIT
-        beqz t1, 1b            # Wait while button is not pressed
+1:  lw t1, GPIO_BTN_OFFSET(s2)
+    andi t1, t1, GPIO_BTN_BIT
+    beqz t1, 1b            # Wait while button is not pressed
     j execute_loaded
 
-    .invalid_mode:
-        li t0, HALT_ADDR
-        sw zero, (t0)
-        j .invalid_mode
+.invalid_mode:
+    li t0, HALT_ADDR
+    sw zero, (t0)
+    j .invalid_mode
 
 # ----- Jump to DRAM to execute loaded code -----
 execute_loaded:
+    csrr a0, mhartid  # a0 = hart id
+    li a1, DTB_BASE   # a1 = address of device tree
     li t0, DRAM_BASE
-    jalr zero, t0
+    jr t0
 
 # -----------------------------------------------------------------------------
 # UART routines

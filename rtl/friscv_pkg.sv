@@ -112,6 +112,9 @@ package friscv_pkg;
         // Machine Memory Protection
         CSR_PMPCFG0   = 12'h3A0,
         CSR_PMPADDR0  = 12'h3B0,
+        CSR_PMPADDR1  = 12'h3B1,
+        CSR_PMPADDR2  = 12'h3B2,
+        CSR_PMPADDR3  = 12'h3B3,
 
         // Machine Counter/Timers
         CSR_MCYCLE    = 12'hB00,
