@@ -26,7 +26,7 @@ _start:
 # ============================================================
 handler1:
     addi x10, x10, 1
-    csrr x15, 0x341            # save mepc for boundary check
+    csrr x15, mepc             # save mepc for boundary check
     lui  x5, 0x2004            # mtimecmp base: 0x02004000
     li   x6, -1
     sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF (suppress IRQ)
@@ -46,7 +46,23 @@ handler2:
     mret
 
 # ============================================================
-# HANDLER 3 - test 4 (MIE gate)
+# HANDLER 4 - test 4 (WFI)
+# Disables timer, advances mepc past WFI, returns.
+# WFI loops to itself; handler must advance mepc+4 or we return to WFI again.
+# ============================================================
+handler4:
+    addi x10, x10, 1
+    lui  x5, 0x2004            # disable timer
+    li   x6, -1
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
+    csrr x1, mepc              # mepc points at the WFI instruction
+    addi x1, x1, 4
+    csrw mepc, x1              # advance past WFI so MRET resumes after it
+    mret
+
+# ============================================================
+# HANDLER 3 - test 3 (MIE gate)
 # Must NEVER execute: IRQ cannot be taken with MIE = 0.
 # Increments x14 to leave a detectable trace if called.
 # ============================================================
@@ -85,9 +101,9 @@ test1:
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x1, 0x80
-    csrw 0x304, x1             # mie.MTIE = 1 (bit 7)
+    csrw mie, x1               # mie.MTIE = 1 (bit 7)
     li   x1, 8
-    csrw 0x300, x1             # mstatus.MIE = 1
+    csrw mstatus, x1           # mstatus.MIE = 1
 
     li   x6, 4096              # spin limit
 test1_spin:
@@ -97,7 +113,7 @@ test1_spin:
     j    test_fail             # timeout: handler never called
 
 test1_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mstatus, x0           # disable MIE
 
     li   x1, 1
     bne  x10, x1, test_fail    # must be exactly 1 (single entry, timer disabled)
@@ -133,7 +149,7 @@ test2:
     li   x13, 0                # post-interrupt step counter
 
     la   x1, handler2
-    csrw 0x305, x1             # mtvec = handler2
+    csrw mtvec, x1             # mtvec = handler2
 
     # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
     lui  x5, 0x200C
@@ -147,9 +163,9 @@ test2:
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x1, 0x80
-    csrw 0x304, x1             # mie.MTIE = 1
+    csrw mie, x1               # mie.MTIE = 1
     li   x1, 8
-    csrw 0x300, x1             # MIE = 1
+    csrw mstatus, x1           # MIE = 1
 
     li   x6, 4096
     li   x7, 0xBEEF
@@ -160,7 +176,7 @@ test2_spin:
     j    test_fail             # timeout: MRET never returned to main code
 
 test2_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mstatus, x0           # disable MIE
     addi x13, x13, 1           # main code continues here after MRET
 
     li   x1, 0xAA55
@@ -187,7 +203,7 @@ test3:
     li   x14, 0                # spurious-entry counter
 
     la   x1, handler3
-    csrw 0x305, x1             # mtvec = handler3
+    csrw mtvec, x1             # mtvec = handler3
 
     # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
     lui  x5, 0x200C
@@ -221,12 +237,50 @@ test3_pass:
     bne  x28, x27, test_fail
 
 # ================================================================
+# TEST 4 - WFI suspends execution until interrupt wakes it
+# ================================================================
+test4:
+    li   x10, 0                # handler entry counter
+
+    la   x1, handler4
+    csrw mtvec, x1             # mtvec = handler4
+
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0
+    sw   x0, -4(x5)            # mtime[63:32] = 0
+
+    lui  x5, 0x2004
+    li   x6, 64
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
+
+    li   x1, 0x80
+    csrw mie, x1               # mie.MTIE = 1
+    li   x1, 8
+    csrw mstatus, x1           # mstatus.MIE = 1
+
+    wfi                        # suspend here until timer fires
+
+    # MRET from handler resumes
+    csrw mstatus, x0           # disable MIE
+
+    li   x1, 1
+    bne  x10, x1, test_fail    # handler must have been entered exactly once
+
+test4_pass:
+    addi x28, x28, 0x444
+    sw   x10, 12(x31)          # checkpoint 3: handler entry count (expect 1)
+    addi x29, x29, 1
+    li   x27, 0xAAA
+    bne  x28, x27, test_fail
+
+# ================================================================
 # All tests passed
 # ================================================================
 all_tests_pass:
-    li   x1, 3
+    li   x1, 4
     bne  x29, x1, test_fail
-    li   x2, 0x666
+    li   x2, 0xAAA
     bne  x28, x2, test_fail
 
     li   x1, 0xAABBCCDD

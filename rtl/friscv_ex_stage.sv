@@ -74,26 +74,6 @@ friscv_ex_stage_branch_unit branch_unit (
     .branch_ok_out     ( branch_ok_out             )
 );
 
-instr_ex_t NOP_CTRL;
-assign NOP_CTRL = '{
-    instr_valid: 1'b0,
-    branch_jal_sel: BRANCH_JAL_NONE,
-    branch_cond: COND_EQ,
-    a_bus_sel: RS1,
-    b_bus_sel: RS2,
-    alu_op: ADD_OP,
-    invert_op_a: 1'b0,
-    mem_instr_sel: MEM_INSTR_NONE,
-    load_store_width: WIDTH_I32,
-    wb_data_sel: WB_DATA_SEL_ALU,
-    reserve: 1'b0,
-    conditional: 1'b0,
-    amo_op: AMO_NONE,
-    csr_op: 1'b0,
-    mret_en: 1'b0,   
-    csr_addr: CSR_ZERO
-};
-
 // Stage inputs buffering
 always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
