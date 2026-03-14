@@ -31,6 +31,7 @@ bd/*/*
 # Do not ignore generated overlays
 !overlay/*.bit
 !overlay/*.hwh
+!overlay/*.xsa
 
 # Synthesis and implementation reports
 *.rpt
