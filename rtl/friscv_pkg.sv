@@ -77,7 +77,6 @@ package friscv_pkg;
         CSR_SSTATUS    = 12'h100,
         CSR_SIE        = 12'h104,
         CSR_STVEC      = 12'h105,
-        // CSR_SCOUNTEREN = 12'h106,
 
         // Supervisor Trap Handling
         CSR_SSCRATCH   = 12'h140,
@@ -102,7 +101,6 @@ package friscv_pkg;
         CSR_MTVEC      = 12'h305,
         CSR_MCOUNTEREN = 12'h306,
         CSR_MSTATUSH   = 12'h310,
-        // CSR_MEDELEGH   = 12'h312,
 
         // Machine Trap Handling
         CSR_MSCRATCH = 12'h340,
@@ -110,8 +108,10 @@ package friscv_pkg;
         CSR_MCAUSE   = 12'h342,
         CSR_MTVAL    = 12'h343,
         CSR_MIP      = 12'h344,
-        // CSR_MTINST   = 12'h34A,
-        // CSR_MTVAL2   = 12'h34B,
+
+        // Machine Memory Protection
+        CSR_PMPCFG0   = 12'h3A0,
+        CSR_PMPADDR0  = 12'h3B0,
 
         // Machine Counter/Timers
         CSR_MCYCLE    = 12'hB00,

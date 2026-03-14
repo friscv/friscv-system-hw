@@ -164,6 +164,10 @@ typedef struct packed {
     data_t mcause;
     inst_t mtval;
 
+    // Machine Memory Protection
+    data_t pmpcfg0;
+    addr_t pmpaddr0;
+
     // Machine Counter/Timers
     logic [63:0] mcycle;
     logic [63:0] minstret;
@@ -437,6 +441,10 @@ always_ff @(posedge clk_in) begin
                 CSR_MEPC:     csr.mepc     <= csr_data_in;
                 CSR_MCAUSE:   csr.mcause   <= csr_data_in;
 
+                // Machine Memory Protection
+                CSR_PMPCFG0:  csr.pmpcfg0  <= csr_data_in;
+                CSR_PMPADDR0: csr.pmpaddr0 <= csr_data_in;
+
                 // Machine Counter Setup
                 CSR_MCOUNTINHIBIT: csr.mcountinhibit <= csr_data_in;
                 default: ;
@@ -488,6 +496,10 @@ always_comb begin
         CSR_MCAUSE:        csr_out = csr.mcause;
         CSR_MTVAL:         csr_out = csr.mtval;
         CSR_MIP:           csr_out = {20'b0, meip_in, 1'b0, csr.seip, 1'b0, mtip_in, 1'b0, csr.stip, 1'b0, msip_in, 1'b0, csr.ssip, 1'b0};
+
+        // Machine Memory Protection
+        CSR_PMPCFG0:       csr_out = csr.pmpcfg0;
+        CSR_PMPADDR0:      csr_out = csr.pmpaddr0;
 
         // Machine Counter/Timers
         CSR_MCYCLE:        csr_out = csr.mcycle[31:0];
