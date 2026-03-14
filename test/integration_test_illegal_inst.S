@@ -8,10 +8,9 @@
 # Sources tested:
 #   1. CSR write to read-only CSR     (decode_csr_ro && is_csr_write)
 #   2. Access to unimplemented CSR    (csr_not_implemented)
-#   3. SRET instruction               (explicit illegal in M-mode-only core)
-#   4. Undefined opcode               (LOAD_FP, default case in opcode decode)
-#   5. STORE with reserved funct3=3   (SD in RV64, illegal in RV32)
-#   6. JALR with reserved funct3=1    (funct3 != 0 check)
+#   3. Undefined opcode               (LOAD_FP, default case in opcode decode)
+#   4. STORE with reserved funct3=3   (SD in RV64, illegal in RV32)
+#   5. JALR with reserved funct3=1    (funct3 != 0 check)
 
 .option arch, +zicsr
 .text
@@ -100,12 +99,12 @@ test2_pass:
     bne  x28, x27, test_fail
 
 # ================================================================
-# TEST 3 - SRET instruction (not supported in M-mode-only core)
-# Illegal because: explicit case 12'b000100000010 -> illegal_inst
-# mtval must equal SRET encoding = 0x10200073
+# TEST 3 - Undefined opcode (LOAD_FP = 7'b0000111, unimplemented)
+# Illegal because: default case in outer opcode switch
+# mtval must equal 0x00000007
 # ================================================================
 test3:
-    .word 0x10200073           # SRET
+    .word 0x00000007           # opcode = LOAD_FP (7'b0000111), all other fields zero
 
     li   x1, 3
     bne  x10, x1, test_fail    # handler entry count must be 3
@@ -113,23 +112,24 @@ test3:
     li   x1, 2
     bne  x11, x1, test_fail    # mcause must be 2
 
-    li   x1, 0x10200073
-    bne  x12, x1, test_fail    # mtval must be SRET encoding
+    li   x1, 0x00000007
+    bne  x12, x1, test_fail    # mtval must be 0x00000007
 
 test3_pass:
-    addi x28, x28, 0x333
+    addi x28, x28, 0x444
     sw   x12, 8(x31)           # checkpoint 2
     addi x29, x29, 1
-    li   x27, 0x666
+    li   x27, 0x777
     bne  x28, x27, test_fail
 
 # ================================================================
-# TEST 4 - Undefined opcode (LOAD_FP = 7'b0000111, unimplemented)
-# Illegal because: default case in outer opcode switch
-# mtval must equal 0x00000007
+# TEST 4 - STORE with reserved funct3=3 (SD in RV64, illegal in RV32I)
+# Encoding: opcode=STORE(0100011), funct3=011, all other fields zero
+#   -> 0x00003023
+# Illegal because: funct3==3'b011 check in STORE decode
 # ================================================================
 test4:
-    .word 0x00000007           # opcode = LOAD_FP (7'b0000111), all other fields zero
+    .word 0x00003023           # STORE funct3=011
 
     li   x1, 4
     bne  x10, x1, test_fail    # handler entry count must be 4
@@ -137,24 +137,24 @@ test4:
     li   x1, 2
     bne  x11, x1, test_fail    # mcause must be 2
 
-    li   x1, 0x00000007
-    bne  x12, x1, test_fail    # mtval must be 0x00000007
+    li   x1, 0x00003023
+    bne  x12, x1, test_fail    # mtval must be 0x00003023
 
 test4_pass:
-    addi x28, x28, 0x444
+    addi x28, x28, 0x555
     sw   x12, 12(x31)          # checkpoint 3
     addi x29, x29, 1
-    li   x27, 0xAAA
+    li   x27, 0xCCC
     bne  x28, x27, test_fail
 
 # ================================================================
-# TEST 5 - STORE with reserved funct3=3 (SD in RV64, illegal in RV32I)
-# Encoding: opcode=STORE(0100011), funct3=011, all other fields zero
-#   -> 0x00003023
-# Illegal because: funct3==3'b011 check in STORE decode
+# TEST 5 - JALR with reserved funct3=1
+# Encoding: opcode=JALR(1100111), rd=x0, funct3=001, rs1=x0, imm=0
+#   -> 0x00001067
+# Illegal because: funct3 != 3'b000 check in JALR decode
 # ================================================================
 test5:
-    .word 0x00003023           # STORE funct3=011
+    .word 0x00001067           # JALR funct3=001
 
     li   x1, 5
     bne  x10, x1, test_fail    # handler entry count must be 5
@@ -162,48 +162,23 @@ test5:
     li   x1, 2
     bne  x11, x1, test_fail    # mcause must be 2
 
-    li   x1, 0x00003023
-    bne  x12, x1, test_fail    # mtval must be 0x00003023
-
-test5_pass:
-    addi x28, x28, 0x555
-    sw   x12, 16(x31)          # checkpoint 4
-    addi x29, x29, 1
-    li   x27, 0xFFF
-    bne  x28, x27, test_fail
-
-# ================================================================
-# TEST 6 - JALR with reserved funct3=1
-# Encoding: opcode=JALR(1100111), rd=x0, funct3=001, rs1=x0, imm=0
-#   -> 0x00001067
-# Illegal because: funct3 != 3'b000 check in JALR decode
-# ================================================================
-test6:
-    .word 0x00001067           # JALR funct3=001
-
-    li   x1, 6
-    bne  x10, x1, test_fail    # handler entry count must be 6
-
-    li   x1, 2
-    bne  x11, x1, test_fail    # mcause must be 2
-
     li   x1, 0x00001067
     bne  x12, x1, test_fail    # mtval must be 0x00001067
 
-test6_pass:
+test5_pass:
     addi x28, x28, 0x666
-    sw   x12, 20(x31)          # checkpoint 5
+    sw   x12, 16(x31)          # checkpoint 4
     addi x29, x29, 1
-    li   x27, 0x1665
+    li   x27, 0x1332
     bne  x28, x27, test_fail
 
 # ================================================================
 # All tests passed
 # ================================================================
 all_tests_pass:
-    li   x1, 6
+    li   x1, 5
     bne  x29, x1, test_fail
-    li   x2, 0x1665
+    li   x2, 0x1332
     bne  x28, x2, test_fail
 
     li   x1, 0xAABBCCDD

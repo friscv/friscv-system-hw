@@ -73,6 +73,18 @@ package friscv_pkg;
     typedef enum logic [11:0] {
         CSR_ZERO = 12'h000,
 
+        // Supervisor Trap Setup
+        CSR_SSTATUS    = 12'h100,
+        CSR_SIE        = 12'h104,
+        CSR_STVEC      = 12'h105,
+
+        // Supervisor Trap Handling
+        CSR_SSCRATCH   = 12'h140,
+        CSR_SEPC       = 12'h141,
+        CSR_SCAUSE     = 12'h142,
+        CSR_STVAL      = 12'h143,
+        CSR_SIP        = 12'h144,
+
         // Machine Information Registers
         CSR_MVENDORID  = 12'hF11,
         CSR_MARCHID    = 12'hF12,
@@ -89,7 +101,6 @@ package friscv_pkg;
         CSR_MTVEC      = 12'h305,
         CSR_MCOUNTEREN = 12'h306,
         CSR_MSTATUSH   = 12'h310,
-        // CSR_MEDELEGH   = 12'h312,
 
         // Machine Trap Handling
         CSR_MSCRATCH = 12'h340,
@@ -97,8 +108,13 @@ package friscv_pkg;
         CSR_MCAUSE   = 12'h342,
         CSR_MTVAL    = 12'h343,
         CSR_MIP      = 12'h344,
-        // CSR_MTINST   = 12'h34A,
-        // CSR_MTVAL2   = 12'h34B,
+
+        // Machine Memory Protection
+        CSR_PMPCFG0   = 12'h3A0,
+        CSR_PMPADDR0  = 12'h3B0,
+        CSR_PMPADDR1  = 12'h3B1,
+        CSR_PMPADDR2  = 12'h3B2,
+        CSR_PMPADDR3  = 12'h3B3,
 
         // Machine Counter/Timers
         CSR_MCYCLE    = 12'hB00,
@@ -123,21 +139,21 @@ package friscv_pkg;
         logic        tsr;         // [22]    Trap SRET (WPRI)
         logic        tw;          // [21]    Timeout Wait (WPRI)
         logic        tvm;         // [20]    Trap Virtual Memory (WPRI)
-        logic        mxr;         // [19]    Make eXecutable Readable (WPRI)
-        logic        sum;         // [18]    Supervisor User Memory access (WPRI)
+        logic        mxr;         // [19]    Make eXecutable Readable
+        logic        sum;         // [18]    Supervisor User Memory access
         logic        mprv;        // [17]    Modify PRiVilege (WPRI)
         logic [1:0]  xs;          // [16:15] eXtension Status (WPRI)
         logic [1:0]  fs;          // [14:13] Floating-point Status (WPRI)
         privilege_e  mpp;         // [12:11] M Previous Privilege
         logic [1:0]  vs;          // [10:9]  Vector Status (WPRI)
-        logic        spp;         // [8]     S Previous Privilege (WPRI)
+        logic        spp;         // [8]     S Previous Privilege
         logic        mpie;        // [7]     M Previous Interrupt Enable
         logic        ube;         // [6]     U Big-Endian (WPRI)
-        logic        spie;        // [5]     S Previous Interrupt Enable (WPRI)
+        logic        spie;        // [5]     S Previous Interrupt Enable
         logic        wpri_4;      // [4]     Reserved (WPRI)
         logic        mie;         // [3]     M Interrupt Enable
         logic        wpri_2;      // [2]     Reserved (WPRI)
-        logic        sie;         // [1]     S Interrupt Enable (WPRI)
+        logic        sie;         // [1]     S Interrupt Enable
         logic        wpri_0;      // [0]     Reserved (WPRI)
     } mstatus_t;
 
@@ -285,6 +301,7 @@ package friscv_pkg;
         amo_op_e        amo_op;
         logic           csr_op;
         logic           mret_en;
+        logic           sret_en;
         csr_addr_e      csr_addr;
     } instr_ex_t;
 
@@ -304,6 +321,7 @@ package friscv_pkg;
         amo_op: AMO_NONE,
         csr_op: 1'b0,
         mret_en: 1'b0,   
+        sret_en: 1'b0,
         csr_addr: CSR_ZERO
     };
 
