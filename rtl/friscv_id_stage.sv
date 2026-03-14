@@ -69,11 +69,11 @@ module friscv_id_stage #(
     input  logic      mem_csr_en_in,
 
     // Outputs and inputs for handling interrupts
-    output addr_t     mtvec_out,
-    output addr_t     mepc_out,
+    output addr_t     tvec_out,          // Resolved mtvec or stvec
+    output addr_t     epc_out,           // Resolved mepc or sepc
     output logic      trap_out,
     output logic      trap_pending_out,
-    output logic      mret_out
+    output logic      ret_out            // Active for both mret and sret
 );
 
 data_t regfile [REGISTER_NUM];
@@ -132,6 +132,21 @@ privilege_e r_current_privilege = M_MODE;
 
 // CSR file definition
 typedef struct packed {
+
+    // Supervisor Interrupt Pending
+    logic ssip;
+    logic stip;
+    logic seip;
+
+    // Supervisor Trap Setup
+    addr_t stvec;
+
+    // Supervisor Trap Handling
+    data_t sscratch;
+    addr_t sepc;
+    data_t scause;
+    inst_t stval;
+
     // Machine Information Registers
     // Hardwired in read block
 
@@ -140,12 +155,12 @@ typedef struct packed {
     data_t medeleg;
     data_t mideleg;
     data_t mie;
-    data_t mtvec;
+    addr_t mtvec;
     data_t mcounteren;
 
     // Machine Trap Handling
     data_t mscratch;
-    data_t mepc;
+    addr_t mepc;
     data_t mcause;
     inst_t mtval;
 
@@ -191,20 +206,6 @@ end
 
 logic [1:0] r_mret_inhibit;
 
-// Check if an enabled interrupt source is pending
-logic meip_active_and_enabled;
-logic mtip_active_and_enabled;
-logic msip_active_and_enabled;
-
-assign meip_active_and_enabled = meip_in && csr.mie[11];
-assign mtip_active_and_enabled = mtip_in && csr.mie[7];
-assign msip_active_and_enabled = msip_in && csr.mie[3];
-
-// Calculate handler address
-logic [31:0] current_cause;
-assign current_cause = meip_active_and_enabled ? 32'd11 :
-                       mtip_active_and_enabled ? 32'd7  : 32'd3;
-
 // Check if interrupt is safe to execute - safe if
 //  1) Not returning from a previous interrupt,
 //  2) Not executing a branch and
@@ -213,13 +214,23 @@ logic interrupt_safe, exception_safe;
 assign interrupt_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
 assign exception_safe = !branch_ok_in && (|pc_in_buff);
 
+logic m_interrupt_active, s_interrupt_active;
+
+assign m_interrupt_active = interrupt_safe && csr.mstatus.mie &&
+                            (msip_in && csr.mie[3] ||
+                             mtip_in && csr.mie[7] ||
+                             meip_in && csr.mie[11]);
+
+assign s_interrupt_active = interrupt_safe &&
+                            (csr.mstatus.sie || r_current_privilege == U_MODE) &&
+                            ((csr.ssip && csr.mie[1] && csr.mideleg[1]) ||
+                             (csr.stip && csr.mie[5] && csr.mideleg[5]) ||
+                             (csr.seip && csr.mie[9] && csr.mideleg[9]));
+
 logic interrupt_active, exception_active;
+assign interrupt_active = m_interrupt_active || s_interrupt_active;
 
-// Detected synchronous exceptions
 logic ecall_active, ebreak_active;
-
-// Entering an interrupt if interrupts enabled and safe, and a source that is individually enabled is pending
-assign interrupt_active = csr.mstatus.mie && interrupt_safe && (meip_active_and_enabled || mtip_active_and_enabled || msip_active_and_enabled);
 assign exception_active = exception_safe && (ecall_active || ebreak_active || illegal_inst);
 
 // Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
@@ -232,14 +243,70 @@ assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in);
 assign trap_out         = trap_raw && !trap_csr_hazard;
 assign trap_pending_out = trap_raw;
 
-assign mret_out  = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'h302);
-assign mepc_out  = csr.mepc;
-assign mtvec_out = (csr.mtvec[1:0] == 2'b01 && interrupt_active)
-                   ? {csr.mtvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
-                   : {csr.mtvec[31:2], 2'b0};
+logic mret_active, sret_active;
+assign mret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b001100000010);
+assign sret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b000100000010);
+
+assign ret_out = mret_active || sret_active;
+
+// Compute exception cause code based on current privilege (for ecall)
+logic [4:0] exception_cause_code;
+always_comb begin
+    if (ecall_active)
+        case (r_current_privilege)
+            U_MODE:  exception_cause_code = 5'd8;
+            S_MODE:  exception_cause_code = 5'd9;
+            default: exception_cause_code = 5'd11;  // M_MODE
+        endcase
+    else if (ebreak_active) exception_cause_code = 5'd3;
+    else if (illegal_inst)  exception_cause_code = 5'd2;
+    else                    exception_cause_code = 5'd0;
+end
+
+// A trap is delegated to S-mode when:
+//   - Not already in M-mode (traps never transition to less-privileged mode)
+//   - s_interrupt_active (already checks mideleg bits), or
+//   - exception cause bit is set in medeleg
+logic is_delegated;
+assign is_delegated = (r_current_privilege != M_MODE) &&
+                      (s_interrupt_active || (exception_active && csr.medeleg[exception_cause_code]));
+
+logic trap_to_s_mode;
+assign trap_to_s_mode = trap_out && is_delegated;
+
+// Interrupt cause code for vectored tvec offset
+logic [31:0] current_cause;
+always_comb begin
+    if (meip_in && csr.mie[11])
+        current_cause = 32'd11;
+    else if (mtip_in && csr.mie[7])
+        current_cause = 32'd7;
+    else if (msip_in && csr.mie[3])
+        current_cause = 32'd3;
+    else if (csr.seip && csr.mie[9] && csr.mideleg[9])
+        current_cause = 32'd9;
+    else if (csr.stip && csr.mie[5] && csr.mideleg[5])
+        current_cause = 32'd5;
+    else if (csr.ssip && csr.mie[1] && csr.mideleg[1])
+        current_cause = 32'd1;
+    else
+        current_cause = 32'd0;
+end
+
+// Return address used by mret/sret
+assign epc_out = sret_active ? csr.sepc : csr.mepc;
+
+// Trap vector, resolved to correct privilege mode with vectored mode
+assign tvec_out = trap_to_s_mode
+                  ? ((csr.stvec[1:0] == 2'b01 && interrupt_active)
+                     ? {csr.stvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
+                     : {csr.stvec[31:2], 2'b0})
+                  : ((csr.mtvec[1:0] == 2'b01 && interrupt_active)
+                     ? {csr.mtvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
+                     : {csr.mtvec[31:2], 2'b0});
 
 // ============================================================
-// CSR read and write
+// CSR write
 // ============================================================
 
 always_ff @(posedge clk_in) begin
@@ -249,56 +316,118 @@ always_ff @(posedge clk_in) begin
         r_current_privilege <= M_MODE;
     end else begin
         // Only advance countdown when pipeline is not stalled
-        if (mret_out && !ex_csr_en_in && !mem_csr_en_in)
+        if ((mret_active || sret_active) && !ex_csr_en_in && !mem_csr_en_in)
             r_mret_inhibit <= 2'd2;
         else if (r_mret_inhibit != 2'b00 && !stage_stall_in)
             r_mret_inhibit <= r_mret_inhibit - 1;
 
         if (trap_out) begin
-            r_current_privilege  <= M_MODE;
-            csr.mepc         <= pc_in_buff;
-            csr.mstatus.mpie <= csr.mstatus.mie;
-            csr.mstatus.mie  <= 1'b0;
-            csr.mstatus.mpp  <= M_MODE;
+            if (trap_to_s_mode) begin
+                // Delegated trap: enter S-mode
+                r_current_privilege <= S_MODE;
+                csr.sepc            <= pc_in_buff;
+                csr.mstatus.spie    <= csr.mstatus.sie;
+                csr.mstatus.sie     <= 1'b0;
+                csr.mstatus.spp     <= (r_current_privilege == S_MODE) ? 1'b1 : 1'b0;
+                csr.stval           <= illegal_inst ? ir_buff.b : 32'h0;
 
-            if (illegal_inst)
-                csr.mtval <= ir_buff.b;
-            else
-                csr.mtval <= 32'h0;
+                if      (csr.seip && csr.mie[9] && csr.mideleg[9]) csr.scause <= {1'b1, 31'd9};
+                else if (csr.stip && csr.mie[5] && csr.mideleg[5]) csr.scause <= {1'b1, 31'd5};
+                else if (csr.ssip && csr.mie[1] && csr.mideleg[1]) csr.scause <= {1'b1, 31'd1};
+                else if (ecall_active) begin
+                    case (r_current_privilege)
+                        U_MODE:  csr.scause <= 32'd8;
+                        S_MODE:  csr.scause <= 32'd9;
+                        default: csr.scause <= 32'd11;
+                    endcase
+                end
+                else if (ebreak_active) csr.scause <= 32'd3;
+                else if (illegal_inst)  csr.scause <= 32'd2;
 
-            // Determine what caused the trap
-            if (meip_active_and_enabled)
-                csr.mcause <= {1'b1, 31'd11};
-            else if (mtip_active_and_enabled)
-                csr.mcause <= {1'b1, 31'd7};
-            else if (msip_active_and_enabled)
-                csr.mcause <= {1'b1, 31'd3};
-            else if (ecall_active)
-                csr.mcause <= 32'd11;
-            else if (ebreak_active)
-                csr.mcause <= 32'd3;
-            else if (illegal_inst)
-                csr.mcause <= 32'd2;
+            end else begin
+                // Non-delegated trap: enter M-mode
+                r_current_privilege <= M_MODE;
+                csr.mepc            <= pc_in_buff;
+                csr.mstatus.mpie    <= csr.mstatus.mie;
+                csr.mstatus.mie     <= 1'b0;
+                csr.mstatus.mpp     <= r_current_privilege;
+                csr.mtval           <= illegal_inst ? ir_buff.b : 32'h0;
 
-        end else if (mret_out && !ex_csr_en_in && !mem_csr_en_in) begin
-            csr.mstatus.mie   <= csr.mstatus.mpie;
-            csr.mstatus.mpie  <= 1'b1;
+                if      (meip_in && csr.mie[11]) csr.mcause <= {1'b1, 31'd11};
+                else if (mtip_in && csr.mie[7])  csr.mcause <= {1'b1, 31'd7};
+                else if (msip_in && csr.mie[3])  csr.mcause <= {1'b1, 31'd3};
+                else if (ecall_active) begin
+                    case (r_current_privilege)
+                        U_MODE:  csr.mcause <= 32'd8;
+                        S_MODE:  csr.mcause <= 32'd9;
+                        default: csr.mcause <= 32'd11;
+                    endcase
+                end
+                else if (ebreak_active) csr.mcause <= 32'd3;
+                else if (illegal_inst)  csr.mcause <= 32'd2;
+            end
+
+        end else if (sret_active && !ex_csr_en_in && !mem_csr_en_in) begin
+            csr.mstatus.sie     <= csr.mstatus.spie;
+            csr.mstatus.spie    <= 1'b1;
+            r_current_privilege <= csr.mstatus.spp ? S_MODE : U_MODE;
+            csr.mstatus.spp     <= 1'b0;
+
+        end else if (mret_active && !ex_csr_en_in && !mem_csr_en_in) begin
+            csr.mstatus.mie     <= csr.mstatus.mpie;
+            csr.mstatus.mpie    <= 1'b1;
             r_current_privilege <= csr.mstatus.mpp;
-            csr.mstatus.mpp   <= U_MODE;
+            csr.mstatus.mpp     <= U_MODE;
 
         end else if (csr_en_in && instr_ret_in && !wb_csr_ro) begin
             case (csr_sel_in)
+                // Supervisor Trap Setup (aliased into mstatus/mie)
+                CSR_SSTATUS: begin
+                    csr.mstatus.sie  <= csr_data_in[1];
+                    csr.mstatus.spie <= csr_data_in[5];
+                    csr.mstatus.spp  <= csr_data_in[8];
+                    csr.mstatus.sum  <= csr_data_in[18];
+                    csr.mstatus.mxr  <= csr_data_in[19];
+                end
+                CSR_SIE: begin  // S-mode visible bits of mie only
+                    csr.mie[1] <= csr_data_in[1];
+                    csr.mie[5] <= csr_data_in[5];
+                    csr.mie[9] <= csr_data_in[9];
+                end
+                CSR_STVEC:    csr.stvec    <= csr_data_in;
+                CSR_SSCRATCH: csr.sscratch <= csr_data_in;
+                CSR_SEPC:     csr.sepc     <= csr_data_in;
+                CSR_SCAUSE:   csr.scause   <= csr_data_in;
+                CSR_STVAL:    csr.stval    <= csr_data_in;
+                CSR_SIP: begin  // SSIP writable by S-mode; STIP/SEIP only by M-mode
+                    csr.ssip <= csr_data_in[1];
+                    if (r_current_privilege == M_MODE) begin
+                        csr.stip <= csr_data_in[5];
+                        csr.seip <= csr_data_in[9];
+                    end
+                end
+
                 // Machine Trap Setup
-                CSR_MSTATUS: begin  // Only writable fields; WPRI fields stay 0 from reset
+                CSR_MSTATUS: begin
+                    csr.mstatus.sie  <= csr_data_in[1];
                     csr.mstatus.mie  <= csr_data_in[3];
+                    csr.mstatus.spie <= csr_data_in[5];
                     csr.mstatus.mpie <= csr_data_in[7];
+                    csr.mstatus.spp  <= csr_data_in[8];
                     csr.mstatus.mpp  <= privilege_e'(csr_data_in[12:11]);
+                    csr.mstatus.sum  <= csr_data_in[18];
+                    csr.mstatus.mxr  <= csr_data_in[19];
                 end
                 CSR_MEDELEG:    csr.medeleg    <= csr_data_in;
-                CSR_MIDELEG:    csr.mideleg    <= csr_data_in;
+                CSR_MIDELEG:    csr.mideleg    <= csr_data_in & 32'h0000_0222;  // Bits 1,5,9 only
                 CSR_MIE:        csr.mie        <= csr_data_in;
                 CSR_MTVEC:      csr.mtvec      <= csr_data_in;
                 CSR_MCOUNTEREN: csr.mcounteren <= csr_data_in;
+                CSR_MIP: begin  // S-mode soft interrupt bits writable through mip
+                    csr.ssip <= csr_data_in[1];
+                    csr.stip <= csr_data_in[5];
+                    csr.seip <= csr_data_in[9];
+                end
 
                 // Machine Trap Handling
                 CSR_MSCRATCH: csr.mscratch <= csr_data_in;
@@ -320,6 +449,10 @@ always_ff @(posedge clk_in) begin
             csr.minstret <= csr.minstret + 1;
     end
 end
+
+// ============================================================
+// CSR read
+// ============================================================
 
 // Decode selected CSR address
 // Determine whether the selected CSR is implemented
@@ -351,7 +484,7 @@ always_comb begin
         CSR_MEPC:          csr_out = csr.mepc;
         CSR_MCAUSE:        csr_out = csr.mcause;
         CSR_MTVAL:         csr_out = csr.mtval;
-        CSR_MIP:           csr_out = {20'b0, meip_in, 3'b0, mtip_in, 3'b0, msip_in, 3'b0};  // Read-only, [11]=MEIP, [7]=MTIP, [3]=MSIP
+        CSR_MIP:           csr_out = {20'b0, meip_in, 1'b0, csr.seip, 1'b0, mtip_in, 1'b0, csr.stip, 1'b0, msip_in, 1'b0, csr.ssip, 1'b0};
 
         // Machine Counter/Timers
         CSR_MCYCLE:        csr_out = csr.mcycle[31:0];
@@ -362,13 +495,24 @@ always_comb begin
         // Machine Counter Setup
         CSR_MCOUNTINHIBIT: csr_out = csr.mcountinhibit;
 
+        // Supervisor Trap Setup
+        // sstatus is mstatus with M-mode-only bits (MIE[3], MPIE[7], MPP[12:11], MPRV[17]) zeroed
+        CSR_SSTATUS:       csr_out = data_t'(csr.mstatus) & ~32'h0002_1888;
+        CSR_SIE:           csr_out = csr.mie & 32'h0000_0222;  // S-mode bits: SEIE[9], STIE[5], SSIE[1]
+        CSR_STVEC:         csr_out = csr.stvec;
+        CSR_SSCRATCH:      csr_out = csr.sscratch;
+        CSR_SEPC:          csr_out = csr.sepc;
+        CSR_SCAUSE:        csr_out = csr.scause;
+        CSR_STVAL:         csr_out = csr.stval;
+        // S-mode visible interrupt pending bits only
+        CSR_SIP:           csr_out = {22'b0, csr.seip, 3'b0, csr.stip, 3'b0, csr.ssip, 1'b0};
+
         default: begin
             csr_out             = 32'h0;
             csr_not_implemented = 1'b1;
         end
     endcase
 end
-
 
 // ============================================================
 // Immediate generation
@@ -693,14 +837,20 @@ always_comb begin
                 case (ir_buff.b[31:20])
                     12'b000000000000: ecall_active  = 1'b1;  // ECALL
                     12'b000000000001: ebreak_active = 1'b1;  // EBREAK
-                    12'b001100000010: instr_ex_out.mret_en = 1'b1;  // MRET
-                    12'b000100000010: illegal_inst = 1'b1;  // SRET
-                    12'b000100000101: begin  // WFI - jump to self until interrupt
+                    12'b001100000010: begin  // MRET
+                        if (r_current_privilege != M_MODE) illegal_inst = 1'b1;
+                        else instr_ex_out.mret_en = 1'b1;
+                    end
+                    12'b000100000010: begin  // SRET
+                        if (r_current_privilege < S_MODE) illegal_inst = 1'b1;
+                        else instr_ex_out.sret_en = 1'b1;
+                    end
+                    12'b000100000101: begin  // WFI
                         instr_ex_out.branch_jal_sel = JAL_INSTR;
                         instr_ex_out.a_bus_sel = PC;
                         instr_ex_out.b_bus_sel = IMM;
                         instr_ex_out.alu_op = ADD_OP;
-                        imm_sel = ZERO;  // target = PC + 0
+                        imm_sel = ZERO;
                     end
                     default: illegal_inst = 1'b1;
                 endcase

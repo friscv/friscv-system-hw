@@ -38,9 +38,9 @@ module friscv_if_stage (
     
     // Interrupts
     input  logic  trap_in, 
-    input  logic  mret_in,      
-    input  addr_t mtvec_in,    
-    input  addr_t mepc_in
+    input  logic  ret_in,      
+    input  addr_t tvec_in,    
+    input  addr_t epc_in
 );
 
 (* max_fanout = 50 *) addr_t pc_reg;
@@ -58,11 +58,11 @@ always_ff @(posedge clk_in) begin
         ir_buff         <= NOP;
         r_flush_pending <= 1'b0;
     end else begin
-        if (flush_in || jump_ok_in || trap_in || mret_in) begin
-            if (mret_in) begin
-                pc_reg <= {mepc_in[ADDR_WIDTH-1:2], 2'b00};
+        if (flush_in || jump_ok_in || trap_in || ret_in) begin
+            if (ret_in) begin
+                pc_reg <= {epc_in[ADDR_WIDTH-1:2], 2'b00};
             end else if (trap_in) begin
-                pc_reg <= {mtvec_in[ADDR_WIDTH-1:2], 2'b00};
+                pc_reg <= {tvec_in[ADDR_WIDTH-1:2], 2'b00};
             end else if (jump_ok_in) begin
                 pc_reg <= {jump_target_in[ADDR_WIDTH-1:2], 2'b0};
             end else begin
