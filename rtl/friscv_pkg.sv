@@ -288,6 +288,25 @@ package friscv_pkg;
         csr_addr_e      csr_addr;
     } instr_ex_t;
 
+    localparam instr_ex_t NOP_CTRL = '{
+        instr_valid: 1'b0,
+        branch_jal_sel: BRANCH_JAL_NONE,
+        branch_cond: COND_NE,
+        a_bus_sel: RS1,
+        b_bus_sel: RS2,
+        alu_op: ADD_OP,
+        invert_op_a: 1'b0,
+        mem_instr_sel: MEM_INSTR_NONE,
+        load_store_width: WIDTH_I32,
+        wb_data_sel: WB_DATA_SEL_ALU,
+        reserve: 1'b0,
+        conditional: 1'b0,
+        amo_op: AMO_NONE,
+        csr_op: 1'b0,
+        mret_en: 1'b0,   
+        csr_addr: CSR_ZERO
+    };
+
     typedef enum logic [1:0] {
         RW_IDLE  = 2'b00,
         RW_WRITE = 2'b01,

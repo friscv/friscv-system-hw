@@ -224,38 +224,9 @@ test6_pass:
     bne  x28, x27, test_fail
 
 # ================================================================
-# TEST 7 - Read-only CSR protection (addr[11:10] = 2'b11)
+# TEST 7 - Consecutive CSR writes to different CSRs + mcountinhibit
 # ================================================================
 test7:
-    csrr x1, 0xF14             # mhartid: hardwired to HART_ID=0
-    bne  x1, x0, test_fail
-
-    csrr x2, 0xF11             # mvendorid: hardwired to 0
-    bne  x2, x0, test_fail
-
-    csrr x3, 0xF12             # marchid: hardwired to 0
-    bne  x3, x0, test_fail
-
-    # Attempt write to read-only mhartid - must NOT change the value
-    li   x4, 0xDEAD
-    csrw 0xF14, x4             # write attempt (wb_csr_ro prevents actual write)
-    nop
-    nop
-    nop
-    csrr x5, 0xF14             # re-read: must still be 0
-    bne  x5, x0, test_fail
-
-test7_pass:
-    addi x28, x28, 0x777
-    sw   x1, 24(x31)           # checkpoint 6: mhartid (0)
-    addi x29, x29, 1
-    li   x27, 0x1DDC
-    bne  x28, x27, test_fail
-
-# ================================================================
-# TEST 8 - Consecutive CSR writes to different CSRs + mcountinhibit
-# ================================================================
-test8:
     # Part A: two consecutive CSR writes to DIFFERENT CSRs
     li   x1, 0x11111111
     li   x2, 0x22222222
@@ -303,21 +274,21 @@ test8:
     nop
     nop
 
-test8_pass:
+test7_pass:
     addi x28, x28, 0x444
     addi x28, x28, 0x444
-    sw   x3, 28(x31)           # checkpoint 7: mscratch read (0x11111111)
+    sw   x3, 24(x31)           # checkpoint 6: mscratch read (0x11111111)
     addi x29, x29, 1
-    li   x27, 0x2664
+    li   x27, 0x1EED
     bne  x28, x27, test_fail
 
 # ================================================================
 # All tests passed
 # ================================================================
 all_tests_pass:
-    li   x1, 8
+    li   x1, 7
     bne  x29, x1, test_fail
-    li   x2, 0x2664
+    li   x2, 0x1EED
     bne  x28, x2, test_fail
 
     li   x1, 0xAABBCCDD

@@ -109,9 +109,8 @@ always_ff @(posedge clk_in) begin
         pc_in_buff     <= 32'h0;
         pc_plus_4_buff <= 32'h0;
     end else begin
-        if (rd_sel_in != 0) begin
+        if (rd_sel_in != 0)
             regfile[rd_sel_in] <= rd_data_in;
-        end
 
         if (flush_in) begin
             ir_buff        <= NOP;
@@ -148,6 +147,7 @@ typedef struct packed {
     data_t mscratch;
     data_t mepc;
     data_t mcause;
+    inst_t mtval;
 
     // Machine Counter/Timers
     logic [63:0] mcycle;
@@ -209,8 +209,9 @@ assign current_cause = meip_active_and_enabled ? 32'd11 :
 //  1) Not returning from a previous interrupt,
 //  2) Not executing a branch and
 //  3) Not in the middle of a fetch
-logic trap_safe;
-assign trap_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
+logic interrupt_safe, exception_safe;
+assign interrupt_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
+assign exception_safe = !branch_ok_in && (|pc_in_buff);
 
 logic interrupt_active, exception_active;
 
@@ -218,8 +219,8 @@ logic interrupt_active, exception_active;
 logic ecall_active, ebreak_active;
 
 // Entering an interrupt if interrupts enabled and safe, and a source that is individually enabled is pending
-assign interrupt_active = csr.mstatus.mie && trap_safe && (meip_active_and_enabled || mtip_active_and_enabled || msip_active_and_enabled);
-assign exception_active = trap_safe && (ecall_active || ebreak_active);  // trap_safe is possibly too strict here
+assign interrupt_active = csr.mstatus.mie && interrupt_safe && (meip_active_and_enabled || mtip_active_and_enabled || msip_active_and_enabled);
+assign exception_active = exception_safe && (ecall_active || ebreak_active || illegal_inst);
 
 // Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
 // trap fires. Suppress the effective trap (flush + CSR state write) until the pipeline
@@ -231,7 +232,7 @@ assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in);
 assign trap_out         = trap_raw && !trap_csr_hazard;
 assign trap_pending_out = trap_raw;
 
-assign mret_out  = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (selected_csr == 12'h302);
+assign mret_out  = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'h302);
 assign mepc_out  = csr.mepc;
 assign mtvec_out = (csr.mtvec[1:0] == 2'b01 && interrupt_active)
                    ? {csr.mtvec[31:2], 2'b0} + {current_cause[29:0], 2'b0}
@@ -248,18 +249,24 @@ always_ff @(posedge clk_in) begin
         r_current_privilege <= M_MODE;
     end else begin
         // Only advance countdown when pipeline is not stalled
-        if (mret_out) begin
+        if (mret_out && !stage_stall_in)
             r_mret_inhibit <= 2'd2;
-        end else if (r_mret_inhibit != 2'b00 && !stage_stall_in) begin
+        else if (r_mret_inhibit != 2'b00 && !stage_stall_in)
             r_mret_inhibit <= r_mret_inhibit - 1;
-        end
 
         if (trap_out) begin
+            r_current_privilege  <= M_MODE;
             csr.mepc         <= pc_in_buff;
             csr.mstatus.mpie <= csr.mstatus.mie;
             csr.mstatus.mie  <= 1'b0;
             csr.mstatus.mpp  <= M_MODE;
 
+            if (illegal_inst)
+                csr.mtval <= ir_buff.b;
+            else
+                csr.mtval <= 32'h0;
+
+            // Determine what caused the trap
             if (meip_active_and_enabled)
                 csr.mcause <= {1'b1, 31'd11};
             else if (mtip_active_and_enabled)
@@ -270,8 +277,10 @@ always_ff @(posedge clk_in) begin
                 csr.mcause <= 32'd11;
             else if (ebreak_active)
                 csr.mcause <= 32'd3;
+            else if (illegal_inst)
+                csr.mcause <= 32'd2;
 
-        end else if (mret_out) begin
+        end else if (mret_out && !stage_stall_in) begin
             csr.mstatus.mie   <= csr.mstatus.mpie;
             csr.mstatus.mpie  <= 1'b1;
             r_current_privilege <= csr.mstatus.mpp;
@@ -313,7 +322,11 @@ always_ff @(posedge clk_in) begin
 end
 
 // Decode selected CSR address
+// Determine whether the selected CSR is implemented
+logic csr_not_implemented;
+
 always_comb begin
+    csr_not_implemented = 1'b0;
     case (selected_csr)
         // Machine Information Registers
         CSR_MVENDORID:     csr_out = 32'h0;
@@ -337,7 +350,7 @@ always_comb begin
         CSR_MSCRATCH:      csr_out = csr.mscratch;
         CSR_MEPC:          csr_out = csr.mepc;
         CSR_MCAUSE:        csr_out = csr.mcause;
-        CSR_MTVAL:         csr_out = 32'h0;
+        CSR_MTVAL:         csr_out = csr.mtval;
         CSR_MIP:           csr_out = {20'b0, meip_in, 3'b0, mtip_in, 3'b0, msip_in, 3'b0};  // Read-only, [11]=MEIP, [7]=MTIP, [3]=MSIP
 
         // Machine Counter/Timers
@@ -349,9 +362,13 @@ always_comb begin
         // Machine Counter Setup
         CSR_MCOUNTINHIBIT: csr_out = csr.mcountinhibit;
 
-        default:           csr_out = 32'h0;
+        default: begin
+            csr_out             = 32'h0;
+            csr_not_implemented = 1'b1;
+        end
     endcase
 end
+
 
 // ============================================================
 // Immediate generation
@@ -410,27 +427,17 @@ end
 
 always_comb begin
     // Set signals to have no side effect by default
+    instr_ex_out = NOP_CTRL;
     instr_ex_out.instr_valid = 1'b1;
-    instr_ex_out.branch_jal_sel = BRANCH_JAL_NONE;
-    instr_ex_out.branch_cond = COND_NE;
-    instr_ex_out.a_bus_sel = RS1;
-    instr_ex_out.b_bus_sel = RS2;
-    instr_ex_out.alu_op = ADD_OP;
-    instr_ex_out.invert_op_a = 1'b0;
-    instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-    instr_ex_out.load_store_width = WIDTH_I32;
-    instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
-    instr_ex_out.reserve = 1'b0;
-    instr_ex_out.conditional = 1'b0;
-    instr_ex_out.amo_op = AMO_NONE;
+    instr_ex_out.csr_addr = selected_csr;
+
     rs1_sel_out = 5'b0;
     rs2_sel_out = 5'b0;
     rd_sel_out  = 5'b0;
-    illegal_inst = 1'b0;
+
     imm_sel = I_TYPE;
-    instr_ex_out.csr_op = 1'b0;
-    instr_ex_out.mret_en = 1'b0;
-    instr_ex_out.csr_addr = selected_csr;
+
+    illegal_inst = 1'b0;
     ecall_active = 1'b0;
     ebreak_active = 1'b0;
 
@@ -442,6 +449,9 @@ always_comb begin
             instr_ex_out.mem_instr_sel = MEM_INSTR_LOAD;
             instr_ex_out.load_store_width = ir_buff.r.funct3;
             instr_ex_out.wb_data_sel = WB_DATA_SEL_MEM;
+
+            if (ir_buff.r.funct3 == 3'b011 || ir_buff.r.funct3 == 3'b110 || ir_buff.r.funct3 == 3'b111)
+                illegal_inst = 1'b1;
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
@@ -466,9 +476,7 @@ always_comb begin
                         illegal_inst = 1'b1;
                     end
                 end
-                default: begin
-                    illegal_inst = 1'b1;
-                end
+                default: illegal_inst = 1'b1;
             endcase
         end
 
@@ -478,6 +486,8 @@ always_comb begin
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_STORE;
             instr_ex_out.load_store_width = ir_buff.r.funct3;
+
+            if (ir_buff.r.funct3 == 3'b011 || ir_buff.r.funct3 >= 3'b100) illegal_inst = 1'b1;
 
             imm_sel = S_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
@@ -505,7 +515,10 @@ always_comb begin
                                 instr_ex_out.conditional = 1'b1;
                                 instr_ex_out.wb_data_sel = WB_DATA_SEL_SC_RES;
                             end
-                            5'b00010: instr_ex_out.reserve = 1'b1;     // LR.W
+                            5'b00010: begin  // LR.W
+                                instr_ex_out.reserve = 1'b1;
+                                if (ir_buff.r.rs2 != 5'b0) illegal_inst = 1'b1;
+                            end
                             5'b00001: instr_ex_out.amo_op = AMO_SWAP;  // AMOSWAP.W
                             5'b00000: instr_ex_out.amo_op = AMO_ADD;   // AMOADD.W
                             5'b00100: instr_ex_out.amo_op = AMO_XOR;   // AMOXOR.W
@@ -518,9 +531,7 @@ always_comb begin
                             default:  illegal_inst = 1'b1;
                         endcase
                     end
-                    default: begin
-                        illegal_inst = 1'b1;
-                    end
+                    default: illegal_inst = 1'b1;
                 endcase
             end else begin
                 illegal_inst = 1'b1;
@@ -560,6 +571,15 @@ always_comb begin
                 3'b110: instr_ex_out.alu_op = OR_OP;
                 3'b111: instr_ex_out.alu_op = AND_OP;
             endcase
+
+            // Check if funct7 of SLL/SLT/SLTU/XOR/OR/AND is legal
+            if ((ir_buff.r.funct3 == 3'b001 ||
+                 ir_buff.r.funct3 == 3'b010 ||
+                 ir_buff.r.funct3 == 3'b011 ||
+                 ir_buff.r.funct3 == 3'b100 ||
+                 ir_buff.r.funct3 == 3'b110 ||
+                 ir_buff.r.funct3 == 3'b111) && ir_buff.r.funct7 != 7'b0)
+                illegal_inst = 1'b1;
         end
 
         OP_IMM: begin
@@ -582,6 +602,7 @@ always_comb begin
                 3'b001: begin
                     imm_sel = I2_TYPE;
                     instr_ex_out.alu_op = SLL_OP;
+                    if (ir_buff.r.funct7 != 7'b0) illegal_inst = 1'b1;
                 end
                 3'b101: begin
                     imm_sel = I2_TYPE;
@@ -626,7 +647,7 @@ always_comb begin
             imm_sel = B_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
             rs2_sel_out = ir_buff.r.rs2;
-                
+
             case (ir_buff.r.funct3)
                 3'b000:  instr_ex_out.branch_cond = COND_EQ;
                 3'b001:  instr_ex_out.branch_cond = COND_NE;
@@ -645,6 +666,8 @@ always_comb begin
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
             instr_ex_out.wb_data_sel = WB_DATA_SEL_PC_PLUS_4;
+
+            if (ir_buff.r.funct3 != 3'b000) illegal_inst = 1'b1;
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
@@ -665,11 +688,13 @@ always_comb begin
         
         SYSTEM: begin
             if (ir_buff.r.funct3 == 3'b0) begin
+                if (ir_buff.r.rs1 != 5'b0 || ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
+
                 case (ir_buff.b[31:20])
                     12'b000000000000: ecall_active  = 1'b1;  // ECALL
                     12'b000000000001: ebreak_active = 1'b1;  // EBREAK
                     12'b001100000010: instr_ex_out.mret_en = 1'b1;  // MRET
-                    12'b000100000010: ;  // SRET
+                    12'b000100000010: illegal_inst = 1'b1;  // SRET
                     12'b000100000101: begin  // WFI - jump to self until interrupt
                         instr_ex_out.branch_jal_sel = JAL_INSTR;
                         instr_ex_out.a_bus_sel = PC;
@@ -687,7 +712,8 @@ always_comb begin
                 rd_sel_out  = ir_buff.r.rd;
 
                 illegal_inst = (decode_csr_ro && is_csr_write) ||
-                               (r_current_privilege < decode_csr_privilege);
+                               (r_current_privilege < decode_csr_privilege) ||
+                               csr_not_implemented;
 
                 case (ir_buff.r.funct3)
                     3'b001: begin  //  CSRRW
@@ -724,17 +750,17 @@ always_comb begin
                         instr_ex_out.b_bus_sel   = CSR;
                         instr_ex_out.alu_op      = AND_OP;
                     end
-                    default: begin
-                        illegal_inst = 1'b1;
-                    end
+                    default: illegal_inst = 1'b1;
                 endcase
             end
         end
 
-        default: begin
-            illegal_inst = 1'b1;
-        end
+        default: illegal_inst = 1'b1;
     endcase
+
+    // Propagate illegal instruction as bubble
+    // MUST KEEP THIS LAST
+    if (illegal_inst) instr_ex_out = NOP_CTRL;
 end
 
 endmodule
