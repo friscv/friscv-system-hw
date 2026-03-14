@@ -21,7 +21,7 @@
             compatible = "riscv";
             reg = <0>;
             status = "okay";
-            riscv,isa = "rv32ia_zifencei_zicsr";
+            riscv,isa = "rv32ima_zifencei_zicsr";
             clock-frequency = <90909088>;
 
             cpu0_intc: interrupt-controller {
