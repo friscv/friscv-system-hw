@@ -249,7 +249,7 @@ always_ff @(posedge clk_in) begin
         r_current_privilege <= M_MODE;
     end else begin
         // Only advance countdown when pipeline is not stalled
-        if (mret_out && !stage_stall_in)
+        if (mret_out && !ex_csr_en_in && !mem_csr_en_in)
             r_mret_inhibit <= 2'd2;
         else if (r_mret_inhibit != 2'b00 && !stage_stall_in)
             r_mret_inhibit <= r_mret_inhibit - 1;
@@ -280,7 +280,7 @@ always_ff @(posedge clk_in) begin
             else if (illegal_inst)
                 csr.mcause <= 32'd2;
 
-        end else if (mret_out && !stage_stall_in) begin
+        end else if (mret_out && !ex_csr_en_in && !mem_csr_en_in) begin
             csr.mstatus.mie   <= csr.mstatus.mpie;
             csr.mstatus.mpie  <= 1'b1;
             r_current_privilege <= csr.mstatus.mpp;
