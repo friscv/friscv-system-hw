@@ -20,6 +20,8 @@ v 0.2.0     Matej Grzunov, Duje Strunje, 2022_06, pipeline debug, ALU debug, ini
 v 0.5.0		Mario Kovac, 2024_05, memory debug & update, system update
 v 0.9.0     Petra Kelkovic, Luka Kokic, 2024_06, cpu & system verification, external debug interface, PC & ARM SW, External IO board connections
 v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 official
+v 1.1.0		Franko Ciric, Karlo Milicic Juhas, 2025_06, HW and SW support for some peripherals on Embedded Artists LPCXpresso Base Board, toolkit for use of C
+v 1.2.0     Leonel Maguitman, 2025_12, use of external DRAM throught Arm interface
 v 2.0.0     Emil Popovic, Franko Ciric, 2026_03, AXI interface, combinatorial control unit, automation scripts, A extension, external timer interrupt
 
 */
