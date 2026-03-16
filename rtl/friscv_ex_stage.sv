@@ -158,6 +158,44 @@ always_comb begin
         SRA_OP:  alu_data_out = $signed(alu_input_a) >>> alu_input_b[4:0];
         SLT_OP:  alu_data_out = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
         SLTU_OP: alu_data_out = {31'b0, alu_input_a < alu_input_b};
+        MUL_OP:    alu_data_out = alu_input_a * alu_input_b;
+        MULH_OP:   alu_data_out = 32'(64'($signed(alu_input_a)) * 64'($signed(alu_input_b)) >> 32);
+        MULHU_OP:  alu_data_out = 32'((64'(alu_input_a) * 64'(alu_input_b)) >> 32);
+        MULHSU_OP: alu_data_out = 32'((64'($signed(alu_input_a)) * 64'($signed({1'b0,alu_input_b}))) >> 32);
+        DIV_OP: 
+            if (alu_input_b == 32'b0) begin
+                alu_data_out = 32'hFFFFFFFF;
+            end
+            else if (alu_input_a == 32'h80000000 && alu_input_b == -1) begin
+                alu_data_out = 32'h80000000;
+            end  
+            else begin
+                alu_data_out = $signed(alu_input_a) / $signed(alu_input_b);
+            end
+        DIVU_OP:   
+            if (alu_input_b == 32'b0) begin
+                alu_data_out = 32'hFFFFFFFF;
+            end
+            else begin
+                alu_data_out = alu_input_a / alu_input_b;
+            end
+        REM_OP:
+            if (alu_input_b == 32'b0) begin
+                alu_data_out = alu_input_a;
+            end
+            else if (alu_input_a == 32'h80000000 && alu_input_b == -1) begin
+                alu_data_out = 32'h00000000;
+            end  
+            else begin
+                alu_data_out = $signed(alu_input_a) % $signed(alu_input_b);
+            end
+        REMU_OP:
+            if (alu_input_b == 32'b0) begin
+                alu_data_out = alu_input_a;
+            end
+            else begin
+                alu_data_out = alu_input_a % alu_input_b;
+            end
         default: alu_data_out = 32'h0;
     endcase
 end
