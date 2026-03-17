@@ -85,6 +85,9 @@ package friscv_pkg;
         CSR_STVAL      = 12'h143,
         CSR_SIP        = 12'h144,
 
+        // Supervisor Protection and Translation
+        CSR_SATP       = 12'h180,
+
         // Machine Information Registers
         CSR_MVENDORID  = 12'hF11,
         CSR_MARCHID    = 12'hF12,
@@ -156,6 +159,17 @@ package friscv_pkg;
         logic        sie;         // [1]     S Interrupt Enable
         logic        wpri_0;      // [0]     Reserved (WPRI)
     } mstatus_t;
+
+    typedef enum logic { 
+        SATP_BARE = 1'b0,
+        SATP_SV32 = 1'b1
+    } satp_mode_e;
+
+    typedef struct packed {
+        satp_mode_e  mode;
+        logic [8:0]  asid;
+        logic [21:0] ppn;
+    } satp_t;
 
     typedef enum logic [2:0] {
         I_TYPE  = 3'b000,

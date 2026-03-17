@@ -147,6 +147,9 @@ typedef struct packed {
     data_t scause;
     inst_t stval;
 
+    // Supervisor Protection and Translation
+    satp_t satp;
+
     // Machine Information Registers
     // Hardwired in read block
 
@@ -417,6 +420,9 @@ always_ff @(posedge clk_in) begin
                     end
                 end
 
+                // Supervisor Protection and Translation
+                CSR_SATP: csr.satp <= csr_data_in;
+
                 // Machine Trap Setup
                 CSR_MSTATUS: begin
                     csr.mstatus.sie  <= csr_data_in[1];
@@ -488,7 +494,7 @@ always_comb begin
         // Machine Trap Setup
         CSR_MSTATUS:       csr_out = csr.mstatus;
         //                                mx----zyxwvutsrqponmlkjihgfedcb a
-        CSR_MISA:          csr_out = {31'b0100000000000000000000010000000,{ENABLE_EXTENSION_A}};
+        CSR_MISA:          csr_out = {31'b0100000000000100000000010000000,{ENABLE_EXTENSION_A}};
         CSR_MEDELEG:       csr_out = csr.medeleg;
         CSR_MIDELEG:       csr_out = csr.mideleg;
         CSR_MIE:           csr_out = csr.mie;
@@ -530,6 +536,9 @@ always_comb begin
         CSR_STVAL:         csr_out = csr.stval;
         // S-mode visible interrupt pending bits only
         CSR_SIP:           csr_out = {22'b0, csr.seip, 3'b0, csr.stip, 3'b0, csr.ssip, 1'b0};
+
+        // Supervisor Protection and Translation
+        CSR_SATP:          csr_out = csr.satp;
 
         default: begin
             csr_out             = 32'h0;
