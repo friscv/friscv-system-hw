@@ -141,7 +141,7 @@ package friscv_pkg;
         logic [7:0]  wpri_30_23;  // [30:23] Reserved (WPRI)
         logic        tsr;         // [22]    Trap SRET (WPRI)
         logic        tw;          // [21]    Timeout Wait (WPRI)
-        logic        tvm;         // [20]    Trap Virtual Memory (WPRI)
+        logic        tvm;         // [20]    Trap Virtual Memory
         logic        mxr;         // [19]    Make eXecutable Readable
         logic        sum;         // [18]    Supervisor User Memory access
         logic        mprv;        // [17]    Modify PRiVilege (WPRI)

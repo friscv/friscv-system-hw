@@ -433,6 +433,7 @@ always_ff @(posedge clk_in) begin
                     csr.mstatus.mpp  <= privilege_e'(csr_data_in[12:11]);
                     csr.mstatus.sum  <= csr_data_in[18];
                     csr.mstatus.mxr  <= csr_data_in[19];
+                    csr.mstatus.tvm  <= csr_data_in[20];
                 end
                 CSR_MEDELEG:    csr.medeleg    <= csr_data_in;
                 CSR_MIDELEG:    csr.mideleg    <= csr_data_in & 32'h0000_0222;  // Bits 1,5,9 only
@@ -864,28 +865,37 @@ always_comb begin
         end
         
         SYSTEM: begin
-            if (ir_buff.r.funct3 == 3'b0) begin
-                if (ir_buff.r.rs1 != 5'b0 || ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
+            if (ir_buff.r.funct3 == 3'b0) begin  // Non-CSR SYSTEM instructions
+                case (ir_buff.r.funct7)
+                    7'b0001001: begin  // SFENCE.VMA
+                        if (ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
+                        else if (r_current_privilege == U_MODE) illegal_inst = 1'b1;
+                        else if (r_current_privilege == S_MODE && csr.mstatus.tvm) illegal_inst = 1'b1;
+                    end
+                    default: begin
+                        if (ir_buff.r.rs1 != 5'b0 || ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
 
-                case (ir_buff.b[31:20])
-                    12'b000000000000: ecall_active  = 1'b1;  // ECALL
-                    12'b000000000001: ebreak_active = 1'b1;  // EBREAK
-                    12'b001100000010: begin  // MRET
-                        if (r_current_privilege != M_MODE) illegal_inst = 1'b1;
-                        else instr_ex_out.mret_en = 1'b1;
+                        case (ir_buff.b[31:20])
+                            12'b000000000000: ecall_active  = 1'b1;  // ECALL
+                            12'b000000000001: ebreak_active = 1'b1;  // EBREAK
+                            12'b001100000010: begin  // MRET
+                                if (r_current_privilege != M_MODE) illegal_inst = 1'b1;
+                                else instr_ex_out.mret_en = 1'b1;
+                            end
+                            12'b000100000010: begin  // SRET
+                                if (r_current_privilege < S_MODE) illegal_inst = 1'b1;
+                                else instr_ex_out.sret_en = 1'b1;
+                            end
+                            12'b000100000101: begin  // WFI
+                                instr_ex_out.branch_jal_sel = JAL_INSTR;
+                                instr_ex_out.a_bus_sel = PC;
+                                instr_ex_out.b_bus_sel = IMM;
+                                instr_ex_out.alu_op = ADD_OP;
+                                imm_sel = ZERO;
+                            end
+                            default: illegal_inst = 1'b1;
+                        endcase
                     end
-                    12'b000100000010: begin  // SRET
-                        if (r_current_privilege < S_MODE) illegal_inst = 1'b1;
-                        else instr_ex_out.sret_en = 1'b1;
-                    end
-                    12'b000100000101: begin  // WFI
-                        instr_ex_out.branch_jal_sel = JAL_INSTR;
-                        instr_ex_out.a_bus_sel = PC;
-                        instr_ex_out.b_bus_sel = IMM;
-                        instr_ex_out.alu_op = ADD_OP;
-                        imm_sel = ZERO;
-                    end
-                    default: illegal_inst = 1'b1;
                 endcase
             end else begin
                 // CSR read-modify-write instructions
