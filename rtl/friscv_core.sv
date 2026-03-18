@@ -21,9 +21,16 @@ module friscv_core #(
     input  logic       i_clk,
     input  logic       i_rstn,
     
+    // Interrupt requests
     input  logic       i_msip,
     input  logic       i_mtip,
     input  logic       i_meip,
+
+    // Page fault signals
+    input  logic       i_inst_fault,
+    input  logic       i_load_fault,
+    input  logic       i_store_fault,
+    input  addr_t      i_fault_addr,
     
     // Instruction Memory Interface
     output addr_t      i_mem_addr_out,
@@ -39,7 +46,14 @@ module friscv_core #(
     output logic       d_mem_wr_out,
     output mem_width_e d_mem_size_out,
     input  logic       d_mem_wait_in,
-    output amo_op_e    d_mem_amo_op_out
+    output amo_op_e    d_mem_amo_op_out,
+
+    // Memory management outputs
+    output satp_t     satp_out,
+    output logic      sum_out,
+    output logic      mxr_out,
+    output mode_e     mode_out,
+    output logic      flush_tlb_out
 );
 
 logic flush_if, flush_id;
@@ -164,11 +178,16 @@ friscv_id_stage #(
 ) id_stage (
     .clk_in         ( i_clk            ), 
     .rst_n_in       ( i_rstn           ),
+
+    .branch_ok_in   ( branch_ok        ),
     
+    // Interrupt requests
     .msip_in        ( i_msip           ),
     .mtip_in        ( i_mtip           ),
     .meip_in        ( i_meip           ),
-    .branch_ok_in   ( branch_ok        ),
+
+    // Page fault signals
+
 
     // Stage control signals
     .flush_in       ( flush_id         ),
@@ -208,12 +227,18 @@ friscv_id_stage #(
     .ex_csr_en_in   ( ex_csr_en_out    ),
     .mem_csr_en_in  ( mem_csr_en_out   ),
     
-    //Interrupts
+    // Interrupts
     .tvec_out       ( id_tvec_out       ), 
     .epc_out        ( id_epc_out        ),
     .trap_out       ( id_trap_out       ),
     .trap_pending_out ( id_trap_pending ),
-    .ret_out        ( id_ret_out        )
+    .ret_out        ( id_ret_out        ),
+
+    // Outputs to MMU
+    .satp_out       ( satp_out          ),
+    .sum_out        ( sum_out           ),
+    .mxr_out        ( mxr_out           ),
+    .mode_out       ( mode_out          )
 );
 
 friscv_ex_stage ex_stage (
@@ -252,7 +277,8 @@ friscv_ex_stage ex_stage (
     .instr_valid_out      ( ex_instr_valid_out      ),
 
     // Outputs to control logic
-    .branch_ok_out        ( branch_ok               )
+    .branch_ok_out        ( branch_ok               ),
+    .flush_tlb_out        ( flush_tlb_out           )
 );
 
 friscv_mem_stage mem_stage (

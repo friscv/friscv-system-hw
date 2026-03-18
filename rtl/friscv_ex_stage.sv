@@ -51,7 +51,8 @@ module friscv_ex_stage (
     output logic           instr_valid_out,
 
     // Outputs to control logic
-    output logic           branch_ok_out
+    output logic           branch_ok_out,
+    output logic           flush_tlb_out
 );
 
 // Input registers
@@ -118,6 +119,7 @@ assign csr_sel_out          = instr_buff.csr_addr;
 assign csr_readback_out     = csr_buff;
 assign csr_en_out           = instr_buff.csr_op;
 assign instr_valid_out      = instr_buff.instr_valid;
+assign flush_tlb_out        = instr_buff.sfence_vma;
 
 // Select ALU inputs
 

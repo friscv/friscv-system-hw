@@ -41,6 +41,10 @@ package friscv_pkg;
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
 
+    // Memory protection and address translation
+    localparam logic ENABLE_MMU = 1;
+    localparam int TLB_ENTRIES = 32;
+
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
     localparam logic ENABLE_REMAP_CLINT = 1;
@@ -134,7 +138,7 @@ package friscv_pkg;
         S_MODE = 2'b01,
         H_MODE = 2'b10,
         M_MODE = 2'b11
-    } privilege_e;
+    } mode_e;
 
     typedef struct packed {
         logic        sd;          // [31]    State Dirty (RO, OR of FS/XS/VS)
@@ -147,7 +151,7 @@ package friscv_pkg;
         logic        mprv;        // [17]    Modify PRiVilege (WPRI)
         logic [1:0]  xs;          // [16:15] eXtension Status (WPRI)
         logic [1:0]  fs;          // [14:13] Floating-point Status (WPRI)
-        privilege_e  mpp;         // [12:11] M Previous Privilege
+        mode_e       mpp;         // [12:11] M Previous Privilege
         logic [1:0]  vs;          // [10:9]  Vector Status (WPRI)
         logic        spp;         // [8]     S Previous Privilege
         logic        mpie;        // [7]     M Previous Interrupt Enable
@@ -317,6 +321,7 @@ package friscv_pkg;
         logic           mret_en;
         logic           sret_en;
         csr_addr_e      csr_addr;
+        logic           sfence_vma;
     } instr_ex_t;
 
     localparam instr_ex_t NOP_CTRL = '{
@@ -336,7 +341,8 @@ package friscv_pkg;
         csr_op: 1'b0,
         mret_en: 1'b0,   
         sret_en: 1'b0,
-        csr_addr: CSR_ZERO
+        csr_addr: CSR_ZERO,
+        sfence_vma: 1'b0
     };
 
     typedef enum logic [1:0] {
