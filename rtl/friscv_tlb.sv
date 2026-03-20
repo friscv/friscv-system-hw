@@ -68,26 +68,59 @@ generate
 endgenerate
 
 // ============================================================
-// Fill
+// Fill and flush
 // ============================================================
 
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
+
         for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_reset
             r_tlb[g] <= '0;
         end
+
     end else begin
-        if (i_flush) begin  // Global flush enable
-            if (i_flush_va_en) begin  // Only flush entry for VA
 
-            end else if (i_flush_asid_en) begin  // Only flush entries for ASID
+        if (i_flush) begin  // Global flush enable, has priority
 
-            end else begin  // Flush all
+            if (i_flush_va_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VA+ASID match, not global
+
+                for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va_asid
+                    logic va_match;
+                    va_match = (!r_tlb[g].is_super && i_flush_va == r_tlb[g].va) ||
+                               ( r_tlb[g].is_super && i_flush_va[19:10] == r_tlb[g].va[19:10]);
+                    if (va_match && r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
+                        r_tlb[g] <= '0;
+                end
+
+            end else if (i_flush_va_en) begin  // sfence.vma rs1, x0: VA match, all ASIDs and global
+
+                for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va
+                    logic va_match;
+                    va_match = (!r_tlb[g].is_super && i_flush_va == r_tlb[g].va) ||
+                               ( r_tlb[g].is_super && i_flush_va[19:10] == r_tlb[g].va[19:10]);
+                    if (va_match)
+                        r_tlb[g] <= '0;
+                end
+
+            end else if (i_flush_asid_en) begin  // sfence.vma x0, rs2: ASID match, not global
+
+                for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_asid
+                    if (r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
+                        r_tlb[g] <= '0;
+                end
+
+            end else begin  // sfence.vma x0, x0: flush all
+
+                for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_all
+                    r_tlb[g] <= '0;
+                end
 
             end
-        end else begin
+
+        end else if (i_new_en) begin
 
         end
+
     end
 end
 
@@ -102,11 +135,11 @@ always_comb begin
     o_hit      = 1'b0;
 
     for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_lookup
-        if (r_tlb[g].perm.v && (r_tlb[g].perm.g || i_match_asid == r_tlb[g].asid) && (
-                !r_tlb[g].is_super && i_match_va == r_tlb[g].va ||
-                r_tlb[g].is_super && i_match_va[19:10] == r_tlb[g].va[19:10]
-            )
-        ) begin
+        logic va_match;
+        va_match = (!r_tlb[g].is_super && i_match_va == r_tlb[g].va) ||
+                   ( r_tlb[g].is_super && i_match_va[19:10] == r_tlb[g].va[19:10]);
+
+        if (r_tlb[g].perm.v && (r_tlb[g].perm.g || i_match_asid == r_tlb[g].asid) && va_match) begin
             o_pa       = (r_tlb[g].is_super) ? {r_tlb[g].pa[19:10], i_match_va[9:0]} : r_tlb[g].pa;
             o_perm     = r_tlb[g].perm;
             o_is_super = r_tlb[g].is_super;
