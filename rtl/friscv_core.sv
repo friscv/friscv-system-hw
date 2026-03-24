@@ -57,7 +57,7 @@ module friscv_core #(
 );
 
 logic flush_if, flush_id;
-logic stall_if, stall_id, stall_ex, stall_mem, flush_ex;
+logic stall_if, stall_id, stall_ex, stall_mem, stall_wb, flush_ex;
 
 // Jump signals
 logic  jump_ok, jal_ok, branch_ok;
@@ -90,12 +90,25 @@ logic           ex_csr_en_out;
 logic           ex_instr_valid_out;
 
 // MEM stage signals
-data_t     mem_rd_data_out;
-reg_addr_t mem_rd_sel_out;
-csr_addr_e mem_csr_sel_out;
-data_t     mem_csr_data_out;
-logic      mem_csr_en_out;
-logic      mem_inst_ret_out;
+addr_t          mem_pc_plus_4_out;
+data_t          mem_alu_data_out;
+data_t          mem_load_data_out;
+data_t          mem_sc_res_out;
+wb_data_sel_e   mem_wb_data_sel_out;
+reg_addr_t      mem_rd_sel_out;
+csr_addr_e      mem_csr_sel_out;
+data_t          mem_csr_data_out;
+data_t          mem_csr_readback_out;
+logic           mem_csr_en_out;
+logic           mem_instr_valid_out;
+
+// WB stage signals
+data_t     wb_rd_data_out;
+reg_addr_t wb_rd_sel_out;
+csr_addr_e wb_csr_sel_out;
+data_t     wb_csr_data_out;
+logic      wb_csr_en_out;
+logic      wb_inst_ret_out;
 
 // Interrupts
 addr_t id_tvec_out, id_epc_out;
@@ -132,8 +145,14 @@ friscv_pipeline_control control_unit (
     .ex_csr_sel_in    ( ex_csr_sel_out     ),
 
     // MEM stage
+    .mem_rd_sel_in    ( mem_rd_sel_out     ),
     .mem_csr_en_in    ( mem_csr_en_out     ),
     .mem_csr_sel_in   ( mem_csr_sel_out    ),
+
+    // WB stage
+    .wb_rd_sel_in     ( wb_rd_sel_out      ),
+    .wb_csr_en_in     ( wb_csr_en_out      ),
+    .wb_csr_sel_in    ( wb_csr_sel_out     ),
 
     // Memory wait signals
     .if_wait_in       ( i_mem_wait_in      ),
@@ -216,16 +235,17 @@ friscv_id_stage #(
     .instr_ex_out   ( id_uinstr        ),
 
     // Inputs from WB stage
-    .rd_sel_in      ( mem_rd_sel_out   ),
-    .rd_data_in     ( mem_rd_data_out  ),
-    .csr_sel_in     ( mem_csr_sel_out  ),
-    .csr_data_in    ( mem_csr_data_out ),
-    .csr_en_in      ( mem_csr_en_out   ),
-    .instr_ret_in   ( mem_inst_ret_out ),
+    .rd_sel_in      ( wb_rd_sel_out    ),
+    .rd_data_in     ( wb_rd_data_out   ),
+    .csr_sel_in     ( wb_csr_sel_out   ),
+    .csr_data_in    ( wb_csr_data_out  ),
+    .csr_en_in      ( wb_csr_en_out    ),
+    .instr_ret_in   ( wb_inst_ret_out  ),
 
     // CSR write-in-flight visibility
     .ex_csr_en_in   ( ex_csr_en_out    ),
     .mem_csr_en_in  ( mem_csr_en_out   ),
+    .wb_csr_en_in   ( wb_csr_en_out    ),
     
     // Interrupts
     .tvec_out       ( id_tvec_out       ), 
@@ -308,12 +328,17 @@ friscv_mem_stage mem_stage (
     .amo_op_in           ( ex_amo_op_out           ),
 
     // Outputs to WB stage
-    .rd_data_out         ( mem_rd_data_out         ),
+    .pc_plus_4_out       ( mem_pc_plus_4_out       ),
+    .alu_data_out        ( mem_alu_data_out        ),
+    .load_data_out       ( mem_load_data_out       ),
+    .sc_res_out          ( mem_sc_res_out          ),
+    .wb_data_sel_out     ( mem_wb_data_sel_out     ),
     .rd_sel_out          ( mem_rd_sel_out          ),
     .csr_sel_out         ( mem_csr_sel_out         ),
     .csr_data_out        ( mem_csr_data_out        ),
+    .csr_readback_out    ( mem_csr_readback_out    ),
     .csr_en_out          ( mem_csr_en_out          ),
-    .inst_ret_out        ( mem_inst_ret_out        ),
+    .instr_valid_out     ( mem_instr_valid_out     ),
 
     // Data memory interface
     .d_mem_addr_out      ( d_mem_addr_out          ),
@@ -324,6 +349,35 @@ friscv_mem_stage mem_stage (
     .d_mem_size_out      ( d_mem_size_out          ),
     .d_mem_wait_in       ( d_mem_wait_in           ),
     .d_mem_amo_op_out    ( d_mem_amo_op_out        )
+);
+
+assign stall_wb = stall_mem;
+
+friscv_wb_stage wb_stage (
+    .clk_in          ( i_clk                  ),
+    .rst_n_in        ( i_rstn                 ),
+    .stage_stall_in  ( stall_wb               ),
+
+    // Inputs from MEM stage
+    .pc_plus_4_in    ( mem_pc_plus_4_out      ),
+    .alu_data_in     ( mem_alu_data_out       ),
+    .load_data_in    ( mem_load_data_out      ),
+    .sc_res_in       ( mem_sc_res_out         ),
+    .wb_data_sel_in  ( mem_wb_data_sel_out    ),
+    .rd_sel_in       ( mem_rd_sel_out         ),
+    .csr_sel_in      ( mem_csr_sel_out        ),
+    .csr_data_in     ( mem_csr_data_out       ),
+    .csr_readback_in ( mem_csr_readback_out   ),
+    .csr_en_in       ( mem_csr_en_out         ),
+    .instr_valid_in  ( mem_instr_valid_out    ),
+
+    // Outputs to ID stage
+    .rd_data_out     ( wb_rd_data_out         ),
+    .rd_sel_out      ( wb_rd_sel_out          ),
+    .csr_sel_out     ( wb_csr_sel_out         ),
+    .csr_data_out    ( wb_csr_data_out        ),
+    .csr_en_out      ( wb_csr_en_out          ),
+    .inst_ret_out    ( wb_inst_ret_out        )
 );
 
 endmodule

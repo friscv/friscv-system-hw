@@ -46,8 +46,14 @@ module friscv_pipeline_control (
     input  csr_addr_e ex_csr_sel_in,
 
     // MEM stage
+    input  reg_addr_t mem_rd_sel_in,
     input  logic      mem_csr_en_in,
     input  csr_addr_e mem_csr_sel_in,
+
+    // WB stage
+    input  reg_addr_t wb_rd_sel_in,
+    input  logic      wb_csr_en_in,
+    input  csr_addr_e wb_csr_sel_in,
 
     // Memory wait signals
     input  logic      if_wait_in,
@@ -70,16 +76,20 @@ logic effective_jal, effective_ret;
 always_comb begin
     mem_stall = if_wait_in || mem_wait_in;
     
-    reg_hazard = (ex_rd_sel_in != 0) && ((id_rs1_sel_in == ex_rd_sel_in) || (id_rs2_sel_in == ex_rd_sel_in));
+    // No forwarding: stall while any in-flight stage holds a matching rd
+    reg_hazard = ((ex_rd_sel_in  != 0) && ((id_rs1_sel_in == ex_rd_sel_in)  || (id_rs2_sel_in == ex_rd_sel_in)))  ||
+                 ((mem_rd_sel_in != 0) && ((id_rs1_sel_in == mem_rd_sel_in) || (id_rs2_sel_in == mem_rd_sel_in))) ||
+                 ((wb_rd_sel_in  != 0) && ((id_rs1_sel_in == wb_rd_sel_in)  || (id_rs2_sel_in == wb_rd_sel_in)));
 
-    // mret implicitly reads mepc; stall if a csrw is still in EX or MEM
-    ret_csr_hazard = ret_in && (ex_csr_en_in || mem_csr_en_in);
+    // mret implicitly reads mepc; stall if a csrw is still in EX, MEM, or WB
+    ret_csr_hazard = ret_in && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in);
 
     // Stall while trap is pending
-    csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in)) ||
+    csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in))  ||
                  (id_csr_en_in && mem_csr_en_in && (id_csr_sel_in == mem_csr_sel_in)) ||
+                 (id_csr_en_in && wb_csr_en_in  && (id_csr_sel_in == wb_csr_sel_in))  ||
                  ret_csr_hazard ||
-                 (trap_pending_in && (ex_csr_en_in || mem_csr_en_in));
+                 (trap_pending_in && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in));
 
     hazard_stall = reg_hazard || csr_hazard;
 

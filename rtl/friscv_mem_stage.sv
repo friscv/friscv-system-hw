@@ -42,12 +42,17 @@ module friscv_mem_stage (
     input  amo_op_e        amo_op_in,
 
     // Outputs to WB stage
-    output data_t          rd_data_out,
+    output addr_t          pc_plus_4_out,
+    output data_t          alu_data_out,
+    output data_t          load_data_out,
+    output data_t          sc_res_out,
+    output wb_data_sel_e   wb_data_sel_out,
     output reg_addr_t      rd_sel_out,
     output csr_addr_e      csr_sel_out,
     output data_t          csr_data_out,
+    output data_t          csr_readback_out,
     output logic           csr_en_out,
-    output logic           inst_ret_out,
+    output logic           instr_valid_out,
 
     // Data memory interface
     output addr_t          d_mem_addr_out,
@@ -76,9 +81,10 @@ data_t          csr_readback_buff;
 logic           csr_en_buff;
 logic           instr_valid_buff;
 
-assign csr_sel_out  = csr_sel_buff;
-assign csr_data_out = alu_data_buff;
-assign csr_en_out   = csr_en_buff;
+assign csr_sel_out      = csr_sel_buff;
+assign csr_data_out     = alu_data_buff;
+assign csr_readback_out = csr_readback_buff;
+assign csr_en_out       = csr_en_buff;
 
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
@@ -89,8 +95,8 @@ logic r_load_data_valid;  // Flag indicating load data has been captured
 logic w_is_mem_instr;
 assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
 
-// Detect retired instruction
-assign inst_ret_out = instr_valid_buff && !stage_stall_in;
+// Pass valid flag to WB; WB gates it with stall to produce inst_ret
+assign instr_valid_out = instr_valid_buff;
 
 // Reservation register for AMO LR/SC
 logic  reserve_valid;
@@ -219,8 +225,11 @@ always_comb begin
     end
 end
 
-assign d_mem_data_out = store_data_buff;
-assign rd_sel_out = rd_sel_buff;
+assign d_mem_data_out  = store_data_buff;
+assign rd_sel_out      = rd_sel_buff;
+assign pc_plus_4_out   = pc_plus_4_buff;
+assign alu_data_out    = alu_data_buff;
+assign wb_data_sel_out = wb_data_sel_buff;
 assign d_mem_amo_op_out = amo_op_buff;
 
 // ============================================================
@@ -264,18 +273,10 @@ always_comb begin
 end
 
 // ============================================================
-// Output selection
+// Resolved load / SC result passed to WB
 // ============================================================
 
-always_comb begin
-    case (wb_data_sel_buff)
-        WB_DATA_SEL_PC_PLUS_4: rd_data_out = pc_plus_4_buff;
-        WB_DATA_SEL_ALU:       rd_data_out = alu_data_buff;
-        WB_DATA_SEL_MEM:       rd_data_out = r_load_data_valid ? load_data_buff : load_data;
-        WB_DATA_SEL_SC_RES:    rd_data_out = {31'h0, (r_sc_res_valid) ? r_sc_res : !cond_valid_r};
-        WB_DATA_SEL_CSR:       rd_data_out = csr_readback_buff;
-        default:               rd_data_out = 32'b0;
-    endcase
-end
+assign load_data_out = r_load_data_valid ? load_data_buff : load_data;
+assign sc_res_out    = {31'h0, r_sc_res_valid ? r_sc_res : !cond_valid_r};
 
 endmodule

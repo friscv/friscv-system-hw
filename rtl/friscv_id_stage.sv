@@ -73,6 +73,7 @@ module friscv_id_stage #(
     // CSR write-in-flight visibility
     input  logic      ex_csr_en_in,
     input  logic      mem_csr_en_in,
+    input  logic      wb_csr_en_in,
 
     // Outputs and inputs for handling interrupts
     output addr_t     tvec_out,          // Resolved mtvec or stvec
@@ -103,9 +104,8 @@ addr_t     pc_in_buff;
 addr_t     pc_plus_4_buff;
 imm_e      imm_sel;
 
-// MEM-EX forwarding
-assign rs1_out = (rd_sel_in != 0 && rs1_sel_out == rd_sel_in) ? rd_data_in : regfile[rs1_sel_out];
-assign rs2_out = (rd_sel_in != 0 && rs2_sel_out == rd_sel_in) ? rd_data_in : regfile[rs2_sel_out];
+assign rs1_out = regfile[rs1_sel_out];
+assign rs2_out = regfile[rs2_sel_out];
 
 assign pc_out = pc_in_buff;
 assign pc_plus_4_out = pc_plus_4_buff;
@@ -262,7 +262,7 @@ assign exception_active = exception_safe && (ecall_active || ebreak_active || il
 // from ir_buff while waiting.
 logic trap_raw, trap_csr_hazard;
 assign trap_raw         = interrupt_active || exception_active;
-assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in);
+assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in);
 assign trap_out         = trap_raw && !trap_csr_hazard;
 assign trap_pending_out = trap_raw;
 
@@ -341,7 +341,7 @@ always_ff @(posedge clk_in) begin
         r_current_mode <= M_MODE;
     end else begin
         // Only advance countdown when pipeline is not stalled
-        if ((mret_active || sret_active) && !ex_csr_en_in && !mem_csr_en_in)
+        if ((mret_active || sret_active) && !ex_csr_en_in && !mem_csr_en_in && !wb_csr_en_in)
             r_mret_inhibit <= 2'd2;
         else if (r_mret_inhibit != 2'b00 && !stage_stall_in)
             r_mret_inhibit <= r_mret_inhibit - 1;
@@ -392,13 +392,13 @@ always_ff @(posedge clk_in) begin
                 else if (illegal_inst)  csr.mcause <= 32'd2;
             end
 
-        end else if (sret_active && !ex_csr_en_in && !mem_csr_en_in) begin
+        end else if (sret_active && !ex_csr_en_in && !mem_csr_en_in && !wb_csr_en_in) begin
             csr.mstatus.sie     <= csr.mstatus.spie;
             csr.mstatus.spie    <= 1'b1;
             r_current_mode <= csr.mstatus.spp ? S_MODE : U_MODE;
             csr.mstatus.spp     <= 1'b0;
 
-        end else if (mret_active && !ex_csr_en_in && !mem_csr_en_in) begin
+        end else if (mret_active && !ex_csr_en_in && !mem_csr_en_in && !wb_csr_en_in) begin
             csr.mstatus.mie     <= csr.mstatus.mpie;
             csr.mstatus.mpie    <= 1'b1;
             r_current_mode <= csr.mstatus.mpp;
