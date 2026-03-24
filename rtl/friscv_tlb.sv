@@ -63,7 +63,7 @@ logic [ENTRY_COUNT-1:0]         r_ref;       // Clock reference bits (set on fil
 logic [$clog2(ENTRY_COUNT)-1:0] r_clock_ptr; // Clock hand position
 
 logic                           w_any_invalid;
-logic [$clog2(ENTRY_COUNT)-1:0] w_invalid_slot, w_clock_victim;
+logic [$clog2(ENTRY_COUNT)-1:0] w_invalid_slot, w_clock_victim, w_hit_idx;
 
 // Initialize to prevent X in simulation
 initial r_ref       = '0;
@@ -92,6 +92,10 @@ always_ff @(posedge i_clk) begin
         r_clock_ptr <= '0;
 
     end else begin
+
+        // Set ref bit on hit so recently-used entries get a second chance
+        if (o_hit)
+            r_ref[w_hit_idx] <= 1'b1;
 
         if (i_flush) begin  // Global flush enable, has priority
 
@@ -192,6 +196,7 @@ always_comb begin
     o_perm     = '0;
     o_is_super = 1'b0;
     o_hit      = 1'b0;
+    w_hit_idx  = '0;
 
     for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_lookup
         logic va_match;
@@ -203,6 +208,7 @@ always_comb begin
             o_perm     = r_tlb[g].perm;
             o_is_super = r_tlb[g].is_super;
             o_hit      = 1'b1;
+            w_hit_idx  = g[$clog2(ENTRY_COUNT)-1:0];
         end
     end
 end
