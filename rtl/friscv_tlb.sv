@@ -30,12 +30,12 @@ module friscv_tlb #(
     output logic        o_hit,
 
     // Fill
-    input  logic [19:0] i_new_vpn,
-    input  logic [19:0] i_new_ppn,
-    input  logic [8:0]  i_new_asid,
-    input  logic [7:0]  i_new_perm,
-    input  logic        i_new_is_super,
-    input  logic        i_new_en,
+    input  logic [19:0] i_fill_vpn,
+    input  logic [19:0] i_fill_ppn,
+    input  logic [8:0]  i_fill_asid,
+    input  logic [7:0]  i_fill_perm,
+    input  logic        i_fill_is_super,
+    input  logic        i_fill_en,
 
     // Flush
     input  logic        i_flush,
@@ -134,16 +134,16 @@ always_ff @(posedge i_clk) begin
 
             end
 
-        end else if (i_new_en) begin  // Insert or replace with new entry
+        end else if (i_fill_en) begin  // Insert or replace with new entry
 
             logic [$clog2(ENTRY_COUNT)-1:0] victim;
             victim = w_any_invalid ? w_invalid_slot : w_clock_victim;
 
-            r_tlb[victim].vpn      <= i_new_is_super ? {i_new_vpn[19:10], 10'b0} : i_new_vpn;
-            r_tlb[victim].ppn      <= i_new_ppn;
-            r_tlb[victim].asid     <= i_new_asid;
-            r_tlb[victim].is_super <= i_new_is_super;
-            r_tlb[victim].perm     <= i_new_perm;
+            r_tlb[victim].vpn      <= i_fill_is_super ? {i_fill_vpn[19:10], 10'b0} : i_fill_vpn;
+            r_tlb[victim].ppn      <= i_fill_ppn;
+            r_tlb[victim].asid     <= i_fill_asid;
+            r_tlb[victim].is_super <= i_fill_is_super;
+            r_tlb[victim].perm     <= i_fill_perm;
             r_ref[victim]          <= 1'b1;  // Mark newly added entry as recently used
 
             if (!w_any_invalid) begin

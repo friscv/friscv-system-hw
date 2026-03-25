@@ -66,10 +66,18 @@ assign w_data_vpn = i_data_addr[31:12];
 // TLB layer
 // ============================================================
 
+// Lookup lines
 logic [19:0] w_itlb_ppn, w_dtlb_ppn;
 logic [7:0]  w_itlb_perm, w_dtlb_perm;
 logic        w_itlb_super, w_dtlb_super;
 logic        w_itlb_hit, w_dtlb_hit;
+
+// Fill lines
+logic [19:0] w_fill_vpn, w_fill_ppn;
+logic [8:0]  w_fill_asid;
+logic [7:0]  w_fill_perm;
+logic        w_fill_super;
+logic        w_fill_itlb, w_fill_dtlb;
 
 friscv_tlb #(
     .ENTRY_COUNT(TLB_ENTRIES)
@@ -86,12 +94,12 @@ friscv_tlb #(
     .o_hit           ( w_itlb_hit   ),
 
     // Fill
-    .i_new_vpn       ( '0           ),
-    .i_new_ppn       ( '0           ),
-    .i_new_asid      ( '0           ),
-    .i_new_perm      ( '0           ),
-    .i_new_is_super  ( 1'b0         ),
-    .i_new_en        ( 1'b0         ),
+    .i_fill_vpn      ( w_fill_vpn   ),
+    .i_fill_ppn      ( w_fill_ppn   ),
+    .i_fill_asid     ( w_fill_asid  ),
+    .i_fill_perm     ( w_fill_perm  ),
+    .i_fill_is_super ( w_fill_super ),
+    .i_fill_en       ( w_fill_itlb  ),
 
     // Flush
     .i_flush         ( i_flush_tlb  ),
@@ -116,12 +124,12 @@ friscv_tlb #(
     .o_hit           ( w_dtlb_hit   ),
 
     // Fill
-    .i_new_vpn       ( '0           ),
-    .i_new_ppn       ( '0           ),
-    .i_new_asid      ( '0           ),
-    .i_new_perm      ( '0           ),
-    .i_new_is_super  ( 1'b0         ),
-    .i_new_en        ( 1'b0         ),
+    .i_fill_vpn      ( w_fill_vpn   ),
+    .i_fill_ppn      ( w_fill_ppn   ),
+    .i_fill_asid     ( w_fill_asid  ),
+    .i_fill_perm     ( w_fill_perm  ),
+    .i_fill_is_super ( w_fill_super ),
+    .i_fill_en       ( w_fill_dtlb  ),
 
     // Flush
     .i_flush         ( i_flush_tlb  ),
@@ -135,41 +143,98 @@ friscv_tlb #(
 // Arbitration layer
 // ============================================================
 
+// Granted request lines
+addr_t      w_grant_addr;
+mem_width_e w_grant_size;
+data_t      w_grant_wdata;
+rw_cmd_e    w_grant_rw;
+logic       w_stall;
+amo_op_e    w_grant_amo;
+
 friscv_l1_arbiter l1_arbiter (
-    .i_clk        ( i_clk        ),
-    .i_rstn       ( i_rstn       ),
+    .i_clk        ( i_clk         ),
+    .i_rstn       ( i_rstn        ),
 
-    .i_inst_addr  ( i_inst_addr  ),
-    .o_inst_data  ( o_inst_data  ),
-    .i_inst_en    ( i_inst_en    ),
-    .o_inst_wait  ( o_inst_wait  ),
+    .i_inst_addr  ( i_inst_addr   ),
+    .o_inst_data  ( o_inst_data   ),
+    .i_inst_en    ( i_inst_en     ),
+    .o_inst_wait  ( o_inst_wait   ),
 
-    .i_data_addr  ( i_data_addr  ),
-    .i_data_size  ( i_data_size  ),
-    .i_data_wdata ( i_data_wdata ),
-    .o_data_rdata ( o_data_rdata ),
-    .i_data_en    ( i_data_en    ),
-    .i_data_wr    ( i_data_wr    ),
-    .o_data_wait  ( o_data_wait  ),
-    .i_amo_op     ( i_amo_op     ),
+    .i_data_addr  ( i_data_addr   ),
+    .i_data_size  ( i_data_size   ),
+    .i_data_wdata ( i_data_wdata  ),
+    .o_data_rdata ( o_data_rdata  ),
+    .i_data_en    ( i_data_en     ),
+    .i_data_wr    ( i_data_wr     ),
+    .o_data_wait  ( o_data_wait   ),
+    .i_amo_op     ( i_amo_op      ),
 
-    .o_mem_addr   ( o_mem_addr   ),
-    .o_mem_size   ( o_mem_size   ),
-    .o_mem_wdata  ( o_mem_wdata  ),
-    .i_mem_rdata  ( i_mem_rdata  ),
-    .o_mem_rw     ( o_mem_rw     ),
-    .i_mem_wait   ( i_mem_wait   ),
-    .o_amo_op     ( o_amo_op     )
+    .o_mem_addr   ( w_grant_addr  ),
+    .o_mem_size   ( w_grant_size  ),
+    .o_mem_wdata  ( w_grant_wdata ),
+    .i_mem_rdata  ( i_mem_rdata   ),
+    .o_mem_rw     ( w_grant_rw    ),
+    .i_mem_wait   ( w_stall       ),
+    .o_amo_op     ( w_grant_amo   )
 );
 
 // ============================================================
 // Paging layer
 // ============================================================
 
-// TODO remove when implemented
-assign o_inst_fault  = 1'b0;
-assign o_load_fault  = 1'b0;
-assign o_store_fault = 1'b0;
-assign o_fault_addr  = '0;
+logic [19:0] w_grant_vpn;
+assign w_grant_vpn = w_grant_addr[31:12];
+
+logic w_grant_wr;
+assign w_grant_wr = w_grant_rw == RW_WRITE;
+
+// PTW memory interface
+addr_t w_walk_addr;
+logic  w_walk_en;
+data_t w_walk_rdata;
+logic  w_walk_wait;
+
+friscv_ptw ptw (
+    .i_clk           ( i_clk         ),
+    .i_rstn          ( i_rstn        ),
+
+    // Translation control
+    .i_satp          ( i_satp        ),
+    .i_mode          ( i_mode        ),
+    .i_sum           ( i_sum         ),
+    .i_mxr           ( i_mxr         ),
+
+    // Walk trigger
+    .i_itlb_miss     (  ),
+    .i_dtlb_miss     (  ),
+    .i_req_vpn       ( w_grant_vpn   ),
+    .i_req_is_write  ( w_grant_wr    ),
+
+    // External bus
+    .o_walk_addr     ( w_walk_addr   ),
+    .o_walk_en       ( w_walk_en     ),
+    .i_walk_rdata    ( w_walk_rdata  ),
+    .i_walk_wait     ( w_walk_wait   ),
+
+    // Arbiter stall
+    .o_stall         ( w_stall       ),
+
+    // TLB fill
+    .o_fill_vpn      ( w_fill_vpn    ),
+    .o_fill_ppn      ( w_fill_ppn    ),
+    .o_fill_asid     ( w_fill_asid   ),
+    .o_fill_perm     ( w_fill_perm   ),
+    .o_fill_is_super ( w_fill_super  ),
+    .o_fill_itlb_en  ( w_fill_itlb   ),
+    .o_fill_dtlb_en  ( w_fill_dtlb   ),
+
+    // Page fault outputs
+    .o_inst_fault    ( o_inst_fault  ),
+    .o_load_fault    ( o_load_fault  ),
+    .o_store_fault   ( o_store_fault ),
+    .o_fault_addr    ( o_fault_addr  )
+);
+
+// TODO mux PTW bus with arbiter bus
 
 endmodule
