@@ -58,6 +58,83 @@ module friscv_mmu (
     output addr_t      o_fault_addr
 );
 
+logic [19:0] w_inst_vpn, w_data_vpn;
+assign w_inst_vpn = i_inst_addr[31:12];
+assign w_data_vpn = i_data_addr[31:12];
+
+// ============================================================
+// TLB layer
+// ============================================================
+
+logic [19:0] w_itlb_ppn, w_dtlb_ppn;
+logic [7:0]  w_itlb_perm, w_dtlb_perm;
+logic        w_itlb_super, w_dtlb_super;
+logic        w_itlb_hit, w_dtlb_hit;
+
+friscv_tlb #(
+    .ENTRY_COUNT(TLB_ENTRIES)
+) itlb (
+    .i_clk           ( i_clk        ),
+    .i_rstn          ( i_rstn       ),
+
+    // Lookup
+    .i_match_vpn     ( w_inst_vpn   ),
+    .i_match_asid    ( i_satp.asid  ),
+    .o_ppn           ( w_itlb_ppn   ),
+    .o_perm          ( w_itlb_perm  ),
+    .o_is_super      ( w_itlb_super ),
+    .o_hit           ( w_itlb_hit   ),
+
+    // Fill
+    .i_new_vpn       ( '0           ),
+    .i_new_ppn       ( '0           ),
+    .i_new_asid      ( '0           ),
+    .i_new_perm      ( '0           ),
+    .i_new_is_super  ( 1'b0         ),
+    .i_new_en        ( 1'b0         ),
+
+    // Flush
+    .i_flush         ( i_flush_tlb  ),
+    .i_flush_vpn     ( '0           ),
+    .i_flush_vpn_en  ( 1'b0         ),
+    .i_flush_asid    ( '0           ),
+    .i_flush_asid_en ( 1'b0         )
+);
+
+friscv_tlb #(
+    .ENTRY_COUNT(TLB_ENTRIES)
+) dtlb (
+    .i_clk           ( i_clk        ),
+    .i_rstn          ( i_rstn       ),
+
+    // Lookup
+    .i_match_vpn     ( w_data_vpn   ),
+    .i_match_asid    ( i_satp.asid  ),
+    .o_ppn           ( w_dtlb_ppn   ),
+    .o_perm          ( w_dtlb_perm  ),
+    .o_is_super      ( w_dtlb_super ),
+    .o_hit           ( w_dtlb_hit   ),
+
+    // Fill
+    .i_new_vpn       ( '0           ),
+    .i_new_ppn       ( '0           ),
+    .i_new_asid      ( '0           ),
+    .i_new_perm      ( '0           ),
+    .i_new_is_super  ( 1'b0         ),
+    .i_new_en        ( 1'b0         ),
+
+    // Flush
+    .i_flush         ( i_flush_tlb  ),
+    .i_flush_vpn     ( '0           ),
+    .i_flush_vpn_en  ( 1'b0         ),
+    .i_flush_asid    ( '0           ),
+    .i_flush_asid_en ( 1'b0         )
+);
+
+// ============================================================
+// Arbitration layer
+// ============================================================
+
 friscv_l1_arbiter l1_arbiter (
     .i_clk        ( i_clk        ),
     .i_rstn       ( i_rstn       ),
@@ -84,5 +161,15 @@ friscv_l1_arbiter l1_arbiter (
     .i_mem_wait   ( i_mem_wait   ),
     .o_amo_op     ( o_amo_op     )
 );
+
+// ============================================================
+// Paging layer
+// ============================================================
+
+// TODO remove when implemented
+assign o_inst_fault  = 1'b0;
+assign o_load_fault  = 1'b0;
+assign o_store_fault = 1'b0;
+assign o_fault_addr  = '0;
 
 endmodule

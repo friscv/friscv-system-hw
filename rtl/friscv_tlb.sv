@@ -16,22 +16,22 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_tlb #(
-    localparam int ENTRY_COUNT = 32
+    parameter int ENTRY_COUNT = 32
 ) (
     input  logic        i_clk,
     input  logic        i_rstn,
 
     // Lookup
-    input  logic [19:0] i_match_va,
+    input  logic [19:0] i_match_vpn,
     input  logic [8:0]  i_match_asid,
-    output logic [19:0] o_pa,
+    output logic [19:0] o_ppn,
     output logic [7:0]  o_perm,  // {D,A,G,U,X,W,R,V}
     output logic        o_is_super,
     output logic        o_hit,
 
     // Fill
-    input  logic [19:0] i_new_va,
-    input  logic [19:0] i_new_pa,
+    input  logic [19:0] i_new_vpn,
+    input  logic [19:0] i_new_ppn,
     input  logic [8:0]  i_new_asid,
     input  logic [7:0]  i_new_perm,
     input  logic        i_new_is_super,
@@ -39,8 +39,8 @@ module friscv_tlb #(
 
     // Flush
     input  logic        i_flush,
-    input  logic [19:0] i_flush_va,
-    input  logic        i_flush_va_en,
+    input  logic [19:0] i_flush_vpn,
+    input  logic        i_flush_vpn_en,
     input  logic [8:0]  i_flush_asid,
     input  logic        i_flush_asid_en
 );
@@ -50,8 +50,8 @@ typedef struct packed {
 } page_perm_t;
 
 typedef struct packed {
-    logic [19:0] va;
-    logic [19:0] pa;
+    logic [19:0] vpn;
+    logic [19:0] ppn;
     logic [8:0]  asid;
     logic        is_super;
     page_perm_t  perm;
@@ -99,23 +99,23 @@ always_ff @(posedge i_clk) begin
 
         if (i_flush) begin  // Global flush enable, has priority
 
-            if (i_flush_va_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VA+ASID match, not global
+            if (i_flush_vpn_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VPN+ASID match, not global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va_asid
-                    logic va_match;
-                    va_match = (!r_tlb[g].is_super && i_flush_va == r_tlb[g].va) ||
-                               ( r_tlb[g].is_super && i_flush_va[19:10] == r_tlb[g].va[19:10]);
-                    if (va_match && r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
+                    logic vpn_match;
+                    vpn_match = (!r_tlb[g].is_super && i_flush_vpn == r_tlb[g].vpn) ||
+                               ( r_tlb[g].is_super && i_flush_vpn[19:10] == r_tlb[g].vpn[19:10]);
+                    if (vpn_match && r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
                         r_tlb[g] <= '0;
                 end
 
-            end else if (i_flush_va_en) begin  // sfence.vma rs1, x0: VA match, all ASIDs and global
+            end else if (i_flush_vpn_en) begin  // sfence.vma rs1, x0: VPN match, all ASIDs and global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va
-                    logic va_match;
-                    va_match = (!r_tlb[g].is_super && i_flush_va == r_tlb[g].va) ||
-                               ( r_tlb[g].is_super && i_flush_va[19:10] == r_tlb[g].va[19:10]);
-                    if (va_match)
+                    logic vpn_match;
+                    vpn_match = (!r_tlb[g].is_super && i_flush_vpn == r_tlb[g].vpn) ||
+                                ( r_tlb[g].is_super && i_flush_vpn[19:10] == r_tlb[g].vpn[19:10]);
+                    if (vpn_match)
                         r_tlb[g] <= '0;
                 end
 
@@ -139,8 +139,8 @@ always_ff @(posedge i_clk) begin
             logic [$clog2(ENTRY_COUNT)-1:0] victim;
             victim = w_any_invalid ? w_invalid_slot : w_clock_victim;
 
-            r_tlb[victim].va       <= i_new_is_super ? {i_new_va[19:10], 10'b0} : i_new_va;
-            r_tlb[victim].pa       <= i_new_pa;
+            r_tlb[victim].vpn      <= i_new_is_super ? {i_new_vpn[19:10], 10'b0} : i_new_vpn;
+            r_tlb[victim].ppn      <= i_new_ppn;
             r_tlb[victim].asid     <= i_new_asid;
             r_tlb[victim].is_super <= i_new_is_super;
             r_tlb[victim].perm     <= i_new_perm;
@@ -192,19 +192,19 @@ end
 // ============================================================
 
 always_comb begin
-    o_pa       = '0;
+    o_ppn      = '0;
     o_perm     = '0;
     o_is_super = 1'b0;
     o_hit      = 1'b0;
     w_hit_idx  = '0;
 
     for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_lookup
-        logic va_match;
-        va_match = (!r_tlb[g].is_super && i_match_va == r_tlb[g].va) ||
-                   ( r_tlb[g].is_super && i_match_va[19:10] == r_tlb[g].va[19:10]);
+        logic vpn_match;
+        vpn_match = (!r_tlb[g].is_super && i_match_vpn == r_tlb[g].vpn) ||
+                    ( r_tlb[g].is_super && i_match_vpn[19:10] == r_tlb[g].vpn[19:10]);
 
-        if (r_tlb[g].perm.v && (r_tlb[g].perm.g || i_match_asid == r_tlb[g].asid) && va_match) begin
-            o_pa       = r_tlb[g].is_super ? {r_tlb[g].pa[19:10], i_match_va[9:0]} : r_tlb[g].pa;
+        if (r_tlb[g].perm.v && (r_tlb[g].perm.g || i_match_asid == r_tlb[g].asid) && vpn_match) begin
+            o_ppn      = r_tlb[g].is_super ? {r_tlb[g].ppn[19:10], i_match_vpn[9:0]} : r_tlb[g].ppn;
             o_perm     = r_tlb[g].perm;
             o_is_super = r_tlb[g].is_super;
             o_hit      = 1'b1;
