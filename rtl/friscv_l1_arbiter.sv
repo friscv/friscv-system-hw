@@ -42,7 +42,8 @@ module friscv_l1_arbiter (
     input  data_t      i_mem_rdata,
     output rw_cmd_e    o_mem_rw,
     input  logic       i_mem_wait,
-    output amo_op_e    o_amo_op
+    output amo_op_e    o_amo_op,
+    output logic       o_grant_inst
 );
 
 // FSM States
@@ -130,5 +131,6 @@ end
 
 assign o_inst_data  = i_mem_rdata;
 assign o_data_rdata = i_mem_rdata;
+assign o_grant_inst = (state == S_GRANT_INST);
 
 endmodule

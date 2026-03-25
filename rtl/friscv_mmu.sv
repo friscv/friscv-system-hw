@@ -150,6 +150,7 @@ data_t      w_grant_wdata;
 rw_cmd_e    w_grant_rw;
 logic       w_stall;
 amo_op_e    w_grant_amo;
+logic       w_grant_inst;
 
 friscv_l1_arbiter l1_arbiter (
     .i_clk        ( i_clk         ),
@@ -175,12 +176,26 @@ friscv_l1_arbiter l1_arbiter (
     .i_mem_rdata  ( i_mem_rdata   ),
     .o_mem_rw     ( w_grant_rw    ),
     .i_mem_wait   ( w_stall       ),
-    .o_amo_op     ( w_grant_amo   )
+    .o_amo_op     ( w_grant_amo   ),
+    .o_grant_inst ( w_grant_inst  )
 );
 
 // ============================================================
 // Paging layer
 // ============================================================
+
+// Paging active when satp.MODE != 0 and not in M-mode
+logic w_paging_en;
+assign w_paging_en = (|i_satp.mode) && (i_mode != M_MODE);
+
+// Arbiter is in a grant state when it drives a non-idle command
+logic w_grant_active;
+assign w_grant_active = (w_grant_rw != RW_IDLE);
+
+// TLB miss - arbiter has granted the request, paging is on, and the TLB did not hit
+logic w_itlb_miss, w_dtlb_miss;
+assign w_itlb_miss = w_grant_active &&  w_grant_inst && !w_itlb_hit && w_paging_en;
+assign w_dtlb_miss = w_grant_active && !w_grant_inst && !w_dtlb_hit && w_paging_en;
 
 logic [19:0] w_grant_vpn;
 assign w_grant_vpn = w_grant_addr[31:12];
@@ -205,8 +220,8 @@ friscv_ptw ptw (
     .i_mxr           ( i_mxr         ),
 
     // Walk trigger
-    .i_itlb_miss     (  ),
-    .i_dtlb_miss     (  ),
+    .i_itlb_miss     ( w_itlb_miss   ),
+    .i_dtlb_miss     ( w_dtlb_miss   ),
     .i_req_vpn       ( w_grant_vpn   ),
     .i_req_is_write  ( w_grant_wr    ),
 
@@ -235,6 +250,28 @@ friscv_ptw ptw (
     .o_fault_addr    ( o_fault_addr  )
 );
 
-// TODO mux PTW bus with arbiter bus
+// ============================================================
+// PTW / arbiter bus mux
+// ============================================================
+
+// Physical address for the granted request
+logic [19:0] w_granted_ppn;
+assign w_granted_ppn = w_grant_inst ? w_itlb_ppn : w_dtlb_ppn;
+
+// PTW walk signals routed directly to/from external memory
+assign w_walk_rdata = i_mem_rdata;
+assign w_walk_wait  = i_mem_wait;
+
+// When PTW is walking it owns the bus
+assign w_stall = w_walk_en ? 1'b1 : i_mem_wait;
+
+assign o_mem_addr = w_walk_en ? w_walk_addr                            :
+                    w_paging_en ? {w_granted_ppn, w_grant_addr[11:0]}  :
+                    w_grant_addr;
+
+assign o_mem_rw    = w_walk_en ? RW_READ    : w_grant_rw;
+assign o_mem_size  = w_walk_en ? WIDTH_I32  : w_grant_size;
+assign o_mem_wdata = w_walk_en ? '0         : w_grant_wdata;
+assign o_amo_op    = w_walk_en ? AMO_NONE   : w_grant_amo;
 
 endmodule
