@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -15,7 +15,9 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_axi_master (
+module friscv_axi_master #(
+    localparam BURST_LEN = 8  // TODO calculate this from cache size
+) (
     input  logic                    i_clk,
     input  logic                    i_rstn,
 
@@ -26,6 +28,8 @@ module friscv_axi_master (
     output data_t                   o_rdata,
     input  rw_cmd_e                 i_rw,
     output logic                    o_wait,
+    input  logic                    i_burst_en,
+    output logic                    o_beat_valid,
 
     // Write address channel
     output logic                    m_axi_awvalid,
@@ -80,14 +84,40 @@ typedef enum logic [2:0] {
     S_R_DATA
 } state_e;
 
-// Internal signals
 state_e r_state, w_next_state;
 
-mem_width_e r_size;
-rw_cmd_e r_rw;
-
+// Latched transaction parameters
+mem_width_e  r_size;
+rw_cmd_e     r_rw;
+logic        r_burst_en;
 logic [31:0] r_addr;
-data_t r_wdata, r_rdata;
+data_t       r_wdata, r_rdata;
+
+// Write-back FIFO
+// Cache fills from cycle 0 at 1 word/cycle
+// FIFO can never overflow: cache pushes exactly BURST_LEN words and AXI drains at most
+data_t r_fifo [BURST_LEN];
+
+localparam FIFO_PTR_W = $clog2(BURST_LEN);
+
+logic [FIFO_PTR_W-1:0] r_fifo_wptr, r_fifo_rptr;
+logic [FIFO_PTR_W:0]   r_fifo_count;
+logic                  fifo_empty;
+logic                  fifo_wen, fifo_ren;
+
+// Push counter: tracks how many words have been pushed into the FIFO
+// Set to 1 on the first push in S_IDLE, increments to BURST_LEN
+logic [FIFO_PTR_W:0] r_push_cnt;
+
+assign fifo_empty = (r_fifo_count == '0);
+
+// Push word 0 while still in S_IDLE, push words 1..BURST_LEN-1 via r_push_cnt
+assign fifo_wen = ((r_state == S_IDLE) && (i_rw == RW_WRITE) && i_burst_en) ||
+                  (r_burst_en && (r_rw == RW_WRITE) &&
+                   (r_push_cnt > '0) && (r_push_cnt < BURST_LEN[FIFO_PTR_W:0]));
+
+// Pop when AXI W channel accepts a burst beat
+assign fifo_ren = (r_state == S_W_DATA) && r_burst_en && !fifo_empty && m_axi_wready;
 
 // Data width and alignment
 logic [DATA_WIDTH/8-1:0] base_strb;
@@ -109,44 +139,82 @@ assign m_axi_awaddr  = r_addr;
 assign m_axi_awsize  = r_size;
 assign m_axi_awcache = 4'b0011;
 assign m_axi_awprot  = 3'b000;
-assign m_axi_awburst = 2'b01; 
-assign m_axi_awlen   = 8'h00;
+assign m_axi_awburst = 2'b01;
+assign m_axi_awlen   = r_burst_en ? (BURST_LEN - 1) : 8'h00;
 assign m_axi_awlock  = 1'b0;
 assign m_axi_awqos   = 4'h0;
 
-assign m_axi_wdata   = r_wdata;
+// Burst writes stream from FIFO, single writes use the latched r_wdata register
+assign m_axi_wdata   = r_burst_en ? r_fifo[r_fifo_rptr] : r_wdata;
+
 assign m_axi_araddr  = r_addr;
 assign m_axi_arsize  = r_size;
 assign m_axi_arcache = 4'b0011;
 assign m_axi_arprot  = 3'b000;
 assign m_axi_arburst = 2'b01;
-assign m_axi_arlen   = 8'h00;
+assign m_axi_arlen   = r_burst_en ? (BURST_LEN - 1) : 8'h00;
 assign m_axi_arlock  = 1'b0;
 assign m_axi_arqos   = 4'h0;
 
-assign o_wait = w_next_state != S_IDLE;
+assign o_wait       = w_next_state != S_IDLE;
+assign o_beat_valid = r_burst_en && (r_state == S_R_DATA) && m_axi_rvalid && m_axi_rready;
 
 // Clocked logic
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
-        r_rw <= RW_IDLE;
-        r_state <= S_IDLE;
+        r_rw         <= RW_IDLE;
+        r_burst_en   <= 1'b0;
+        r_state      <= S_IDLE;
+        r_push_cnt   <= '0;
+        r_fifo_wptr  <= '0;
+        r_fifo_rptr  <= '0;
+        r_fifo_count <= '0;
         {r_addr, r_wdata, r_rdata, r_size} <= '0;
     end else begin
         r_state <= w_next_state;
+
+        // Latch transaction parameters on start
         if (r_state == S_IDLE && i_rw != RW_IDLE) begin
-            r_rw    <= i_rw;
-            r_addr  <= i_addr;
-            r_wdata <= i_wdata;
-            r_size  <= i_size;
+            r_rw       <= i_rw;
+            r_addr     <= i_addr;
+            r_wdata    <= i_wdata;
+            r_size     <= i_size;
+            r_burst_en <= i_burst_en;
         end
+
+        // Capture read data
         if (m_axi_rready && m_axi_rvalid) begin
             r_rdata <= m_axi_rdata;
+        end
+
+        // FIFO write port (cache write-back)
+        if (fifo_wen) begin
+            r_fifo[r_fifo_wptr] <= i_wdata;
+            r_fifo_wptr         <= r_fifo_wptr + 1;
+        end
+
+        // FIFO read port (AXI drain)
+        if (fifo_ren) begin
+            r_fifo_rptr <= r_fifo_rptr + 1;
+        end
+
+        // FIFO fullness counter
+        if (fifo_wen && !fifo_ren)
+            r_fifo_count <= r_fifo_count + 1;
+        else if (!fifo_wen && fifo_ren)
+            r_fifo_count <= r_fifo_count - 1;
+
+        // Push counter - set to 1 on first push, increment until BURST_LEN
+        if ((r_state == S_IDLE) && (i_rw == RW_WRITE) && i_burst_en) begin
+            r_push_cnt <= 1;
+        end else if (r_burst_en && (r_rw == RW_WRITE) &&
+                     (r_push_cnt > '0) && (r_push_cnt < BURST_LEN[FIFO_PTR_W:0])) begin
+            r_push_cnt <= r_push_cnt + 1;
         end
     end
 end
 
-// State transition logic
+// State transition and AXI control
 always_comb begin
     w_next_state  = r_state;
     m_axi_awvalid = 1'b0;
@@ -164,13 +232,22 @@ always_comb begin
         end
         S_W_ADDR: begin
             m_axi_awvalid = 1'b1;
-            w_next_state  = (m_axi_awready) ? S_W_DATA : S_W_ADDR;
+            w_next_state  = m_axi_awready ? S_W_DATA : S_W_ADDR;
         end
         S_W_DATA: begin
-            m_axi_wvalid = 1'b1;
-            m_axi_wlast  = 1'b1;
-            if (m_axi_wready) begin
-                w_next_state = S_W_RET;
+            if (r_burst_en) begin
+                // Stream from FIFO; wvalid tracks FIFO non-empty, wlast on final entry
+                m_axi_wvalid = !fifo_empty;
+                m_axi_wlast  = !fifo_empty && (r_fifo_count == 1);
+                if (!fifo_empty && m_axi_wready && (r_fifo_count == 1)) begin
+                    w_next_state = S_W_RET;
+                end
+            end else begin
+                m_axi_wvalid = 1'b1;
+                m_axi_wlast  = 1'b1;
+                if (m_axi_wready) begin
+                    w_next_state = S_W_RET;
+                end
             end
         end
         S_W_RET: begin
@@ -181,11 +258,12 @@ always_comb begin
         end
         S_R_ADDR: begin
             m_axi_arvalid = 1'b1;
-            w_next_state  = (m_axi_arready) ? S_R_DATA : S_R_ADDR;
+            w_next_state  = m_axi_arready ? S_R_DATA : S_R_ADDR;
         end
         S_R_DATA: begin
             m_axi_rready = 1'b1;
-            if (m_axi_rvalid) begin
+            // Single: exit on first valid beat; burst: wait for rlast
+            if (m_axi_rvalid && (!r_burst_en || m_axi_rlast)) begin
                 w_next_state = S_IDLE;
             end
         end

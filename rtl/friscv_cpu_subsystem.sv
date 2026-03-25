@@ -75,6 +75,8 @@ logic [31:0] w_wdata;
 logic [31:0] w_rdata;
 rw_cmd_e     w_rw;
 logic        w_wait;
+logic        w_burst_en;
+logic        w_beat_valid;
 
 // Address translation
 always_comb begin
@@ -110,7 +112,9 @@ friscv_core_complex #(
     .o_mem_wdata ( w_wdata        ),
     .i_mem_rdata ( w_rdata        ),
     .o_mem_rw    ( w_rw           ),
-    .i_mem_wait  ( w_wait         )
+    .i_mem_wait  ( w_wait         ),
+    .o_burst_en  ( w_burst_en     ),
+    .i_beat_valid( w_beat_valid   )
 );
 
 // AXI master reset sequencer
@@ -148,6 +152,8 @@ friscv_axi_master m_axi (
     .o_rdata        ( w_rdata       ),
     .i_rw           ( w_rw          ),
     .o_wait         ( w_wait        ),
+    .i_burst_en     ( w_burst_en    ),
+    .o_beat_valid   ( w_beat_valid  ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

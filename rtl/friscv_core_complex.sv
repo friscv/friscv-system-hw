@@ -30,7 +30,9 @@ module friscv_core_complex #(
     output data_t      o_mem_wdata,
     input  data_t      i_mem_rdata,
     output rw_cmd_e    o_mem_rw,
-    input  logic       i_mem_wait
+    input  logic       i_mem_wait,
+    output logic       o_burst_en,
+    input  logic       i_beat_valid
 );
 
 // ============================================================
@@ -267,5 +269,8 @@ end else begin
     assign w_l2_wait  = w_amo_active ? w_amo_core_wait : i_mem_wait;
     assign o_mem_rw   = w_amo_active ? w_amo_rw        : w_l2_rw;
 end
+
+// TODO replace when cache connected
+assign o_burst_en = 1'b0;
 
 endmodule
