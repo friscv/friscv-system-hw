@@ -61,11 +61,15 @@ amo_op_e    w_amo_op;
 // Protection and Translation signals
 // ============================================================
 
-satp_t w_satp;
-logic  w_sum;
-logic  w_mxr;
-mode_e w_mode;
-logic  w_flush_tlb;
+satp_t       w_satp;
+logic        w_sum;
+logic        w_mxr;
+mode_e       w_mode;
+logic        w_flush_tlb;
+logic [19:0] w_flush_vpn;
+logic        w_flush_vpn_en;
+logic [8:0]  w_flush_asid;
+logic        w_flush_asid_en;
 
 // ============================================================
 // Level 2 bus and L1-L2 arbitration
@@ -95,46 +99,50 @@ logic  w_inst_fault, w_load_fault, w_store_fault;
 addr_t w_fault_addr;
 
 friscv_mmu mmu (
-    .i_clk         ( i_clk        ),
-    .i_rstn        ( i_rstn       ),
+    .i_clk           ( i_clk           ),
+    .i_rstn          ( i_rstn          ),
 
     // Instruction Memory Interface
-    .i_inst_addr   ( w_inst_addr   ),
-    .o_inst_data   ( w_inst_data   ),
-    .i_inst_en     ( w_inst_en     ),
-    .o_inst_wait   ( w_inst_wait   ),
+    .i_inst_addr     ( w_inst_addr     ),
+    .o_inst_data     ( w_inst_data     ),
+    .i_inst_en       ( w_inst_en       ),
+    .o_inst_wait     ( w_inst_wait     ),
 
     // Data Memory Interface
-    .i_data_addr   ( w_data_addr   ),
-    .i_data_size   ( w_data_size   ),
-    .i_data_wdata  ( w_data_wdata  ),
-    .o_data_rdata  ( w_data_rdata  ),
-    .i_data_en     ( w_data_en     ),
-    .i_data_wr     ( w_data_wr     ),
-    .o_data_wait   ( w_data_wait   ),
-    .i_amo_op      ( w_amo_op      ),
+    .i_data_addr     ( w_data_addr     ),
+    .i_data_size     ( w_data_size     ),
+    .i_data_wdata    ( w_data_wdata    ),
+    .o_data_rdata    ( w_data_rdata    ),
+    .i_data_en       ( w_data_en       ),
+    .i_data_wr       ( w_data_wr       ),
+    .o_data_wait     ( w_data_wait     ),
+    .i_amo_op        ( w_amo_op        ),
 
     // External Memory Interface
-    .o_mem_size    ( w_l2_size     ),
-    .o_mem_addr    ( w_l2_addr     ),
-    .o_mem_wdata   ( w_l2_wdata    ),
-    .i_mem_rdata   ( w_l2_rdata    ),
-    .o_mem_rw      ( w_l2_rw       ),
-    .i_mem_wait    ( w_l2_wait     ),
-    .o_amo_op      ( w_l2_amo_op   ),
+    .o_mem_size      ( w_l2_size       ),
+    .o_mem_addr      ( w_l2_addr       ),
+    .o_mem_wdata     ( w_l2_wdata      ),
+    .i_mem_rdata     ( w_l2_rdata      ),
+    .o_mem_rw        ( w_l2_rw         ),
+    .i_mem_wait      ( w_l2_wait       ),
+    .o_amo_op        ( w_l2_amo_op     ),
 
     // Protection and Translation Control
-    .i_satp        ( w_satp        ),
-    .i_sum         ( w_sum         ),
-    .i_mxr         ( w_mxr         ),
-    .i_mode        ( w_mode        ),
-    .i_flush_tlb   ( w_flush_tlb   ),
+    .i_satp          ( w_satp          ),
+    .i_sum           ( w_sum           ),
+    .i_mxr           ( w_mxr           ),
+    .i_mode          ( w_mode          ),
+    .i_flush_tlb     ( w_flush_tlb     ),
+    .i_flush_vpn     ( w_flush_vpn     ),
+    .i_flush_vpn_en  ( w_flush_vpn_en  ),
+    .i_flush_asid    ( w_flush_asid    ),
+    .i_flush_asid_en ( w_flush_asid_en ),
 
     // Page fault signals
-    .o_inst_fault  ( w_inst_fault  ),
-    .o_load_fault  ( w_load_fault  ),
-    .o_store_fault ( w_store_fault ),
-    .o_fault_addr  ( w_fault_addr  )
+    .o_inst_fault    ( w_inst_fault    ),
+    .o_load_fault    ( w_load_fault    ),
+    .o_store_fault   ( w_store_fault   ),
+    .o_fault_addr    ( w_fault_addr    )
 );
 
 // ============================================================
@@ -161,42 +169,46 @@ assign w_stall_if = w_inst_wait || r_end_signal;
 friscv_core #(
     .HART_ID(HART_ID)
 ) cpu_0 (
-    .i_clk            ( i_clk        ),
-    .i_rstn           ( i_rstn       ),
+    .i_clk            ( i_clk           ),
+    .i_rstn           ( i_rstn          ),
 
     // Interrupt requests
-    .i_msip           ( i_msip       ),
-    .i_mtip           ( i_mtip       ),
-    .i_meip           ( i_meip       ),
+    .i_msip           ( i_msip          ),
+    .i_mtip           ( i_mtip          ),
+    .i_meip           ( i_meip          ),
 
     // Page fault signals
-    .i_inst_fault     ( w_inst_fault ),
-    .i_load_fault     ( w_load_fault ),
-    .i_store_fault    ( w_store_fault),
-    .i_fault_addr     ( w_fault_addr ),
+    .i_inst_fault     ( w_inst_fault    ),
+    .i_load_fault     ( w_load_fault    ),
+    .i_store_fault    ( w_store_fault   ),
+    .i_fault_addr     ( w_fault_addr    ),
 
     // Instruction Memory Interface
-    .i_mem_addr_out   ( w_inst_addr  ),
-    .i_mem_data_in    ( w_inst_data  ),
-    .i_mem_en_out     ( w_inst_en    ),
-    .i_mem_wait_in    ( w_stall_if   ),
+    .i_mem_addr_out   ( w_inst_addr     ),
+    .i_mem_data_in    ( w_inst_data     ),
+    .i_mem_en_out     ( w_inst_en       ),
+    .i_mem_wait_in    ( w_stall_if      ),
 
     // Data memory interface
-    .d_mem_addr_out   ( w_data_addr  ),
-    .d_mem_data_out   ( w_data_wdata ),
-    .d_mem_data_in    ( w_data_rdata ),
-    .d_mem_en_out     ( w_data_en    ),
-    .d_mem_wr_out     ( w_data_wr    ),
-    .d_mem_size_out   ( w_data_size  ),
-    .d_mem_wait_in    ( w_data_wait  ),
-    .d_mem_amo_op_out ( w_amo_op     ),
+    .d_mem_addr_out   ( w_data_addr     ),
+    .d_mem_data_out   ( w_data_wdata    ),
+    .d_mem_data_in    ( w_data_rdata    ),
+    .d_mem_en_out     ( w_data_en       ),
+    .d_mem_wr_out     ( w_data_wr       ),
+    .d_mem_size_out   ( w_data_size     ),
+    .d_mem_wait_in    ( w_data_wait     ),
+    .d_mem_amo_op_out ( w_amo_op        ),
 
     // Memory management outputs
-    .satp_out         ( w_satp       ),
-    .sum_out          ( w_sum        ),
-    .mxr_out          ( w_mxr        ),
-    .mode_out         ( w_mode       ),
-    .flush_tlb_out    ( w_flush_tlb  )
+    .satp_out         ( w_satp          ),
+    .sum_out          ( w_sum           ),
+    .mxr_out          ( w_mxr           ),
+    .mode_out         ( w_mode          ),
+    .flush_tlb_out    ( w_flush_tlb     ),
+    .flush_vpn_out    ( w_flush_vpn     ),
+    .flush_vpn_en_out ( w_flush_vpn_en  ),
+    .flush_asid_out   ( w_flush_asid    ),
+    .flush_asid_en_out( w_flush_asid_en )
 );
 
 // ============================================================
@@ -257,11 +269,16 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
     end
 
     assign w_l2_rdata = w_l2_is_rom ? w_zsbl_data :
-                        w_amo_active ? w_amo_load_data : i_mem_rdata;
+                        w_amo_active ? w_amo_load_data :
+                        i_mem_rdata;
+
     assign w_l2_wait  = w_l2_is_rom ? (w_l2_addr != r_rom_addr_prev) :
-                        w_amo_active ? w_amo_core_wait : i_mem_wait;
+                        w_amo_active ? w_amo_core_wait :
+                        i_mem_wait;
+
     assign o_mem_rw   = w_l2_is_rom ? RW_IDLE :
-                        w_amo_active ? w_amo_rw : w_l2_rw;
+                        w_amo_active ? w_amo_rw :
+                        w_l2_rw;
 
 end else begin
     // No ROM, pass through all reads/writes to AXI (or AMO unit)

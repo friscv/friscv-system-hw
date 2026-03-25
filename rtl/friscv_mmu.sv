@@ -16,55 +16,59 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_mmu (
-    input  logic       i_clk,
-    input  logic       i_rstn,
+    input  logic        i_clk,
+    input  logic        i_rstn,
 
-    // Instruction Memory Interface (from core IF stage)
-    input  addr_t      i_inst_addr,
-    output data_t      o_inst_data,
-    input  logic       i_inst_en,
-    output logic       o_inst_wait,
+    // Instruction Memory Interface
+    input  addr_t       i_inst_addr,
+    output data_t       o_inst_data,
+    input  logic        i_inst_en,
+    output logic        o_inst_wait,
 
-    // Data Memory Interface (from core MEM stage)
-    input  addr_t      i_data_addr,
-    input  mem_width_e i_data_size,
-    input  data_t      i_data_wdata,
-    output data_t      o_data_rdata,
-    input  logic       i_data_en,
-    input  logic       i_data_wr,
-    output logic       o_data_wait,
-    input  amo_op_e    i_amo_op,
+    // Data Memory Interface
+    input  addr_t       i_data_addr,
+    input  mem_width_e  i_data_size,
+    input  data_t       i_data_wdata,
+    output data_t       o_data_rdata,
+    input  logic        i_data_en,
+    input  logic        i_data_wr,
+    output logic        o_data_wait,
+    input  amo_op_e     i_amo_op,
 
     // External Memory Interface
-    output addr_t      o_mem_addr,
-    output mem_width_e o_mem_size,
-    output data_t      o_mem_wdata,
-    input  data_t      i_mem_rdata,
-    output rw_cmd_e    o_mem_rw,
-    input  logic       i_mem_wait,
-    output amo_op_e    o_amo_op,
+    output addr_t       o_mem_addr,
+    output mem_width_e  o_mem_size,
+    output data_t       o_mem_wdata,
+    input  data_t       i_mem_rdata,
+    output rw_cmd_e     o_mem_rw,
+    input  logic        i_mem_wait,
+    output amo_op_e     o_amo_op,
 
-    // Protection and Translation Control (from core ID stage CSRs)
-    input  satp_t      i_satp,
-    input  logic       i_sum,
-    input  logic       i_mxr,
-    input  mode_e      i_mode,
-    input  logic       i_flush_tlb,
+    // Protection and Translation Control
+    input  satp_t       i_satp,
+    input  logic        i_sum,
+    input  logic        i_mxr,
+    input  mode_e       i_mode,
+    input  logic        i_flush_tlb,
+    input  logic [19:0] i_flush_vpn,
+    input  logic        i_flush_vpn_en,
+    input  logic [8:0]  i_flush_asid,
+    input  logic        i_flush_asid_en,
 
     // Page fault signals
-    output logic       o_inst_fault,
-    output logic       o_load_fault,
-    output logic       o_store_fault,
-    output addr_t      o_fault_addr
+    output logic        o_inst_fault,
+    output logic        o_load_fault,
+    output logic        o_store_fault,
+    output addr_t       o_fault_addr
 );
-
-logic [19:0] w_inst_vpn, w_data_vpn;
-assign w_inst_vpn = i_inst_addr[31:12];
-assign w_data_vpn = i_data_addr[31:12];
 
 // ============================================================
 // TLB layer
 // ============================================================
+
+logic [19:0] w_inst_vpn, w_data_vpn;
+assign w_inst_vpn = i_inst_addr[31:12];
+assign w_data_vpn = i_data_addr[31:12];
 
 // Lookup lines
 logic [19:0] w_itlb_ppn, w_dtlb_ppn;
@@ -82,61 +86,61 @@ logic        w_fill_itlb, w_fill_dtlb;
 friscv_tlb #(
     .ENTRY_COUNT(TLB_ENTRIES)
 ) itlb (
-    .i_clk           ( i_clk        ),
-    .i_rstn          ( i_rstn       ),
+    .i_clk           ( i_clk           ),
+    .i_rstn          ( i_rstn          ),
 
     // Lookup
-    .i_match_vpn     ( w_inst_vpn   ),
-    .i_match_asid    ( i_satp.asid  ),
-    .o_ppn           ( w_itlb_ppn   ),
-    .o_perm          ( w_itlb_perm  ),
-    .o_is_super      ( w_itlb_super ),
-    .o_hit           ( w_itlb_hit   ),
+    .i_match_vpn     ( w_inst_vpn      ),
+    .i_match_asid    ( i_satp.asid     ),
+    .o_ppn           ( w_itlb_ppn      ),
+    .o_perm          ( w_itlb_perm     ),
+    .o_is_super      ( w_itlb_super    ),
+    .o_hit           ( w_itlb_hit      ),
 
     // Fill
-    .i_fill_vpn      ( w_fill_vpn   ),
-    .i_fill_ppn      ( w_fill_ppn   ),
-    .i_fill_asid     ( w_fill_asid  ),
-    .i_fill_perm     ( w_fill_perm  ),
-    .i_fill_is_super ( w_fill_super ),
-    .i_fill_en       ( w_fill_itlb  ),
+    .i_fill_vpn      ( w_fill_vpn      ),
+    .i_fill_ppn      ( w_fill_ppn      ),
+    .i_fill_asid     ( w_fill_asid     ),
+    .i_fill_perm     ( w_fill_perm     ),
+    .i_fill_is_super ( w_fill_super    ),
+    .i_fill_en       ( w_fill_itlb     ),
 
     // Flush
-    .i_flush         ( i_flush_tlb  ),
-    .i_flush_vpn     ( '0           ),
-    .i_flush_vpn_en  ( 1'b0         ),
-    .i_flush_asid    ( '0           ),
-    .i_flush_asid_en ( 1'b0         )
+    .i_flush         ( i_flush_tlb     ),
+    .i_flush_vpn     ( i_flush_vpn     ),
+    .i_flush_vpn_en  ( i_flush_vpn_en  ),
+    .i_flush_asid    ( i_flush_asid    ),
+    .i_flush_asid_en ( i_flush_asid_en )
 );
 
 friscv_tlb #(
     .ENTRY_COUNT(TLB_ENTRIES)
 ) dtlb (
-    .i_clk           ( i_clk        ),
-    .i_rstn          ( i_rstn       ),
+    .i_clk           ( i_clk           ),
+    .i_rstn          ( i_rstn          ),
 
     // Lookup
-    .i_match_vpn     ( w_data_vpn   ),
-    .i_match_asid    ( i_satp.asid  ),
-    .o_ppn           ( w_dtlb_ppn   ),
-    .o_perm          ( w_dtlb_perm  ),
-    .o_is_super      ( w_dtlb_super ),
-    .o_hit           ( w_dtlb_hit   ),
+    .i_match_vpn     ( w_data_vpn      ),
+    .i_match_asid    ( i_satp.asid     ),
+    .o_ppn           ( w_dtlb_ppn      ),
+    .o_perm          ( w_dtlb_perm     ),
+    .o_is_super      ( w_dtlb_super    ),
+    .o_hit           ( w_dtlb_hit      ),
 
     // Fill
-    .i_fill_vpn      ( w_fill_vpn   ),
-    .i_fill_ppn      ( w_fill_ppn   ),
-    .i_fill_asid     ( w_fill_asid  ),
-    .i_fill_perm     ( w_fill_perm  ),
-    .i_fill_is_super ( w_fill_super ),
-    .i_fill_en       ( w_fill_dtlb  ),
+    .i_fill_vpn      ( w_fill_vpn      ),
+    .i_fill_ppn      ( w_fill_ppn      ),
+    .i_fill_asid     ( w_fill_asid     ),
+    .i_fill_perm     ( w_fill_perm     ),
+    .i_fill_is_super ( w_fill_super    ),
+    .i_fill_en       ( w_fill_dtlb     ),
 
     // Flush
-    .i_flush         ( i_flush_tlb  ),
-    .i_flush_vpn     ( '0           ),
-    .i_flush_vpn_en  ( 1'b0         ),
-    .i_flush_asid    ( '0           ),
-    .i_flush_asid_en ( 1'b0         )
+    .i_flush         ( i_flush_tlb     ),
+    .i_flush_vpn     ( i_flush_vpn     ),
+    .i_flush_vpn_en  ( i_flush_vpn_en  ),
+    .i_flush_asid    ( i_flush_asid    ),
+    .i_flush_asid_en ( i_flush_asid_en )
 );
 
 // ============================================================
@@ -201,7 +205,7 @@ logic [19:0] w_grant_vpn;
 assign w_grant_vpn = w_grant_addr[31:12];
 
 logic w_grant_wr;
-assign w_grant_wr = w_grant_rw == RW_WRITE;
+assign w_grant_wr = (w_grant_rw == RW_WRITE);
 
 // PTW memory interface
 addr_t w_walk_addr;

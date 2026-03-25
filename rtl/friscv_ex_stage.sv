@@ -32,6 +32,7 @@ module friscv_ex_stage (
     input  data_t          csr_in,
     input  reg_addr_t      rd_sel_in,
     input  reg_addr_t      rs1_sel_in,
+    input  reg_addr_t      rs2_sel_in,
     input  instr_ex_t      instr_ex_in,
 
     // Outputs to MEM stage
@@ -52,7 +53,13 @@ module friscv_ex_stage (
 
     // Outputs to control logic
     output logic           branch_ok_out,
-    output logic           flush_tlb_out
+
+    // TLB flush
+    output logic           flush_tlb_out,
+    output logic [19:0]    flush_vpn_out,
+    output logic           flush_vpn_en_out,
+    output logic [8:0]     flush_asid_out,
+    output logic           flush_asid_en_out
 );
 
 // Input registers
@@ -65,6 +72,7 @@ data_t csr_buff;
 
 reg_addr_t rd_sel_buff;
 reg_addr_t rs1_sel_buff;
+reg_addr_t rs2_sel_buff;
 instr_ex_t instr_buff;
 
 friscv_ex_stage_branch_unit branch_unit (
@@ -75,7 +83,10 @@ friscv_ex_stage_branch_unit branch_unit (
     .branch_ok_out     ( branch_ok_out             )
 );
 
-// Stage inputs buffering
+// ============================================================
+// Input capture
+// ============================================================
+
 always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
         pc_plus_4_buff <= 32'h0;
@@ -86,6 +97,7 @@ always_ff @(posedge clk_in) begin
         csr_buff     <= 32'h0;
         rd_sel_buff  <= 5'b0;
         rs1_sel_buff <= 5'b0;
+        rs2_sel_buff <= 5'b0;
         instr_buff   <= NOP_CTRL;
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
@@ -101,12 +113,16 @@ always_ff @(posedge clk_in) begin
             csr_buff       <= csr_in;
             rd_sel_buff    <= rd_sel_in;
             rs1_sel_buff   <= rs1_sel_in;
+            rs2_sel_buff   <= rs2_sel_in;
             instr_buff     <= instr_ex_in;
         end
     end
 end
 
-// Pass memory control signals through
+// ============================================================
+// Assign outputs
+// ============================================================
+
 assign pc_plus_4_out        = pc_plus_4_buff;
 assign mem_instr_sel_out    = instr_buff.mem_instr_sel;
 assign load_store_width_out = instr_buff.load_store_width;
@@ -120,8 +136,14 @@ assign csr_readback_out     = csr_buff;
 assign csr_en_out           = instr_buff.csr_op;
 assign instr_valid_out      = instr_buff.instr_valid;
 assign flush_tlb_out        = instr_buff.sfence_vma;
+assign flush_vpn_out        = rs1_buff[31:12];
+assign flush_vpn_en_out     = (rs1_sel_buff != 5'b0);
+assign flush_asid_out       = rs2_buff[8:0];
+assign flush_asid_en_out    = (rs2_sel_buff != 5'b0);
 
-// Select ALU inputs
+// ============================================================
+// ALU input select
+// ============================================================
 
 data_t a_bus;
 data_t b_bus;
@@ -147,7 +169,10 @@ end
 assign alu_input_a = (instr_buff.invert_op_a) ? ~a_bus : a_bus;
 assign alu_input_b = b_bus;
 
-// Execute ALU op
+// ============================================================
+// Execute operation
+// ============================================================
+
 always_comb begin
     case (instr_buff.alu_op)
         ADD_OP:  alu_data_out = alu_input_a + alu_input_b;
@@ -164,7 +189,10 @@ always_comb begin
     endcase
 end
 
-// Store data positioning
+// ============================================================
+// Position store data
+// ============================================================
+
 always_comb begin
     case (instr_buff.load_store_width)
         3'b000: begin   // B
