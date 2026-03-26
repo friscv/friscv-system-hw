@@ -978,4 +978,13 @@ always_comb begin
     if (illegal_inst) instr_ex_out = NOP_CTRL;
 end
 
+// ============================================================
+// MMU outputs
+// ============================================================
+
+assign satp_out = csr.satp;
+assign sum_out  = csr.mstatus.sum;
+assign mxr_out  = csr.mstatus.mxr;
+assign mode_out = r_current_mode;
+
 endmodule
