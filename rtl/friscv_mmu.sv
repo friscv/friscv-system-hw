@@ -212,6 +212,7 @@ addr_t w_walk_addr;
 logic  w_walk_en;
 data_t w_walk_rdata;
 logic  w_walk_wait;
+logic  w_ptw_stall;
 
 friscv_ptw ptw (
     .i_clk           ( i_clk         ),
@@ -236,7 +237,7 @@ friscv_ptw ptw (
     .i_walk_wait     ( w_walk_wait   ),
 
     // Arbiter stall
-    .o_stall         ( w_stall       ),
+    .o_stall         ( w_ptw_stall   ),
 
     // TLB fill
     .o_fill_vpn      ( w_fill_vpn    ),
@@ -266,16 +267,16 @@ assign w_granted_ppn = w_grant_inst ? w_itlb_ppn : w_dtlb_ppn;
 assign w_walk_rdata = i_mem_rdata;
 assign w_walk_wait  = i_mem_wait;
 
-// When PTW is walking it owns the bus
-assign w_stall = w_walk_en ? 1'b1 : i_mem_wait;
+// PTW holds o_stall=1 for the entire walk, or with i_mem_wait for normal flow
+assign w_stall = w_ptw_stall | i_mem_wait;
 
 assign o_mem_addr = w_walk_en ? w_walk_addr                            :
                     w_paging_en ? {w_granted_ppn, w_grant_addr[11:0]}  :
                     w_grant_addr;
 
-assign o_mem_rw    = w_walk_en ? RW_READ    : w_grant_rw;
-assign o_mem_size  = w_walk_en ? WIDTH_I32  : w_grant_size;
-assign o_mem_wdata = w_walk_en ? '0         : w_grant_wdata;
-assign o_amo_op    = w_walk_en ? AMO_NONE   : w_grant_amo;
+assign o_mem_rw    = w_walk_en ? RW_READ   : w_grant_rw;
+assign o_mem_size  = w_walk_en ? WIDTH_I32 : w_grant_size;
+assign o_mem_wdata = w_walk_en ? '0        : w_grant_wdata;
+assign o_amo_op    = w_walk_en ? AMO_NONE  : w_grant_amo;
 
 endmodule

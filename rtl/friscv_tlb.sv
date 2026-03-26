@@ -104,7 +104,7 @@ always_ff @(posedge i_clk) begin
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va_asid
                     logic vpn_match;
                     vpn_match = (!r_tlb[g].is_super && i_flush_vpn == r_tlb[g].vpn) ||
-                               ( r_tlb[g].is_super && i_flush_vpn[19:10] == r_tlb[g].vpn[19:10]);
+                                ( r_tlb[g].is_super && i_flush_vpn[19:10] == r_tlb[g].vpn[19:10]);
                     if (vpn_match && r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
                         r_tlb[g] <= '0;
                 end

@@ -56,4 +56,19 @@ module friscv_ptw (
     output addr_t       o_fault_addr
 );
 
+assign o_walk_addr     = '0;
+assign o_walk_en       = 1'b0;
+assign o_stall         = 1'b0;
+assign o_fill_vpn      = '0;
+assign o_fill_ppn      = '0;
+assign o_fill_asid     = '0;
+assign o_fill_perm     = '0;
+assign o_fill_is_super = 1'b0;
+assign o_fill_itlb_en  = 1'b0;
+assign o_fill_dtlb_en  = 1'b0;
+assign o_inst_fault    = 1'b0;
+assign o_load_fault    = 1'b0;
+assign o_store_fault   = 1'b0;
+assign o_fault_addr    = '0;
+
 endmodule
