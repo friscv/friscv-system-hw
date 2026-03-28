@@ -21,14 +21,11 @@ module friscv_ptw (
 
     // Translation control
     input  satp_t       i_satp,
-    input  mode_e       i_mode,
-    input  logic        i_sum,
-    input  logic        i_mxr,
 
     // Walk trigger
     input  logic        i_itlb_miss,
     input  logic        i_dtlb_miss,
-    input  logic [19:0] i_req_vpn,
+    input  addr_t       i_req_va,
     input  logic        i_req_is_write,
 
     // External bus
@@ -44,7 +41,7 @@ module friscv_ptw (
     output logic [19:0] o_fill_vpn,
     output logic [19:0] o_fill_ppn,
     output logic [8:0]  o_fill_asid,
-    output logic [7:0]  o_fill_perm,
+    output perm_t       o_fill_perm,
     output logic        o_fill_is_super,
     output logic        o_fill_itlb_en,
     output logic        o_fill_dtlb_en,

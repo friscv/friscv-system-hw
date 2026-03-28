@@ -72,14 +72,14 @@ assign w_data_vpn = i_data_addr[31:12];
 
 // Lookup lines
 logic [19:0] w_itlb_ppn, w_dtlb_ppn;
-logic [7:0]  w_itlb_perm, w_dtlb_perm;
+perm_t       w_itlb_perm, w_dtlb_perm;
 logic        w_itlb_super, w_dtlb_super;
 logic        w_itlb_hit, w_dtlb_hit;
 
 // Fill lines
 logic [19:0] w_fill_vpn, w_fill_ppn;
 logic [8:0]  w_fill_asid;
-logic [7:0]  w_fill_perm;
+perm_t       w_fill_perm;
 logic        w_fill_super;
 logic        w_fill_itlb, w_fill_dtlb;
 
@@ -197,12 +197,10 @@ logic w_grant_active;
 assign w_grant_active = (w_grant_rw != RW_IDLE);
 
 // TLB miss - arbiter has granted the request, paging is on, and the TLB did not hit
-logic w_itlb_miss, w_dtlb_miss;
+logic w_itlb_miss, w_dtlb_miss, w_tlb_miss;
 assign w_itlb_miss = w_grant_active &&  w_grant_inst && !w_itlb_hit && w_paging_en;
 assign w_dtlb_miss = w_grant_active && !w_grant_inst && !w_dtlb_hit && w_paging_en;
-
-logic [19:0] w_grant_vpn;
-assign w_grant_vpn = w_grant_addr[31:12];
+assign w_tlb_miss  = w_itlb_miss || w_dtlb_miss;
 
 logic w_grant_wr;
 assign w_grant_wr = (w_grant_rw == RW_WRITE);
@@ -214,46 +212,87 @@ data_t w_walk_rdata;
 logic  w_walk_wait;
 logic  w_ptw_stall;
 
+// PTW intermediate fault wires
+logic  w_ptw_inst_fault, w_ptw_load_fault, w_ptw_store_fault;
+addr_t w_ptw_fault_addr;
+
 friscv_ptw ptw (
-    .i_clk           ( i_clk         ),
-    .i_rstn          ( i_rstn        ),
+    .i_clk           ( i_clk             ),
+    .i_rstn          ( i_rstn            ),
 
     // Translation control
-    .i_satp          ( i_satp        ),
-    .i_mode          ( i_mode        ),
-    .i_sum           ( i_sum         ),
-    .i_mxr           ( i_mxr         ),
+    .i_satp          ( i_satp            ),
 
     // Walk trigger
-    .i_itlb_miss     ( w_itlb_miss   ),
-    .i_dtlb_miss     ( w_dtlb_miss   ),
-    .i_req_vpn       ( w_grant_vpn   ),
-    .i_req_is_write  ( w_grant_wr    ),
+    .i_itlb_miss     ( w_itlb_miss       ),
+    .i_dtlb_miss     ( w_dtlb_miss       ),
+    .i_req_va        ( w_grant_addr      ),
+    .i_req_is_write  ( w_grant_wr        ),
 
     // External bus
-    .o_walk_addr     ( w_walk_addr   ),
-    .o_walk_en       ( w_walk_en     ),
-    .i_walk_rdata    ( w_walk_rdata  ),
-    .i_walk_wait     ( w_walk_wait   ),
+    .o_walk_addr     ( w_walk_addr       ),
+    .o_walk_en       ( w_walk_en         ),
+    .i_walk_rdata    ( w_walk_rdata      ),
+    .i_walk_wait     ( w_walk_wait       ),
 
     // Arbiter stall
-    .o_stall         ( w_ptw_stall   ),
+    .o_stall         ( w_ptw_stall       ),
 
     // TLB fill
-    .o_fill_vpn      ( w_fill_vpn    ),
-    .o_fill_ppn      ( w_fill_ppn    ),
-    .o_fill_asid     ( w_fill_asid   ),
-    .o_fill_perm     ( w_fill_perm   ),
-    .o_fill_is_super ( w_fill_super  ),
-    .o_fill_itlb_en  ( w_fill_itlb   ),
-    .o_fill_dtlb_en  ( w_fill_dtlb   ),
+    .o_fill_vpn      ( w_fill_vpn        ),
+    .o_fill_ppn      ( w_fill_ppn        ),
+    .o_fill_asid     ( w_fill_asid       ),
+    .o_fill_perm     ( w_fill_perm       ),
+    .o_fill_is_super ( w_fill_super      ),
+    .o_fill_itlb_en  ( w_fill_itlb       ),
+    .o_fill_dtlb_en  ( w_fill_dtlb       ),
 
     // Page fault outputs
-    .o_inst_fault    ( o_inst_fault  ),
-    .o_load_fault    ( o_load_fault  ),
-    .o_store_fault   ( o_store_fault ),
-    .o_fault_addr    ( o_fault_addr  )
+    .o_inst_fault    ( w_ptw_inst_fault  ),
+    .o_load_fault    ( w_ptw_load_fault  ),
+    .o_store_fault   ( w_ptw_store_fault ),
+    .o_fault_addr    ( w_ptw_fault_addr  )
 );
+
+// ============================================================
+// Permission check (TLB hit path)
+// ============================================================
+
+logic w_perm_inst_ok, w_perm_load_ok, w_perm_store_ok;
+logic w_perm_inst_fault, w_perm_load_fault, w_perm_store_fault;
+logic w_perm_fault;
+
+// Instruction fetch TLB permission check
+assign w_perm_inst_ok = w_itlb_perm.x &&
+                        w_itlb_perm.a &&
+                        ((i_mode == U_MODE &&  w_itlb_perm.u) ||
+                         (i_mode == S_MODE && !w_itlb_perm.u));
+
+// Load TLB permission check
+assign w_perm_load_ok = (w_dtlb_perm.r || (i_mxr && w_dtlb_perm.x)) &&
+                        w_dtlb_perm.a &&
+                        ((i_mode == U_MODE &&  w_dtlb_perm.u) ||
+                         (i_mode == S_MODE && (!w_dtlb_perm.u || i_sum)));
+
+// Store TLB permission check
+assign w_perm_store_ok = w_dtlb_perm.w &&
+                         w_dtlb_perm.d &&
+                         w_dtlb_perm.a &&
+                         ((i_mode == U_MODE &&  w_dtlb_perm.u) ||
+                          (i_mode == S_MODE && (!w_dtlb_perm.u || i_sum)));
+
+// Perm fault: paging on, arbiter granted, TLB hit, but permission denied
+assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_grant_inst                && w_itlb_hit && !w_perm_inst_ok;
+assign w_perm_load_fault  = w_paging_en && w_grant_active && !w_grant_inst && !w_grant_wr && w_dtlb_hit && !w_perm_load_ok;
+assign w_perm_store_fault = w_paging_en && w_grant_active && !w_grant_inst &&  w_grant_wr && w_dtlb_hit && !w_perm_store_ok;
+assign w_perm_fault       = w_perm_inst_fault | w_perm_load_fault | w_perm_store_fault;
+
+// Final fault outputs: PTW structural faults OR perm faults
+// PTW faults only if TLB miss, perm faults only if TLB hit - mutually exclusive
+assign o_inst_fault  = w_ptw_inst_fault  | w_perm_inst_fault;
+assign o_load_fault  = w_ptw_load_fault  | w_perm_load_fault;
+assign o_store_fault = w_ptw_store_fault | w_perm_store_fault;
+assign o_fault_addr  = (w_ptw_inst_fault | w_ptw_load_fault | w_ptw_store_fault) ? w_ptw_fault_addr : w_grant_addr;
 
 // ============================================================
 // PTW / arbiter bus mux
@@ -267,14 +306,18 @@ assign w_granted_ppn = w_grant_inst ? w_itlb_ppn : w_dtlb_ppn;
 assign w_walk_rdata = i_mem_rdata;
 assign w_walk_wait  = i_mem_wait;
 
-// PTW holds o_stall=1 for the entire walk, or with i_mem_wait for normal flow
+// Stall arbiter while PTW is active or memory stalls
 assign w_stall = w_ptw_stall | i_mem_wait;
 
-assign o_mem_addr = w_walk_en ? w_walk_addr                            :
-                    w_paging_en ? {w_granted_ppn, w_grant_addr[11:0]}  :
-                    w_grant_addr;
+// Suppress physical memory access on TLB miss (PTW takes over) or perm fault
+assign o_mem_rw    = w_walk_en                    ? RW_READ   :
+                     (w_tlb_miss | w_perm_fault)  ? RW_IDLE   :
+                     w_grant_rw;
 
-assign o_mem_rw    = w_walk_en ? RW_READ   : w_grant_rw;
+assign o_mem_addr  = w_walk_en   ? w_walk_addr                           :
+                     w_paging_en ? {w_granted_ppn, w_grant_addr[11:0]}   :
+                     w_grant_addr;
+
 assign o_mem_size  = w_walk_en ? WIDTH_I32 : w_grant_size;
 assign o_mem_wdata = w_walk_en ? '0        : w_grant_wdata;
 assign o_amo_op    = w_walk_en ? AMO_NONE  : w_grant_amo;

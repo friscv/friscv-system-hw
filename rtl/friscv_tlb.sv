@@ -25,7 +25,7 @@ module friscv_tlb #(
     input  logic [19:0] i_match_vpn,
     input  logic [8:0]  i_match_asid,
     output logic [19:0] o_ppn,
-    output logic [7:0]  o_perm,  // {D,A,G,U,X,W,R,V}
+    output perm_t       o_perm,
     output logic        o_is_super,
     output logic        o_hit,
 
@@ -33,7 +33,7 @@ module friscv_tlb #(
     input  logic [19:0] i_fill_vpn,
     input  logic [19:0] i_fill_ppn,
     input  logic [8:0]  i_fill_asid,
-    input  logic [7:0]  i_fill_perm,
+    input  perm_t       i_fill_perm,
     input  logic        i_fill_is_super,
     input  logic        i_fill_en,
 
@@ -46,15 +46,11 @@ module friscv_tlb #(
 );
 
 typedef struct packed {
-    logic d, a, g, u, x, w, r, v;
-} page_perm_t;
-
-typedef struct packed {
     logic [19:0] vpn;
     logic [19:0] ppn;
     logic [8:0]  asid;
     logic        is_super;
-    page_perm_t  perm;
+    perm_t       perm;
 } tlb_entry_t;
 
 tlb_entry_t r_tlb [ENTRY_COUNT];

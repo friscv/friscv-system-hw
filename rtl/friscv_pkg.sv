@@ -175,6 +175,17 @@ package friscv_pkg;
         logic [21:0] ppn;
     } satp_t;
 
+    typedef struct packed {
+        logic d;  // Dirty
+        logic a;  // Accessed
+        logic g;  // Global
+        logic u;  // User-accessible
+        logic x;  // Execute
+        logic w;  // Write
+        logic r;  // Read
+        logic v;  // Valid
+    } perm_t;
+
     typedef enum logic [2:0] {
         I_TYPE  = 3'b000,
         I2_TYPE = 3'b001,
