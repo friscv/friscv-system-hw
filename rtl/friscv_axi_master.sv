@@ -225,15 +225,18 @@ always_comb begin
     m_axi_rready  = 1'b0;
 
     unique case (r_state)
+
         S_IDLE: begin
             if (i_rw == RW_WRITE || i_rw == RW_READ) begin
                 w_next_state = (i_rw == RW_WRITE) ? S_W_ADDR : S_R_ADDR;
             end
         end
+    
         S_W_ADDR: begin
             m_axi_awvalid = 1'b1;
             w_next_state  = m_axi_awready ? S_W_DATA : S_W_ADDR;
         end
+
         S_W_DATA: begin
             if (r_burst_en) begin
                 // Stream from FIFO; wvalid tracks FIFO non-empty, wlast on final entry
@@ -250,16 +253,19 @@ always_comb begin
                 end
             end
         end
+
         S_W_RET: begin
             m_axi_bready = 1'b1;
             if (m_axi_bvalid) begin
                 w_next_state = S_IDLE;
             end
         end
+
         S_R_ADDR: begin
             m_axi_arvalid = 1'b1;
             w_next_state  = m_axi_arready ? S_R_DATA : S_R_ADDR;
         end
+
         S_R_DATA: begin
             m_axi_rready = 1'b1;
             // Single: exit on first valid beat; burst: wait for rlast
@@ -267,6 +273,7 @@ always_comb begin
                 w_next_state = S_IDLE;
             end
         end
+
     endcase
 end
 
