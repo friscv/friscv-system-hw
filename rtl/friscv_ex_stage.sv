@@ -36,6 +36,7 @@ module friscv_ex_stage (
     input  instr_ex_t      instr_ex_in,
 
     // Outputs to MEM stage
+    output addr_t          pc_out,
     output addr_t          pc_plus_4_out,
     output data_t          alu_data_out,
     output reg_addr_t      rd_sel_out,
@@ -123,6 +124,7 @@ end
 // Assign outputs
 // ============================================================
 
+assign pc_out               = pc_buff;
 assign pc_plus_4_out        = pc_plus_4_buff;
 assign mem_instr_sel_out    = instr_buff.mem_instr_sel;
 assign load_store_width_out = instr_buff.load_store_width;

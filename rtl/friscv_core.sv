@@ -79,6 +79,7 @@ instr_ex_t id_uinstr;
 logic      id_illegal_inst;
 
 // EX stage signals
+addr_t          ex_pc_out;
 addr_t          ex_pc_plus_4_out;
 data_t          ex_alu_data_out, ex_store_data_out;
 reg_addr_t      ex_rd_sel_out;
@@ -94,6 +95,10 @@ logic           ex_csr_en_out;
 logic           ex_instr_valid_out;
 
 // MEM stage signals
+logic           mem_trap_out;
+addr_t          mem_trap_pc_out;
+addr_t          mem_trap_va_out;
+logic           mem_trap_is_store_out;
 addr_t          mem_pc_plus_4_out;
 data_t          mem_alu_data_out;
 data_t          mem_load_data_out;
@@ -209,11 +214,15 @@ friscv_id_stage #(
     .mtip_in          ( i_mtip           ),
     .meip_in          ( i_meip           ),
 
-    // Page fault signals
+    // Page fault signals, from MMU
     .inst_fault_in    ( i_inst_fault     ),
-    .load_fault_in    ( i_load_fault     ),
-    .store_fault_in   ( i_store_fault    ),
     .fault_addr_in    ( i_fault_addr     ),
+
+    // Page fault signals, from MEM stage
+    .mem_trap_in          ( mem_trap_out          ),
+    .mem_trap_pc_in       ( mem_trap_pc_out       ),
+    .mem_trap_va_in       ( mem_trap_va_out       ),
+    .mem_trap_is_store_in ( mem_trap_is_store_out ),
 
     // Stage control signals
     .flush_in         ( flush_id         ),
@@ -289,6 +298,7 @@ friscv_ex_stage ex_stage (
     .instr_ex_in          ( id_uinstr               ),
 
     // Outputs to MEM stage
+    .pc_out               ( ex_pc_out               ),
     .pc_plus_4_out        ( ex_pc_plus_4_out        ),
     .alu_data_out         ( ex_alu_data_out         ),
     .rd_sel_out           ( ex_rd_sel_out           ),
@@ -321,6 +331,7 @@ friscv_mem_stage mem_stage (
     .stage_stall_in      ( stall_mem               ),
 
     // Inputs from EX stage
+    .pc_in               ( ex_pc_out               ),
     .pc_plus_4_in        ( ex_pc_plus_4_out        ),
     .alu_data_in         ( ex_alu_data_out         ),
     .rd_sel_in           ( ex_rd_sel_out           ),
@@ -332,6 +343,17 @@ friscv_mem_stage mem_stage (
     .csr_readback_in     ( ex_csr_readback_out     ),
     .csr_en_in           ( ex_csr_en_out           ),
     .instr_valid_in      ( ex_instr_valid_out      ),
+
+    // Page fault inputs from MMU
+    .load_fault_in       ( i_load_fault            ),
+    .store_fault_in      ( i_store_fault           ),
+    .fault_addr_in       ( i_fault_addr            ),
+
+    // Page fault outputs to ID stage
+    .mem_trap_out        ( mem_trap_out            ),
+    .mem_trap_pc_out     ( mem_trap_pc_out         ),
+    .mem_trap_va_out     ( mem_trap_va_out         ),
+    .mem_trap_is_store_out ( mem_trap_is_store_out ),
 
     // AMO control
     .reserve_in          ( ex_reserve_out          ),

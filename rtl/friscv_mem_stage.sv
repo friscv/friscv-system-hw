@@ -23,6 +23,7 @@ module friscv_mem_stage (
     input  logic           stage_stall_in,
 
     // Inputs from EX stage
+    input  addr_t          pc_in,
     input  addr_t          pc_plus_4_in,
     input  data_t          alu_data_in,
     input  reg_addr_t      rd_sel_in,
@@ -54,6 +55,17 @@ module friscv_mem_stage (
     output logic           csr_en_out,
     output logic           instr_valid_out,
 
+    // Page fault inputs from MMU
+    input  logic           load_fault_in,
+    input  logic           store_fault_in,
+    input  addr_t          fault_addr_in,
+
+    // Page fault output to ID stage
+    output logic           mem_trap_out,
+    output addr_t          mem_trap_pc_out,
+    output addr_t          mem_trap_va_out,
+    output logic           mem_trap_is_store_out,
+
     // Data memory interface
     output addr_t          d_mem_addr_out,
     output data_t          d_mem_data_out,
@@ -66,6 +78,7 @@ module friscv_mem_stage (
 );
 
 // Input registers
+addr_t          pc_buff;
 addr_t          pc_plus_4_buff;
 addr_t          alu_data_buff;
 data_t          store_data_buff;
@@ -81,6 +94,19 @@ data_t          csr_readback_buff;
 logic           csr_en_buff;
 logic           instr_valid_buff;
 
+// Page fault capture
+// Set when a fault fires on the memory commit cycle
+logic  r_mem_fault;
+addr_t r_mem_fault_pc;
+addr_t r_mem_fault_va;
+logic  r_mem_fault_is_store;
+
+assign mem_trap_out          = r_mem_fault;
+assign mem_trap_pc_out       = r_mem_fault_pc;
+assign mem_trap_va_out       = r_mem_fault_va;
+assign mem_trap_is_store_out = r_mem_fault_is_store;
+
+// CSR passthrough
 assign csr_sel_out      = csr_sel_buff;
 assign csr_data_out     = alu_data_buff;
 assign csr_readback_out = csr_readback_buff;
@@ -120,6 +146,7 @@ assign cond_valid = (conditional_in) ? reserve_valid && (reserve_addr == alu_dat
 // Bubbles are inserted by EX sending instructions with rd_sel=0
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
+        pc_buff               <= 32'h0;
         pc_plus_4_buff        <= 32'h0;
         alu_data_buff         <= 32'h0;
         store_data_buff       <= 32'h0;
@@ -142,6 +169,10 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         csr_readback_buff     <= 32'b0;
         csr_en_buff           <= 1'b0;
         instr_valid_buff      <= 1'b0;
+        r_mem_fault           <= 1'b0;
+        r_mem_fault_pc        <= 32'h0;
+        r_mem_fault_va        <= 32'h0;
+        r_mem_fault_is_store  <= 1'b0;
     end
 
     else begin
@@ -150,6 +181,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         end
 
         if (!stage_stall_in) begin
+            pc_buff               <= pc_in;
             pc_plus_4_buff        <= pc_plus_4_in;
             alu_data_buff         <= alu_data_in;
             store_data_buff       <= store_data_in;
@@ -168,6 +200,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             csr_readback_buff     <= csr_readback_in;
             csr_en_buff           <= csr_en_in;
             instr_valid_buff      <= instr_valid_in;
+            r_mem_fault           <= 1'b0;  // Clear fault on new instruction
 
             if (!clear_reserve_in) begin
                 if (reserve_in) begin
@@ -183,6 +216,15 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         else if (r_mem_active && !d_mem_wait_in) begin
             r_mem_active <= 1'b0;
 
+            // Capture page fault
+            if (load_fault_in || store_fault_in) begin
+                r_mem_fault          <= 1'b1;
+                r_mem_fault_pc       <= pc_buff;
+                r_mem_fault_va       <= fault_addr_in;
+                r_mem_fault_is_store <= store_fault_in;
+                rd_sel_buff          <= 5'b0;  // Suppress WB writeback for faulting instruction
+            end
+
             // Clear reservation after SC completes
             if (conditional_buff) begin
                 reserve_valid <= 1'b0;
@@ -191,7 +233,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             end
 
             // Capture load data when load completes
-            if (mem_instr_sel_buff == MEM_INSTR_LOAD) begin
+            // Skip on fault
+            if (mem_instr_sel_buff == MEM_INSTR_LOAD && !load_fault_in) begin
                 load_data_buff <= load_data;
                 r_load_data_valid <= 1'b1;
             end

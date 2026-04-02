@@ -28,11 +28,15 @@ module friscv_id_stage #(
     input  logic      mtip_in,
     input  logic      meip_in,
 
-    // Page fault signals
+    // Instruction fetch page fault
     input  logic      inst_fault_in,
-    input  logic      load_fault_in,
-    input  logic      store_fault_in,
     input  addr_t     fault_addr_in,
+
+    // Data memory page fault
+    input  logic      mem_trap_in,
+    input  addr_t     mem_trap_pc_in,
+    input  addr_t     mem_trap_va_in,
+    input  logic      mem_trap_is_store_in,
 
     // Stage control signals
     input  logic      flush_in,
@@ -118,16 +122,16 @@ always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
         // Do not reset regfile to synthesize as distributed RAM
         ir_buff        <= NOP;
-        pc_in_buff     <= 32'h0;
-        pc_plus_4_buff <= 32'h0;
+        pc_in_buff     <= '0;
+        pc_plus_4_buff <= '0;
     end else begin
         if (rd_sel_in != 0)
             regfile[rd_sel_in] <= rd_data_in;
 
         if (flush_in) begin
             ir_buff        <= NOP;
-            pc_in_buff     <= 32'h0;
-            pc_plus_4_buff <= 32'h0;
+            pc_in_buff     <= '0;
+            pc_plus_4_buff <= '0;
         end else if (!stage_stall_in) begin
             ir_buff <= ir_in;
             pc_in_buff <= pc_in;
@@ -254,7 +258,7 @@ logic interrupt_active, exception_active;
 assign interrupt_active = m_interrupt_active || s_interrupt_active;
 
 logic ecall_active, ebreak_active;
-assign exception_active = exception_safe && (ecall_active || ebreak_active || illegal_inst);
+assign exception_active = mem_trap_in || (exception_safe && (ecall_active || ebreak_active || illegal_inst || inst_fault_in));
 
 // Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
 // trap fires. Suppress the effective trap (flush + CSR state write) until the pipeline
@@ -272,10 +276,16 @@ assign sret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000
 
 assign ret_out = mret_active || sret_active;
 
-// Compute exception cause code based on current mode (for ecall)
+// Compute exception cause code
 logic [4:0] exception_cause_code;
 always_comb begin
-    if (ecall_active)
+    if (inst_fault_in && !branch_ok_in)  // Instruction fetch page fault
+        exception_cause_code = 5'd12;
+    else if (mem_trap_in && !mem_trap_is_store_in)  // Load page fault
+        exception_cause_code = 5'd13;
+    else if (mem_trap_in &&  mem_trap_is_store_in)  // Store page fault
+        exception_cause_code = 5'd15;
+    else if (ecall_active)
         case (r_current_mode)
             U_MODE:  exception_cause_code = 5'd8;
             S_MODE:  exception_cause_code = 5'd9;
@@ -331,6 +341,25 @@ assign tvec_out = trap_to_s_mode
                      : {csr.mtvec[31:2], 2'b0});
 
 // ============================================================
+// Trap EPC and TVAL resolution
+// ============================================================
+
+addr_t trap_epc;
+always_comb begin
+    if      (inst_fault_in && !branch_ok_in) trap_epc = pc_in;
+    else if (mem_trap_in)                    trap_epc = mem_trap_pc_in;
+    else                                     trap_epc = pc_in_buff;
+end
+
+addr_t trap_tval;
+always_comb begin
+    if      (inst_fault_in && !branch_ok_in) trap_tval = fault_addr_in;
+    else if (mem_trap_in)                    trap_tval = mem_trap_va_in;
+    else if (illegal_inst)                   trap_tval = ir_buff.b;
+    else                                     trap_tval = 32'h0;
+end
+
+// ============================================================
 // CSR write
 // ============================================================
 
@@ -350,15 +379,18 @@ always_ff @(posedge clk_in) begin
             if (trap_to_s_mode) begin
                 // Delegated trap: enter S-mode
                 r_current_mode <= S_MODE;
-                csr.sepc            <= pc_in_buff;
+                csr.sepc            <= trap_epc;
                 csr.mstatus.spie    <= csr.mstatus.sie;
                 csr.mstatus.sie     <= 1'b0;
                 csr.mstatus.spp     <= (r_current_mode == S_MODE) ? 1'b1 : 1'b0;
-                csr.stval           <= illegal_inst ? ir_buff.b : 32'h0;
+                csr.stval           <= trap_tval;
 
                 if      (csr.seip && csr.mie[9] && csr.mideleg[9]) csr.scause <= {1'b1, 31'd9};
                 else if (csr.stip && csr.mie[5] && csr.mideleg[5]) csr.scause <= {1'b1, 31'd5};
                 else if (csr.ssip && csr.mie[1] && csr.mideleg[1]) csr.scause <= {1'b1, 31'd1};
+                else if (inst_fault_in && !branch_ok_in)           csr.scause <= 32'd12;
+                else if (mem_trap_in && !mem_trap_is_store_in)     csr.scause <= 32'd13;
+                else if (mem_trap_in &&  mem_trap_is_store_in)     csr.scause <= 32'd15;
                 else if (ecall_active) begin
                     case (r_current_mode)
                         U_MODE:  csr.scause <= 32'd8;
@@ -372,15 +404,18 @@ always_ff @(posedge clk_in) begin
             end else begin
                 // Non-delegated trap: enter M-mode
                 r_current_mode <= M_MODE;
-                csr.mepc            <= pc_in_buff;
+                csr.mepc            <= trap_epc;
                 csr.mstatus.mpie    <= csr.mstatus.mie;
                 csr.mstatus.mie     <= 1'b0;
                 csr.mstatus.mpp     <= r_current_mode;
-                csr.mtval           <= illegal_inst ? ir_buff.b : 32'h0;
+                csr.mtval           <= trap_tval;
 
-                if      (meip_in && csr.mie[11]) csr.mcause <= {1'b1, 31'd11};
-                else if (mtip_in && csr.mie[7])  csr.mcause <= {1'b1, 31'd7};
-                else if (msip_in && csr.mie[3])  csr.mcause <= {1'b1, 31'd3};
+                if      (meip_in && csr.mie[11])               csr.mcause <= {1'b1, 31'd11};
+                else if (mtip_in && csr.mie[7])                csr.mcause <= {1'b1, 31'd7};
+                else if (msip_in && csr.mie[3])                csr.mcause <= {1'b1, 31'd3};
+                else if (inst_fault_in && !branch_ok_in)       csr.mcause <= 32'd12;
+                else if (mem_trap_in && !mem_trap_is_store_in) csr.mcause <= 32'd13;
+                else if (mem_trap_in &&  mem_trap_is_store_in) csr.mcause <= 32'd15;
                 else if (ecall_active) begin
                     case (r_current_mode)
                         U_MODE:  csr.mcause <= 32'd8;
