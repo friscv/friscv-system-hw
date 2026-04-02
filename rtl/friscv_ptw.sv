@@ -38,11 +38,11 @@ module friscv_ptw (
     output logic        o_stall,
 
     // TLB fill
-    output logic [19:0] o_fill_vpn,
-    output logic [19:0] o_fill_ppn,
-    output logic [8:0]  o_fill_asid,
+    output vpn_t        o_fill_vpn,
+    output ppn_t        o_fill_ppn,
+    output asid_t       o_fill_asid,
     output perm_t       o_fill_perm,
-    output logic        o_fill_is_super,
+    output pte_level_t  o_fill_level,
     output logic        o_fill_itlb_en,
     output logic        o_fill_dtlb_en,
 
@@ -60,12 +60,25 @@ assign o_fill_vpn      = '0;
 assign o_fill_ppn      = '0;
 assign o_fill_asid     = '0;
 assign o_fill_perm     = '0;
-assign o_fill_is_super = 1'b0;
+assign o_fill_level    = '0;
 assign o_fill_itlb_en  = 1'b0;
 assign o_fill_dtlb_en  = 1'b0;
 assign o_inst_fault    = 1'b0;
 assign o_load_fault    = 1'b0;
 assign o_store_fault   = 1'b0;
 assign o_fault_addr    = '0;
+
+logic [2:0] r_level;      // Current walk level
+logic [2:0] w_max_level;  // Walk depth
+
+always_comb begin
+    case (satp_mode_e'(i_satp.mode))
+        SATP_SV32: w_max_level = 3'd1;  // Levels 1,0
+        SATP_SV39: w_max_level = 3'd2;  // Levels 2,1,0
+        SATP_SV48: w_max_level = 3'd3;
+        SATP_SV57: w_max_level = 3'd4;
+        default:   w_max_level = 3'd1;
+    endcase
+end
 
 endmodule

@@ -66,22 +66,26 @@ module friscv_mmu (
 // TLB layer
 // ============================================================
 
-logic [19:0] w_inst_vpn, w_data_vpn;
+vpn_t w_inst_vpn, w_data_vpn;
 assign w_inst_vpn = i_inst_addr[31:12];
 assign w_data_vpn = i_data_addr[31:12];
 
 // Lookup lines
-logic [19:0] w_itlb_ppn, w_dtlb_ppn;
-perm_t       w_itlb_perm, w_dtlb_perm;
-logic        w_itlb_super, w_dtlb_super;
-logic        w_itlb_hit, w_dtlb_hit;
+ppn_t       w_itlb_ppn, w_dtlb_ppn;
+perm_t      w_itlb_perm, w_dtlb_perm;
+pte_level_t w_itlb_level, w_dtlb_level;
+logic       w_itlb_hit, w_dtlb_hit;
+
+satp_mode_e w_tlb_mode;
+assign w_tlb_mode = satp_mode_e'(i_satp.mode);
 
 // Fill lines
-logic [19:0] w_fill_vpn, w_fill_ppn;
-logic [8:0]  w_fill_asid;
-perm_t       w_fill_perm;
-logic        w_fill_super;
-logic        w_fill_itlb, w_fill_dtlb;
+vpn_t       w_fill_vpn;
+ppn_t       w_fill_ppn;
+asid_t      w_fill_asid;
+perm_t      w_fill_perm;
+pte_level_t w_fill_level;
+logic       w_fill_itlb, w_fill_dtlb;
 
 friscv_tlb #(
     .ENTRY_COUNT(TLB_ENTRIES)
@@ -91,10 +95,11 @@ friscv_tlb #(
 
     // Lookup
     .i_match_vpn     ( w_inst_vpn      ),
+    .i_mode          ( w_tlb_mode      ),
     .i_match_asid    ( i_satp.asid     ),
     .o_ppn           ( w_itlb_ppn      ),
     .o_perm          ( w_itlb_perm     ),
-    .o_is_super      ( w_itlb_super    ),
+    .o_level         ( w_itlb_level    ),
     .o_hit           ( w_itlb_hit      ),
 
     // Fill
@@ -102,7 +107,7 @@ friscv_tlb #(
     .i_fill_ppn      ( w_fill_ppn      ),
     .i_fill_asid     ( w_fill_asid     ),
     .i_fill_perm     ( w_fill_perm     ),
-    .i_fill_is_super ( w_fill_super    ),
+    .i_fill_level    ( w_fill_level    ),
     .i_fill_en       ( w_fill_itlb     ),
 
     // Flush
@@ -121,10 +126,11 @@ friscv_tlb #(
 
     // Lookup
     .i_match_vpn     ( w_data_vpn      ),
+    .i_mode          ( w_tlb_mode      ),
     .i_match_asid    ( i_satp.asid     ),
     .o_ppn           ( w_dtlb_ppn      ),
     .o_perm          ( w_dtlb_perm     ),
-    .o_is_super      ( w_dtlb_super    ),
+    .o_level         ( w_dtlb_level    ),
     .o_hit           ( w_dtlb_hit      ),
 
     // Fill
@@ -132,7 +138,7 @@ friscv_tlb #(
     .i_fill_ppn      ( w_fill_ppn      ),
     .i_fill_asid     ( w_fill_asid     ),
     .i_fill_perm     ( w_fill_perm     ),
-    .i_fill_is_super ( w_fill_super    ),
+    .i_fill_level    ( w_fill_level    ),
     .i_fill_en       ( w_fill_dtlb     ),
 
     // Flush
@@ -243,7 +249,7 @@ friscv_ptw ptw (
     .o_fill_ppn      ( w_fill_ppn        ),
     .o_fill_asid     ( w_fill_asid       ),
     .o_fill_perm     ( w_fill_perm       ),
-    .o_fill_is_super ( w_fill_super      ),
+    .o_fill_level    ( w_fill_level      ),
     .o_fill_itlb_en  ( w_fill_itlb       ),
     .o_fill_dtlb_en  ( w_fill_dtlb       ),
 

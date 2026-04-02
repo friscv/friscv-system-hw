@@ -16,41 +16,42 @@ Version info is listed in friscv_pkg.sv
 `include "friscv_pkg.sv"
 
 module friscv_tlb #(
-    parameter int ENTRY_COUNT = 32
+    parameter ENTRY_COUNT = 32
 ) (
-    input  logic        i_clk,
-    input  logic        i_rstn,
+    input  logic       i_clk,
+    input  logic       i_rstn,
 
     // Lookup
-    input  logic [19:0] i_match_vpn,
-    input  logic [8:0]  i_match_asid,
-    output logic [19:0] o_ppn,
-    output perm_t       o_perm,
-    output logic        o_is_super,
-    output logic        o_hit,
+    input  vpn_t       i_match_vpn,
+    input  satp_mode_e i_mode,
+    input  asid_t      i_match_asid,
+    output ppn_t       o_ppn,
+    output perm_t      o_perm,
+    output pte_level_t o_level,
+    output logic       o_hit,
 
     // Fill
-    input  logic [19:0] i_fill_vpn,
-    input  logic [19:0] i_fill_ppn,
-    input  logic [8:0]  i_fill_asid,
-    input  perm_t       i_fill_perm,
-    input  logic        i_fill_is_super,
-    input  logic        i_fill_en,
+    input  vpn_t       i_fill_vpn,
+    input  ppn_t       i_fill_ppn,
+    input  asid_t      i_fill_asid,
+    input  perm_t      i_fill_perm,
+    input  pte_level_t i_fill_level,
+    input  logic       i_fill_en,
 
     // Flush
-    input  logic        i_flush,
-    input  logic [19:0] i_flush_vpn,
-    input  logic        i_flush_vpn_en,
-    input  logic [8:0]  i_flush_asid,
-    input  logic        i_flush_asid_en
+    input  logic       i_flush,
+    input  vpn_t       i_flush_vpn,
+    input  logic       i_flush_vpn_en,
+    input  asid_t      i_flush_asid,
+    input  logic       i_flush_asid_en
 );
 
 typedef struct packed {
-    logic [19:0] vpn;
-    logic [19:0] ppn;
-    logic [8:0]  asid;
-    logic        is_super;
-    perm_t       perm;
+    vpn_t       vpn;
+    ppn_t       ppn;
+    asid_t      asid;
+    pte_level_t level;
+    perm_t      perm;
 } tlb_entry_t;
 
 tlb_entry_t r_tlb [ENTRY_COUNT];
@@ -72,11 +73,22 @@ generate
     end
 endgenerate
 
+// Generate a mask that zeroes the lowest level*pn_width bits of a vpn
+function automatic logic [VPN_WIDTH-1:0] vpn_mask(
+    input pte_level_t level,
+    input satp_mode_e mode
+);
+    logic [5:0] shift;
+
+    shift = (mode == SATP_SV32) ? 6'(level * 10) : 6'(level * 9);  // 10-bit VPNs in SV32, 9-bit in others
+    vpn_mask = (shift >= VPN_WIDTH) ? '0 : ~((VPN_WIDTH'(1) << shift) - 1);
+endfunction : vpn_mask
+
 // ============================================================
 // Fill and flush
 // ============================================================
 
-always_ff @(posedge i_clk) begin
+always_ff @(posedge i_clk) begin : tlb_fill_and_flush
 
     if (!i_rstn) begin
 
@@ -98,9 +110,12 @@ always_ff @(posedge i_clk) begin
             if (i_flush_vpn_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VPN+ASID match, not global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va_asid
+                    logic [VPN_WIDTH-1:0] mask;
                     logic vpn_match;
-                    vpn_match = (!r_tlb[g].is_super && i_flush_vpn == r_tlb[g].vpn) ||
-                                ( r_tlb[g].is_super && i_flush_vpn[19:10] == r_tlb[g].vpn[19:10]);
+
+                    mask = vpn_mask(r_tlb[g].level, i_mode);
+                    vpn_match = (i_flush_vpn & mask) == r_tlb[g].vpn;
+
                     if (vpn_match && r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
                         r_tlb[g] <= '0;
                 end
@@ -108,9 +123,12 @@ always_ff @(posedge i_clk) begin
             end else if (i_flush_vpn_en) begin  // sfence.vma rs1, x0: VPN match, all ASIDs and global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va
+                    logic [VPN_WIDTH-1:0] mask;
                     logic vpn_match;
-                    vpn_match = (!r_tlb[g].is_super && i_flush_vpn == r_tlb[g].vpn) ||
-                                ( r_tlb[g].is_super && i_flush_vpn[19:10] == r_tlb[g].vpn[19:10]);
+
+                    mask = vpn_mask(r_tlb[g].level, i_mode);
+                    vpn_match = (i_flush_vpn & mask) == r_tlb[g].vpn;
+
                     if (vpn_match)
                         r_tlb[g] <= '0;
                 end
@@ -133,14 +151,17 @@ always_ff @(posedge i_clk) begin
         end else if (i_fill_en) begin  // Insert or replace with new entry
 
             logic [$clog2(ENTRY_COUNT)-1:0] victim;
-            victim = w_any_invalid ? w_invalid_slot : w_clock_victim;
+            logic [VPN_WIDTH-1:0] mask;
 
-            r_tlb[victim].vpn      <= i_fill_is_super ? {i_fill_vpn[19:10], 10'b0} : i_fill_vpn;
-            r_tlb[victim].ppn      <= i_fill_ppn;
-            r_tlb[victim].asid     <= i_fill_asid;
-            r_tlb[victim].is_super <= i_fill_is_super;
-            r_tlb[victim].perm     <= i_fill_perm;
-            r_ref[victim]          <= 1'b1;  // Mark newly added entry as recently used
+            victim = w_any_invalid ? w_invalid_slot : w_clock_victim;
+            mask   = vpn_mask(i_fill_level, i_mode);
+
+            r_tlb[victim].vpn   <= i_fill_vpn & mask;
+            r_tlb[victim].ppn   <= i_fill_ppn;
+            r_tlb[victim].asid  <= i_fill_asid;
+            r_tlb[victim].level <= i_fill_level;
+            r_tlb[victim].perm  <= i_fill_perm;
+            r_ref[victim]       <= 1'b1;  // Mark newly added entry as recently used
 
             if (!w_any_invalid) begin
                 // Clear ref bits of all entries the clock hand swept past on its way to the victim
@@ -156,7 +177,7 @@ always_ff @(posedge i_clk) begin
         end
 
     end
-end
+end : tlb_fill_and_flush
 
 // ============================================================
 // Victim decision
@@ -187,26 +208,42 @@ end
 // Lookup
 // ============================================================
 
+function automatic logic [PPN_WIDTH-1:0] reconstruct_ppn(
+    input logic [PPN_WIDTH-1:0] ppn,
+    input logic [VPN_WIDTH-1:0] vpn,
+    input pte_level_t           level,
+    input satp_mode_e           mode
+);
+    logic [5:0] shift;
+    logic [PPN_WIDTH-1:0] low_mask;
+
+    shift = (mode == SATP_SV32) ? 6'(level * 10) : 6'(level * 9);                              // 10-bit VPNs in SV32, 9-bit in others
+    low_mask = (shift >= PPN_WIDTH) ? '1 : ((PPN_WIDTH'(1) << shift) - 1);                     // Keep only the lowest shift bits of vpn
+    reconstruct_ppn = (ppn & ~((PPN_WIDTH'(1) << shift) - 1)) | (PPN_WIDTH'(vpn) & low_mask);  // Combine high of ppn with low of vpn
+endfunction : reconstruct_ppn
+
 always_comb begin
-    o_ppn      = '0;
-    o_perm     = '0;
-    o_is_super = 1'b0;
-    o_hit      = 1'b0;
-    w_hit_idx  = '0;
+    o_ppn     = '0;
+    o_perm    = '0;
+    o_level   = '0;
+    o_hit     = 1'b0;
+    w_hit_idx = '0;
 
     for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_lookup
+        logic [VPN_WIDTH-1:0] mask;
         logic vpn_match;
-        vpn_match = (!r_tlb[g].is_super && i_match_vpn == r_tlb[g].vpn) ||
-                    ( r_tlb[g].is_super && i_match_vpn[19:10] == r_tlb[g].vpn[19:10]);
+
+        mask      = vpn_mask(r_tlb[g].level, i_mode);
+        vpn_match = (i_match_vpn & mask) == r_tlb[g].vpn;
 
         if (r_tlb[g].perm.v && (r_tlb[g].perm.g || i_match_asid == r_tlb[g].asid) && vpn_match) begin
-            o_ppn      = r_tlb[g].is_super ? {r_tlb[g].ppn[19:10], i_match_vpn[9:0]} : r_tlb[g].ppn;
-            o_perm     = r_tlb[g].perm;
-            o_is_super = r_tlb[g].is_super;
-            o_hit      = 1'b1;
-            w_hit_idx  = g[$clog2(ENTRY_COUNT)-1:0];
+            o_ppn     = reconstruct_ppn(r_tlb[g].ppn, i_match_vpn, r_tlb[g].level, i_mode);
+            o_perm    = r_tlb[g].perm;
+            o_level   = r_tlb[g].level;
+            o_hit     = 1'b1;
+            w_hit_idx = g[$clog2(ENTRY_COUNT)-1:0];
         end
-    end
+    end : tlb_lookup
 end
 
 endmodule

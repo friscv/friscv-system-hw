@@ -43,6 +43,7 @@ package friscv_pkg;
 
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
+    // Must be a power of 2 greater than 1
     localparam int TLB_ENTRIES = 32;
 
     // CLINT address workaround
@@ -164,16 +165,36 @@ package friscv_pkg;
         logic        wpri_0;      // [0]     Reserved (WPRI)
     } mstatus_t;
 
-    typedef enum logic { 
-        SATP_BARE = 1'b0,
-        SATP_SV32 = 1'b1
+    localparam int SATP_MODE_W = (XLEN == 32) ? 1  : 4;
+    localparam int SATP_ASID_W = (XLEN == 32) ? 9  : 16;
+    localparam int SATP_PPN_W  = (XLEN == 32) ? 22 : 44;
+
+    typedef logic [SATP_MODE_W-1:0] satp_mode_t;
+    typedef logic [SATP_ASID_W-1:0] asid_t;
+
+    localparam int PTE_LEVEL_W = (XLEN == 32) ? 1 : 3;
+
+    typedef logic [PTE_LEVEL_W-1:0] pte_level_t;
+
+    typedef enum logic [3:0] { 
+        SATP_BARE = 4'd0,
+        SATP_SV32 = 4'd1,
+        SATP_SV39 = 4'd8,
+        SATP_SV48 = 4'd9,
+        SATP_SV57 = 4'd10
     } satp_mode_e;
 
     typedef struct packed {
-        satp_mode_e  mode;
-        logic [8:0]  asid;
-        logic [21:0] ppn;
+        satp_mode_t            mode;
+        asid_t                 asid;
+        logic [SATP_PPN_W-1:0] ppn;
     } satp_t;
+
+    localparam VPN_WIDTH = (XLEN == 32) ? 20 : 27;
+    localparam PPN_WIDTH = (XLEN == 32) ? 20 : 44;
+
+    typedef logic [VPN_WIDTH-1:0] vpn_t;
+    typedef logic [PPN_WIDTH-1:0] ppn_t;
 
     typedef struct packed {
         logic d;  // Dirty
