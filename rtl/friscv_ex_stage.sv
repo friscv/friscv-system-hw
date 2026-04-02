@@ -57,9 +57,9 @@ module friscv_ex_stage (
 
     // TLB flush
     output logic           flush_tlb_out,
-    output logic [19:0]    flush_vpn_out,
+    output vpn_t           flush_vpn_out,
     output logic           flush_vpn_en_out,
-    output logic [8:0]     flush_asid_out,
+    output asid_t          flush_asid_out,
     output logic           flush_asid_en_out
 );
 
@@ -138,9 +138,9 @@ assign csr_readback_out     = csr_buff;
 assign csr_en_out           = instr_buff.csr_op;
 assign instr_valid_out      = instr_buff.instr_valid;
 assign flush_tlb_out        = instr_buff.sfence_vma;
-assign flush_vpn_out        = rs1_buff[31:12];
+assign flush_vpn_out        = vpn_t'(rs1_buff[31:12]);
 assign flush_vpn_en_out     = (rs1_sel_buff != 5'b0);
-assign flush_asid_out       = rs2_buff[8:0];
+assign flush_asid_out       = asid_t'(rs2_buff[8:0]);
 assign flush_asid_en_out    = (rs2_sel_buff != 5'b0);
 
 // ============================================================

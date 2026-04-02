@@ -18,46 +18,46 @@ Version info is listed in friscv_pkg.sv
 module friscv_core #(
     parameter int HART_ID = 0
 ) (
-    input  logic        i_clk,
-    input  logic        i_rstn,
+    input  logic       i_clk,
+    input  logic       i_rstn,
     
     // Interrupt requests
-    input  logic        i_msip,
-    input  logic        i_mtip,
-    input  logic        i_meip,
+    input  logic       i_msip,
+    input  logic       i_mtip,
+    input  logic       i_meip,
 
     // Page fault signals
-    input  logic        i_inst_fault,
-    input  logic        i_load_fault,
-    input  logic        i_store_fault,
-    input  addr_t       i_fault_addr,
+    input  logic       i_inst_fault,
+    input  logic       i_load_fault,
+    input  logic       i_store_fault,
+    input  addr_t      i_fault_addr,
     
     // Instruction Memory Interface
-    output addr_t       i_mem_addr_out,
-    input  data_t       i_mem_data_in,
-    output logic        i_mem_en_out,
-    input  logic        i_mem_wait_in,
+    output addr_t      i_mem_addr_out,
+    input  data_t      i_mem_data_in,
+    output logic       i_mem_en_out,
+    input  logic       i_mem_wait_in,
 
     // Data memory interface 
-    output addr_t       d_mem_addr_out,
-    output data_t       d_mem_data_out,
-    input  data_t       d_mem_data_in,
-    output logic        d_mem_en_out,
-    output logic        d_mem_wr_out,
-    output mem_width_e  d_mem_size_out,
-    input  logic        d_mem_wait_in,
-    output amo_op_e     d_mem_amo_op_out,
+    output addr_t      d_mem_addr_out,
+    output data_t      d_mem_data_out,
+    input  data_t      d_mem_data_in,
+    output logic       d_mem_en_out,
+    output logic       d_mem_wr_out,
+    output mem_width_e d_mem_size_out,
+    input  logic       d_mem_wait_in,
+    output amo_op_e    d_mem_amo_op_out,
 
     // Memory management outputs
-    output satp_t       satp_out,
-    output logic        sum_out,
-    output logic        mxr_out,
-    output mode_e       mode_out,
-    output logic        flush_tlb_out,
-    output logic [19:0] flush_vpn_out,
-    output logic        flush_vpn_en_out,
-    output logic [8:0]  flush_asid_out,
-    output logic        flush_asid_en_out
+    output satp_t      satp_out,
+    output logic       sum_out,
+    output logic       mxr_out,
+    output mode_e      mode_out,
+    output logic       flush_tlb_out,
+    output vpn_t       flush_vpn_out,
+    output logic       flush_vpn_en_out,
+    output asid_t      flush_asid_out,
+    output logic       flush_asid_en_out
 );
 
 logic flush_if, flush_id;

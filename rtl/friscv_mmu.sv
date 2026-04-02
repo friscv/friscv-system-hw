@@ -50,9 +50,9 @@ module friscv_mmu (
     input  logic        i_mxr,
     input  mode_e       i_mode,
     input  logic        i_flush_tlb,
-    input  logic [19:0] i_flush_vpn,
+    input  vpn_t        i_flush_vpn,
     input  logic        i_flush_vpn_en,
-    input  logic [8:0]  i_flush_asid,
+    input  asid_t       i_flush_asid,
     input  logic        i_flush_asid_en,
 
     // Page fault signals
@@ -305,7 +305,7 @@ assign o_fault_addr  = (w_ptw_inst_fault | w_ptw_load_fault | w_ptw_store_fault)
 // ============================================================
 
 // Physical address for the granted request
-logic [19:0] w_granted_ppn;
+ppn_t w_granted_ppn;
 assign w_granted_ppn = w_grant_inst ? w_itlb_ppn : w_dtlb_ppn;
 
 // PTW walk signals routed directly to/from external memory
