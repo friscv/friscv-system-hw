@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -25,7 +25,7 @@ module friscv_if_stage (
     input  logic  i_mem_wait_in,
     input  logic  jump_ok_in,
     input  addr_t jump_target_in,
- 
+
     // Outputs to ID stage
     output addr_t pc_out,
     output addr_t pc_plus_4_out,
