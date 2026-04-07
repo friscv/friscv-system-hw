@@ -31,20 +31,19 @@ package friscv_pkg;
 
     // --- Configurable parameter definitions start ---
 
-    // Set 2048 for FPGA, 0 for simulation
-    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 2048;
+    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
 
     // Parametrized feature generation
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
 
-    // Extension selection
-    localparam logic ENABLE_EXTENSION_A = 1;
-    localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
-
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
     // Must be a power of 2 greater than 1
-    localparam int TLB_ENTRIES = 32;
+    localparam int   TLB_ENTRIES = 32;
+
+    // Extension selection
+    localparam logic ENABLE_EXTENSION_A = 1;
+    localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
 
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
@@ -167,7 +166,11 @@ package friscv_pkg;
 
     localparam int SATP_MODE_W = (XLEN == 32) ? 1  : 4;
     localparam int SATP_ASID_W = (XLEN == 32) ? 9  : 16;
-    localparam int SATP_PPN_W  = (XLEN == 32) ? 22 : 44;
+    localparam VPN_WIDTH = (XLEN == 32) ? 20 : 27;
+    localparam PPN_WIDTH = (XLEN == 32) ? 20 : 44;
+
+    typedef logic [VPN_WIDTH-1:0] vpn_t;
+    typedef logic [PPN_WIDTH-1:0] ppn_t;
 
     typedef logic [SATP_MODE_W-1:0] satp_mode_t;
     typedef logic [SATP_ASID_W-1:0] asid_t;
@@ -185,16 +188,10 @@ package friscv_pkg;
     } satp_mode_e;
 
     typedef struct packed {
-        satp_mode_t            mode;
-        asid_t                 asid;
-        logic [SATP_PPN_W-1:0] ppn;
+        satp_mode_t mode;
+        asid_t      asid;
+        ppn_t       ppn;
     } satp_t;
-
-    localparam VPN_WIDTH = (XLEN == 32) ? 20 : 27;
-    localparam PPN_WIDTH = (XLEN == 32) ? 20 : 44;
-
-    typedef logic [VPN_WIDTH-1:0] vpn_t;
-    typedef logic [PPN_WIDTH-1:0] ppn_t;
 
     typedef struct packed {
         logic d;  // Dirty

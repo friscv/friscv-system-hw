@@ -468,7 +468,7 @@ always_ff @(posedge clk_in) begin
                 end
 
                 // Supervisor Protection and Translation
-                CSR_SATP: csr.satp <= csr_data_in;
+                CSR_SATP: csr.satp <= satp_t'(csr_data_in[29:0]);
 
                 // Machine Trap Setup
                 CSR_MSTATUS: begin
@@ -586,7 +586,7 @@ always_comb begin
         CSR_SIP:           csr_out = {22'b0, csr.seip, 3'b0, csr.stip, 3'b0, csr.ssip, 1'b0};
 
         // Supervisor Protection and Translation
-        CSR_SATP:          csr_out = csr.satp;
+        CSR_SATP:          csr_out = {2'b0, csr.satp};
 
         default: begin
             csr_out             = 32'h0;

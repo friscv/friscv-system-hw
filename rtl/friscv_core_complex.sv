@@ -98,52 +98,87 @@ assign o_mem_wdata = w_amo_active ? w_amo_store_data : w_l2_wdata;
 logic  w_inst_fault, w_load_fault, w_store_fault;
 addr_t w_fault_addr;
 
-friscv_mmu mmu (
-    .i_clk           ( i_clk           ),
-    .i_rstn          ( i_rstn          ),
+if (ENABLE_MMU) begin
+    friscv_mmu mmu (
+        .i_clk           ( i_clk           ),
+        .i_rstn          ( i_rstn          ),
 
-    // Instruction Memory Interface
-    .i_inst_addr     ( w_inst_addr     ),
-    .o_inst_data     ( w_inst_data     ),
-    .i_inst_en       ( w_inst_en       ),
-    .o_inst_wait     ( w_inst_wait     ),
+        // Instruction Memory Interface
+        .i_inst_addr     ( w_inst_addr     ),
+        .o_inst_data     ( w_inst_data     ),
+        .i_inst_en       ( w_inst_en       ),
+        .o_inst_wait     ( w_inst_wait     ),
 
-    // Data Memory Interface
-    .i_data_addr     ( w_data_addr     ),
-    .i_data_size     ( w_data_size     ),
-    .i_data_wdata    ( w_data_wdata    ),
-    .o_data_rdata    ( w_data_rdata    ),
-    .i_data_en       ( w_data_en       ),
-    .i_data_wr       ( w_data_wr       ),
-    .o_data_wait     ( w_data_wait     ),
-    .i_amo_op        ( w_amo_op        ),
+        // Data Memory Interface
+        .i_data_addr     ( w_data_addr     ),
+        .i_data_size     ( w_data_size     ),
+        .i_data_wdata    ( w_data_wdata    ),
+        .o_data_rdata    ( w_data_rdata    ),
+        .i_data_en       ( w_data_en       ),
+        .i_data_wr       ( w_data_wr       ),
+        .o_data_wait     ( w_data_wait     ),
+        .i_amo_op        ( w_amo_op        ),
 
-    // External Memory Interface
-    .o_mem_size      ( w_l2_size       ),
-    .o_mem_addr      ( w_l2_addr       ),
-    .o_mem_wdata     ( w_l2_wdata      ),
-    .i_mem_rdata     ( w_l2_rdata      ),
-    .o_mem_rw        ( w_l2_rw         ),
-    .i_mem_wait      ( w_l2_wait       ),
-    .o_amo_op        ( w_l2_amo_op     ),
+        // External Memory Interface
+        .o_mem_size      ( w_l2_size       ),
+        .o_mem_addr      ( w_l2_addr       ),
+        .o_mem_wdata     ( w_l2_wdata      ),
+        .i_mem_rdata     ( w_l2_rdata      ),
+        .o_mem_rw        ( w_l2_rw         ),
+        .i_mem_wait      ( w_l2_wait       ),
+        .o_amo_op        ( w_l2_amo_op     ),
 
-    // Protection and Translation Control
-    .i_satp          ( w_satp          ),
-    .i_sum           ( w_sum           ),
-    .i_mxr           ( w_mxr           ),
-    .i_mode          ( w_mode          ),
-    .i_flush_tlb     ( w_flush_tlb     ),
-    .i_flush_vpn     ( w_flush_vpn     ),
-    .i_flush_vpn_en  ( w_flush_vpn_en  ),
-    .i_flush_asid    ( w_flush_asid    ),
-    .i_flush_asid_en ( w_flush_asid_en ),
+        // Protection and Translation Control
+        .i_satp          ( w_satp          ),
+        .i_sum           ( w_sum           ),
+        .i_mxr           ( w_mxr           ),
+        .i_mode          ( w_mode          ),
+        .i_flush_tlb     ( w_flush_tlb     ),
+        .i_flush_vpn     ( w_flush_vpn     ),
+        .i_flush_vpn_en  ( w_flush_vpn_en  ),
+        .i_flush_asid    ( w_flush_asid    ),
+        .i_flush_asid_en ( w_flush_asid_en ),
 
-    // Page fault signals
-    .o_inst_fault    ( w_inst_fault    ),
-    .o_load_fault    ( w_load_fault    ),
-    .o_store_fault   ( w_store_fault   ),
-    .o_fault_addr    ( w_fault_addr    )
-);
+        // Page fault signals
+        .o_inst_fault    ( w_inst_fault    ),
+        .o_load_fault    ( w_load_fault    ),
+        .o_store_fault   ( w_store_fault   ),
+        .o_fault_addr    ( w_fault_addr    )
+    );
+end else begin
+    friscv_l1_arbiter l1_arbiter (
+        .i_clk        ( i_clk        ),
+        .i_rstn       ( i_rstn       ),
+
+        .i_inst_addr  ( w_inst_addr  ),
+        .o_inst_data  ( w_inst_data  ),
+        .i_inst_en    ( w_inst_en    ),
+        .o_inst_wait  ( w_inst_wait  ),
+
+        .i_data_addr  ( w_data_addr  ),
+        .i_data_size  ( w_data_size  ),
+        .i_data_wdata ( w_data_wdata ),
+        .o_data_rdata ( w_data_rdata ),
+        .i_data_en    ( w_data_en    ),
+        .i_data_wr    ( w_data_wr    ),
+        .o_data_wait  ( w_data_wait  ),
+        .i_amo_op     ( w_amo_op     ),
+
+        .o_mem_addr   ( w_l2_addr    ),
+        .o_mem_size   ( w_l2_size    ),
+        .o_mem_wdata  ( w_l2_wdata   ),
+        .i_mem_rdata  ( w_l2_rdata   ),
+        .o_mem_rw     ( w_l2_rw      ),
+        .i_mem_wait   ( w_l2_wait    ),
+        .o_amo_op     ( w_l2_amo_op  ),
+        .o_grant_inst (              )
+    );
+
+    assign w_inst_fault  = 1'b0;
+    assign w_load_fault  = 1'b0;
+    assign w_store_fault = 1'b0;
+    assign w_fault_addr  = '0;
+end
 
 // ============================================================
 // End signal detection on write to END_ADDRESS
