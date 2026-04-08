@@ -39,7 +39,7 @@ package friscv_pkg;
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
     // Must be a power of 2 greater than 1
-    localparam int   TLB_ENTRIES = 32;
+    localparam int   TLB_ENTRIES = 4;
 
     // Extension selection
     localparam logic ENABLE_EXTENSION_A = 1;

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""
-XMODEM-CRC sender for the FRISCV bootloader (UART boot mode).
+from __future__ import annotations
 
-Connects to a serial port, waits for the bootloader's 'C' start byte,
-then transmits test/prog.bin using XMODEM-CRC protocol (128-byte packets,
-CRC-16/XMODEM with polynomial 0x1021).
+"""
+Convenience UART tool for the FRISCV bootloader.
+
+It can:
+  - load a binary using XMODEM-CRC
+  - open an interactive serial terminal
+  - do both in one run, dropping into the terminal after a successful load
 
 Bootloader protocol (from zsbl.S):
   - Target sends 'C' (0x43) to request CRC mode
@@ -21,9 +24,10 @@ from pathlib import Path
 
 try:
     import serial
+    from serial.tools.miniterm import Miniterm
 except ImportError:
-    print("Error: pyserial not installed. Run: pip install pyserial", file=sys.stderr)
-    sys.exit(1)
+    serial = None
+    Miniterm = None
 
 # XMODEM control bytes
 SOH       = 0x01  # Start of 128-byte data packet
@@ -48,6 +52,12 @@ def crc16_xmodem(data: bytes) -> int:
             crc = ((crc << 1) ^ 0x1021) if (crc & 0x8000) else (crc << 1)
             crc &= 0xFFFF
     return crc
+
+
+def require_pyserial() -> None:
+    if serial is None or Miniterm is None:
+        print("Error: pyserial not installed. Run: pip install pyserial", file=sys.stderr)
+        sys.exit(1)
 
 
 def wait_for_start(port: serial.Serial, verbose: bool) -> bool:
@@ -163,9 +173,35 @@ def send_xmodem(port: serial.Serial, data: bytes, verbose: bool = True) -> bool:
     return False
 
 
+def open_terminal(port: serial.Serial, quiet: bool = False) -> None:
+    """Start an interactive serial terminal on an already-open port."""
+    port.timeout = 0.1
+    port.write_timeout = None
+    port.reset_input_buffer()
+
+    term = Miniterm(port, eol="lf", filters=[])
+    term.exit_character = chr(0x1D)  # Ctrl+]
+    term.menu_character = chr(0x14)  # Ctrl+T
+    term.set_rx_encoding("utf-8")
+    term.set_tx_encoding("utf-8")
+
+    if not quiet:
+        print(f"Opening terminal on {port.port} at {port.baudrate} baud.")
+        print("Exit with Ctrl+] | Menu/help with Ctrl+T")
+
+    try:
+        term.start()
+        term.join(True)
+    except KeyboardInterrupt:
+        if not quiet:
+            print("\nTerminal interrupted.")
+    finally:
+        term.stop()
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Load a binary via XMODEM-CRC to the FRISCV bootloader.",
+        description="Load a binary via XMODEM-CRC and/or open a serial terminal.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -184,29 +220,50 @@ def main():
         "--quiet", "-q", action="store_true",
         help="Suppress progress output",
     )
+    parser.add_argument(
+        "--terminal", "-t", action="store_true",
+        help="Open an interactive terminal after a successful load",
+    )
+    parser.add_argument(
+        "--terminal-only", action="store_true",
+        help="Skip XMODEM transfer and open the terminal immediately",
+    )
     args = parser.parse_args()
+    require_pyserial()
 
-    # Resolve binary path: explicit arg, or test/prog.bin from repo root
-    if args.binfile:
-        bin_path = Path(args.binfile)
-    else:
-        repo_root = Path(__file__).parent.parent
-        bin_path  = repo_root / "test" / "prog.bin"
+    if args.terminal_only and args.binfile:
+        print("Note: --bin is ignored when --terminal-only is used.", file=sys.stderr)
 
-    if not bin_path.exists():
-        print(f"Error: file not found: {bin_path}", file=sys.stderr)
-        sys.exit(1)
+    data = None
+    bin_path = None
+    if not args.terminal_only:
+        # Resolve binary path: explicit arg, or test/prog.bin from repo root
+        if args.binfile:
+            bin_path = Path(args.binfile)
+        else:
+            repo_root = Path(__file__).parent.parent
+            bin_path = repo_root / "test" / "prog.bin"
 
-    data = bin_path.read_bytes()
-    if not args.quiet:
-        print(f"Binary: {bin_path}  ({len(data)} bytes, "
-              f"{(len(data) + PACKET_SIZE - 1) // PACKET_SIZE} packets)")
+        if not bin_path.exists():
+            print(f"Error: file not found: {bin_path}", file=sys.stderr)
+            sys.exit(1)
+
+        data = bin_path.read_bytes()
+        if not args.quiet:
+            print(f"Binary: {bin_path}  ({len(data)} bytes, "
+                  f"{(len(data) + PACKET_SIZE - 1) // PACKET_SIZE} packets)")
 
     try:
         with serial.Serial(args.port, args.baud, timeout=ACK_TIMEOUT) as port:
             if not args.quiet:
                 print(f"Port:   {args.port}  ({args.baud} baud)")
-            success = send_xmodem(port, data, verbose=not args.quiet)
+            if args.terminal_only:
+                open_terminal(port, quiet=args.quiet)
+                success = True
+            else:
+                success = send_xmodem(port, data, verbose=not args.quiet)
+                if success and args.terminal:
+                    open_terminal(port, quiet=args.quiet)
     except serial.SerialException as e:
         print(f"Serial error: {e}", file=sys.stderr)
         sys.exit(1)

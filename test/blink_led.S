@@ -50,9 +50,9 @@ main:
     sw    x0, 0(t0)           # mtime lo = 0
     sw    x0, 4(t0)           # mtime hi = 0
 
-    # Set mtimecmp = 45,454,544 cycles = 0.5 s @ 90.909088 MHz
+    # Set mtimecmp = 19,230,770 cycles = 0.5 s @ 38.461,540 MHz
     li    t0, 0x02004000
-    li    t1, 0x02B594D0
+    li    t1, 19230770
     sw    t1, 0(t0)           # mtimecmp lo
     sw    x0, 4(t0)           # mtimecmp hi = 0
 
