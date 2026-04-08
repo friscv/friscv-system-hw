@@ -298,9 +298,9 @@ always_comb begin : transition_logic
             w_next_state   = S_IDLE;
         end
 
-        // Fault fires for one cycle while o_stall is held high
-        // The pipeline must capture the fault signal during the stalled cycle
+        // Release stall so the pipeline can capture the fault
         S_FAULT: begin
+            o_stall       = 1'b0;
             o_inst_fault  = r_itlb_miss;
             o_load_fault  = r_dtlb_miss && !r_req_is_write;
             o_store_fault = r_dtlb_miss &&  r_req_is_write;

@@ -202,6 +202,16 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             instr_valid_buff      <= instr_valid_in;
             r_mem_fault           <= 1'b0;  // Clear fault on new instruction
 
+            // Capture page fault even when pipeline advances
+            if (r_mem_active && (load_fault_in || store_fault_in)) begin
+                r_mem_fault          <= 1'b1;
+                r_mem_fault_pc       <= pc_buff;
+                r_mem_fault_va       <= fault_addr_in;
+                r_mem_fault_is_store <= store_fault_in;
+                rd_sel_buff          <= 5'b0;
+                r_mem_active         <= 1'b0;
+            end
+
             if (!clear_reserve_in) begin
                 if (reserve_in) begin
                     reserve_valid <= 1'b1;
