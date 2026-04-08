@@ -15,21 +15,11 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_axi_master #(
+module friscv_axi4_full_adapter #(
     localparam BURST_LEN = 8  // TODO calculate this from cache size
 ) (
     input  logic                    i_clk,
-    input  logic                    i_rstn,
-
-    // Internal interface
-    input  mem_width_e              i_size,
-    input  logic [31:0]             i_addr,
-    input  data_t                   i_wdata,
-    output data_t                   o_rdata,
-    input  rw_cmd_e                 i_rw,
-    output logic                    o_wait,
-    input  logic                    i_burst_en,
-    output logic                    o_beat_valid,
+    friscv_mem_if.slave             mem_if,
 
     // Write address channel
     output logic                    m_axi_awvalid,
@@ -112,7 +102,7 @@ logic [FIFO_PTR_W:0] r_push_cnt;
 assign fifo_empty = (r_fifo_count == '0);
 
 // Push word 0 while still in S_IDLE, push words 1..BURST_LEN-1 via r_push_cnt
-assign fifo_wen = ((r_state == S_IDLE) && (i_rw == RW_WRITE) && i_burst_en) ||
+assign fifo_wen = ((r_state == S_IDLE) && (mem_if.rw == RW_WRITE) && mem_if.burst_en) ||
                   (r_burst_en && (r_rw == RW_WRITE) &&
                    (r_push_cnt > '0) && (r_push_cnt < BURST_LEN[FIFO_PTR_W:0]));
 
@@ -134,7 +124,7 @@ always_comb begin
 end
 
 // Constant assignments
-assign o_rdata       = (m_axi_rvalid && m_axi_rready) ? m_axi_rdata : r_rdata;
+assign mem_if.rdata  = (m_axi_rvalid && m_axi_rready) ? m_axi_rdata : r_rdata;
 assign m_axi_awaddr  = r_addr;
 assign m_axi_awsize  = r_size;
 assign m_axi_awcache = 4'b0011;
@@ -156,12 +146,13 @@ assign m_axi_arlen   = r_burst_en ? (BURST_LEN - 1) : 8'h00;
 assign m_axi_arlock  = 1'b0;
 assign m_axi_arqos   = 4'h0;
 
-assign o_wait       = w_next_state != S_IDLE;
-assign o_beat_valid = r_burst_en && (r_state == S_R_DATA) && m_axi_rvalid && m_axi_rready;
+assign mem_if.wait_req   = w_next_state != S_IDLE;
+assign mem_if.beat_valid = r_burst_en && (r_state == S_R_DATA) && m_axi_rvalid && m_axi_rready;
+assign mem_if.err        = 1'b0;
 
 // Clocked logic
 always_ff @(posedge i_clk) begin
-    if (!i_rstn) begin
+    if (!mem_if.rstn) begin
         r_rw         <= RW_IDLE;
         r_burst_en   <= 1'b0;
         r_state      <= S_IDLE;
@@ -173,39 +164,33 @@ always_ff @(posedge i_clk) begin
     end else begin
         r_state <= w_next_state;
 
-        // Latch transaction parameters on start
-        if (r_state == S_IDLE && i_rw != RW_IDLE) begin
-            r_rw       <= i_rw;
-            r_addr     <= i_addr;
-            r_wdata    <= i_wdata;
-            r_size     <= i_size;
-            r_burst_en <= i_burst_en;
+        if (r_state == S_IDLE && mem_if.rw != RW_IDLE) begin
+            r_rw       <= mem_if.rw;
+            r_addr     <= mem_if.addr;
+            r_wdata    <= mem_if.wdata;
+            r_size     <= mem_if.size;
+            r_burst_en <= mem_if.burst_en;
         end
 
-        // Capture read data
         if (m_axi_rready && m_axi_rvalid) begin
             r_rdata <= m_axi_rdata;
         end
 
-        // FIFO write port (cache write-back)
         if (fifo_wen) begin
-            r_fifo[r_fifo_wptr] <= i_wdata;
+            r_fifo[r_fifo_wptr] <= mem_if.wdata;
             r_fifo_wptr         <= r_fifo_wptr + 1;
         end
 
-        // FIFO read port (AXI drain)
         if (fifo_ren) begin
             r_fifo_rptr <= r_fifo_rptr + 1;
         end
 
-        // FIFO fullness counter
         if (fifo_wen && !fifo_ren)
             r_fifo_count <= r_fifo_count + 1;
         else if (!fifo_wen && fifo_ren)
             r_fifo_count <= r_fifo_count - 1;
 
-        // Push counter - set to 1 on first push, increment until BURST_LEN
-        if ((r_state == S_IDLE) && (i_rw == RW_WRITE) && i_burst_en) begin
+        if ((r_state == S_IDLE) && (mem_if.rw == RW_WRITE) && mem_if.burst_en) begin
             r_push_cnt <= 1;
         end else if (r_burst_en && (r_rw == RW_WRITE) &&
                      (r_push_cnt > '0) && (r_push_cnt < BURST_LEN[FIFO_PTR_W:0])) begin
@@ -214,7 +199,6 @@ always_ff @(posedge i_clk) begin
     end
 end
 
-// State transition and AXI control
 always_comb begin
     w_next_state  = r_state;
     m_axi_awvalid = 1'b0;
@@ -225,13 +209,12 @@ always_comb begin
     m_axi_rready  = 1'b0;
 
     unique case (r_state)
-
         S_IDLE: begin
-            if (i_rw == RW_WRITE || i_rw == RW_READ) begin
-                w_next_state = (i_rw == RW_WRITE) ? S_W_ADDR : S_R_ADDR;
+            if (mem_if.rw == RW_WRITE || mem_if.rw == RW_READ) begin
+                w_next_state = (mem_if.rw == RW_WRITE) ? S_W_ADDR : S_R_ADDR;
             end
         end
-    
+
         S_W_ADDR: begin
             m_axi_awvalid = 1'b1;
             w_next_state  = m_axi_awready ? S_W_DATA : S_W_ADDR;
@@ -239,7 +222,6 @@ always_comb begin
 
         S_W_DATA: begin
             if (r_burst_en) begin
-                // Stream from FIFO; wvalid tracks FIFO non-empty, wlast on final entry
                 m_axi_wvalid = !fifo_empty;
                 m_axi_wlast  = !fifo_empty && (r_fifo_count == 1);
                 if (!fifo_empty && m_axi_wready && (r_fifo_count == 1)) begin
@@ -268,12 +250,10 @@ always_comb begin
 
         S_R_DATA: begin
             m_axi_rready = 1'b1;
-            // Single: exit on first valid beat; burst: wait for rlast
             if (m_axi_rvalid && (!r_burst_en || m_axi_rlast)) begin
                 w_next_state = S_IDLE;
             end
         end
-
     endcase
 end
 

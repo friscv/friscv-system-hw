@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 
 `include "friscv_pkg.sv"
 
-module friscv_cpu_subsystem (
+module friscv_cpu_subsystem_axi (
     input  logic        i_clk,
     input  logic        i_rstn,
     output logic        o_end,
@@ -68,92 +68,21 @@ module friscv_cpu_subsystem (
     input  logic [1:0]  m_axi_rresp
 );
 
-mem_width_e  w_size;
-logic [31:0] w_phy_addr;
-logic [31:0] w_dram_addr;
-logic [31:0] w_wdata;
-logic [31:0] w_rdata;
-rw_cmd_e     w_rw;
-logic        w_wait;
-logic        w_burst_en;
-logic        w_beat_valid;
+friscv_mem_if mem_if ();
 
-// Address translation
-always_comb begin
-    if (ENABLE_REMAP_CLINT && w_phy_addr[31:16] == CLINT_PHY_BASE[31:16] && w_phy_addr[15:0] <= 16'hBFFF) begin
-        w_dram_addr = {CLINT_REAL_BASE[31:16], w_phy_addr[15:0]};
-    end else if (DRAM_BASE == 32'h8000_0000) begin
-        w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
-    end else if (DRAM_BASE == 32'h0) begin
-        w_dram_addr = w_phy_addr + DRAM_START_AT;
-    end else begin
-        w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
-    end
-end
-
-// Metastability protection for reset
-logic [1:0]  r_rstn_sync = 2'b00;
-
-always_ff @(posedge i_clk) begin
-    r_rstn_sync <= {r_rstn_sync[0], i_rstn};
-end
-
-friscv_core_complex #(
-    .HART_ID(0)
-) cc_0 (
-    .i_clk       ( i_clk          ),
-    .i_rstn      ( r_rstn_sync[1] ),
-    .o_end       ( o_end          ),
-    .i_msip      ( i_msip         ),
-    .i_mtip      ( i_mtip         ),
-    .i_meip      ( i_meip         ),
-    .o_mem_size  ( w_size         ),
-    .o_mem_addr  ( w_phy_addr     ),
-    .o_mem_wdata ( w_wdata        ),
-    .i_mem_rdata ( w_rdata        ),
-    .o_mem_rw    ( w_rw           ),
-    .i_mem_wait  ( w_wait         ),
-    .o_burst_en  ( w_burst_en     ),
-    .i_beat_valid( w_beat_valid   )
+friscv_cpu_subsystem_core core (
+    .i_clk   ( i_clk  ),
+    .i_rstn  ( i_rstn ),
+    .o_end   ( o_end  ),
+    .i_msip  ( i_msip ),
+    .i_mtip  ( i_mtip ),
+    .i_meip  ( i_meip ),
+    .mem_if  ( mem_if )
 );
 
-// AXI master reset sequencer
-// Wait for transactions to complete before resetting
-logic r_axi_reset_req;
-logic r_axi_in_reset = 1'b1;  // Start in reset
-
-always_ff @(posedge i_clk or negedge r_rstn_sync[1]) begin
-    if (!r_rstn_sync[1]) begin
-        r_axi_reset_req <= 1'b1;  // Request reset when button pressed
-    end else begin
-        r_axi_reset_req <= 1'b0;  // Clear request when button released
-    end
-end
-
-always_ff @(posedge i_clk) begin
-    if (r_axi_reset_req && !w_wait) begin
-        // Once transaction completes and reset is requested, assert reset
-        r_axi_in_reset <= 1'b1;
-    end else if (!r_axi_reset_req) begin
-        // Only release reset when external reset is released
-        r_axi_in_reset <= 1'b0;
-    end
-end
-
-logic w_axi_rstn;
-assign w_axi_rstn = !r_axi_in_reset;
-
-friscv_axi_master m_axi (
+friscv_axi4_full_adapter m_axi (
     .i_clk          ( i_clk         ),
-    .i_rstn         ( w_axi_rstn    ),
-    .i_size         ( w_size        ),
-    .i_addr         ( w_dram_addr   ),
-    .i_wdata        ( w_wdata       ),
-    .o_rdata        ( w_rdata       ),
-    .i_rw           ( w_rw          ),
-    .o_wait         ( w_wait        ),
-    .i_burst_en     ( w_burst_en    ),
-    .o_beat_valid   ( w_beat_valid  ),
+    .mem_if         ( mem_if        ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

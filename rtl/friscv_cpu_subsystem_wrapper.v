@@ -14,7 +14,7 @@ Version info is listed in friscv_pkg.sv
 */
 
 // Pure Verilog wrapper for Vivado block design integration
-// The actual implementation is in friscv_cpu_subsystem.sv
+// The actual implementation is in friscv_cpu_subsystem_axi.sv
 module friscv_cpu_subsystem_wrapper (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 aclk CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF m_axi, ASSOCIATED_RESET aresetn" *)
@@ -72,7 +72,7 @@ module friscv_cpu_subsystem_wrapper (
     input  wire [1:0]  m_axi_rresp
 );
 
-friscv_cpu_subsystem cpu_subsystem (
+friscv_cpu_subsystem_axi cpu_subsystem (
     .i_clk          ( aclk          ),
     .i_rstn         ( aresetn       ),
     .o_end          ( done          ),

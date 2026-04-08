@@ -128,7 +128,7 @@ friscv_clint clint_inst (
 );
 
 // DUT Instantiation
-friscv_cpu_subsystem dut (
+friscv_cpu_subsystem_axi dut (
     .i_clk         ( clk           ),
     .i_rstn        ( rstn          ),
     .o_end         ( end_signal    ),
