@@ -262,6 +262,8 @@ friscv_id_stage #(
     .ex_csr_en_in     ( ex_csr_en_out    ),
     .mem_csr_en_in    ( mem_csr_en_out   ),
     .wb_csr_en_in     ( wb_csr_en_out    ),
+    .ex_mem_inflight_in( ex_mem_instr_sel_out != MEM_INSTR_NONE ),
+    .mem_mem_inflight_in( d_mem_en_out ),
     
     // Interrupts
     .tvec_out         ( id_tvec_out       ), 

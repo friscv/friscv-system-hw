@@ -9,7 +9,7 @@ parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
 // Default: ../../../../../test/prog.bin
 string PROG_FILE;
 
-parameter MEM_SIZE = 2 * 1024;          // 2 KiB
+parameter MEM_SIZE     = 32 * 1024;     // 32 KiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
 parameter DRAM_BASE    = 32'h00100000;  // Memory base address (Memory view)
 parameter GPIO_ADDR    = 32'h40000000;  // GPIO address

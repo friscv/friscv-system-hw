@@ -62,13 +62,27 @@ module friscv_mmu (
     output addr_t       o_fault_addr
 );
 
+// Granted request lines and latched translation context
+addr_t        w_grant_addr;
+mem_width_e   w_grant_size;
+data_t        w_grant_wdata;
+rw_cmd_e      w_grant_rw;
+logic         w_stall;
+amo_op_e      w_grant_amo;
+logic         w_grant_inst;
+logic         w_grant_wr;
+logic         w_grant_active;
+mmu_req_ctx_t r_req_ctx;
+logic         r_req_ctx_valid;
+mmu_req_ctx_t w_eff_req_ctx;
+
 // ============================================================
 // TLB layer
 // ============================================================
 
 vpn_t w_inst_vpn, w_data_vpn;
-assign w_inst_vpn = i_inst_addr[31:12];
-assign w_data_vpn = i_data_addr[31:12];
+assign w_inst_vpn = (w_grant_active && w_eff_req_ctx.is_inst)  ? vpn_t'(w_eff_req_ctx.addr[31:12]) : vpn_t'(i_inst_addr[31:12]);
+assign w_data_vpn = (w_grant_active && !w_eff_req_ctx.is_inst) ? vpn_t'(w_eff_req_ctx.addr[31:12]) : vpn_t'(i_data_addr[31:12]);
 
 // Lookup lines
 ppn_t       w_itlb_ppn, w_dtlb_ppn;
@@ -77,7 +91,7 @@ pte_level_t w_itlb_level, w_dtlb_level;
 logic       w_itlb_hit, w_dtlb_hit;
 
 satp_mode_e w_tlb_mode;
-assign w_tlb_mode = satp_mode_e'(i_satp.mode);
+assign w_tlb_mode = satp_mode_e'(w_eff_req_ctx.satp.mode);
 
 // Fill lines
 vpn_t       w_fill_vpn;
@@ -96,7 +110,7 @@ friscv_tlb #(
     // Lookup
     .i_match_vpn     ( w_inst_vpn      ),
     .i_mode          ( w_tlb_mode      ),
-    .i_match_asid    ( i_satp.asid     ),
+    .i_match_asid    ( w_eff_req_ctx.satp.asid ),
     .o_ppn           ( w_itlb_ppn      ),
     .o_perm          ( w_itlb_perm     ),
     .o_level         ( w_itlb_level    ),
@@ -127,7 +141,7 @@ friscv_tlb #(
     // Lookup
     .i_match_vpn     ( w_data_vpn      ),
     .i_mode          ( w_tlb_mode      ),
-    .i_match_asid    ( i_satp.asid     ),
+    .i_match_asid    ( w_eff_req_ctx.satp.asid ),
     .o_ppn           ( w_dtlb_ppn      ),
     .o_perm          ( w_dtlb_perm     ),
     .o_level         ( w_dtlb_level    ),
@@ -152,15 +166,6 @@ friscv_tlb #(
 // ============================================================
 // Arbitration layer
 // ============================================================
-
-// Granted request lines
-addr_t      w_grant_addr;
-mem_width_e w_grant_size;
-data_t      w_grant_wdata;
-rw_cmd_e    w_grant_rw;
-logic       w_stall;
-amo_op_e    w_grant_amo;
-logic       w_grant_inst;
 
 friscv_l1_arbiter l1_arbiter (
     .i_clk        ( i_clk         ),
@@ -196,20 +201,43 @@ friscv_l1_arbiter l1_arbiter (
 
 // Paging active when satp.MODE != 0 and not in M-mode
 logic w_paging_en;
-assign w_paging_en = (|i_satp.mode) && (i_mode != M_MODE);
+assign w_paging_en = (|w_eff_req_ctx.satp.mode) && (w_eff_req_ctx.mode != M_MODE);
 
 // Arbiter is in a grant state when it drives a non-idle command
-logic w_grant_active;
 assign w_grant_active = (w_grant_rw != RW_IDLE);
+
+assign w_grant_wr = (w_grant_rw == RW_WRITE);
+
+always_comb begin
+    w_eff_req_ctx.addr     = w_grant_addr;
+    w_eff_req_ctx.satp     = i_satp;
+    w_eff_req_ctx.mode     = i_mode;
+    w_eff_req_ctx.sum      = i_sum;
+    w_eff_req_ctx.mxr      = i_mxr;
+    w_eff_req_ctx.is_inst  = w_grant_inst;
+    w_eff_req_ctx.is_write = w_grant_wr;
+    if (w_grant_active && r_req_ctx_valid) begin
+        w_eff_req_ctx = r_req_ctx;
+    end
+end
+
+always_ff @(posedge i_clk) begin
+    if (!i_rstn) begin
+        r_req_ctx       <= '0;
+        r_req_ctx_valid <= 1'b0;
+    end else if (!w_grant_active) begin
+        r_req_ctx_valid <= 1'b0;
+    end else if (!r_req_ctx_valid) begin
+        r_req_ctx       <= w_eff_req_ctx;
+        r_req_ctx_valid <= 1'b1;
+    end
+end
 
 // TLB miss - arbiter has granted the request, paging is on, and the TLB did not hit
 logic w_itlb_miss, w_dtlb_miss, w_tlb_miss;
-assign w_itlb_miss = w_grant_active &&  w_grant_inst && !w_itlb_hit && w_paging_en;
-assign w_dtlb_miss = w_grant_active && !w_grant_inst && !w_dtlb_hit && w_paging_en;
+assign w_itlb_miss = w_grant_active &&  w_eff_req_ctx.is_inst && !w_itlb_hit && w_paging_en;
+assign w_dtlb_miss = w_grant_active && !w_eff_req_ctx.is_inst && !w_dtlb_hit && w_paging_en;
 assign w_tlb_miss  = w_itlb_miss || w_dtlb_miss;
-
-logic w_grant_wr;
-assign w_grant_wr = (w_grant_rw == RW_WRITE);
 
 // PTW memory interface
 addr_t w_walk_addr;
@@ -227,13 +255,13 @@ friscv_ptw ptw (
     .i_rstn          ( i_rstn            ),
 
     // Translation control
-    .i_satp          ( i_satp            ),
+    .i_satp          ( w_eff_req_ctx.satp ),
 
     // Walk trigger
     .i_itlb_miss     ( w_itlb_miss       ),
     .i_dtlb_miss     ( w_dtlb_miss       ),
-    .i_req_va        ( w_grant_addr      ),
-    .i_req_is_write  ( w_grant_wr        ),
+    .i_req_va        ( w_eff_req_ctx.addr ),
+    .i_req_is_write  ( w_eff_req_ctx.is_write ),
 
     // External bus
     .o_walk_addr     ( w_walk_addr       ),
@@ -271,26 +299,26 @@ logic w_perm_fault;
 // Instruction fetch TLB permission check
 assign w_perm_inst_ok = w_itlb_perm.x &&
                         w_itlb_perm.a &&
-                        ((i_mode == U_MODE &&  w_itlb_perm.u) ||
-                         (i_mode == S_MODE && !w_itlb_perm.u));
+                        ((w_eff_req_ctx.mode == U_MODE &&  w_itlb_perm.u) ||
+                         (w_eff_req_ctx.mode == S_MODE && !w_itlb_perm.u));
 
 // Load TLB permission check
-assign w_perm_load_ok = (w_dtlb_perm.r || (i_mxr && w_dtlb_perm.x)) &&
+assign w_perm_load_ok = (w_dtlb_perm.r || (w_eff_req_ctx.mxr && w_dtlb_perm.x)) &&
                         w_dtlb_perm.a &&
-                        ((i_mode == U_MODE &&  w_dtlb_perm.u) ||
-                         (i_mode == S_MODE && (!w_dtlb_perm.u || i_sum)));
+                        ((w_eff_req_ctx.mode == U_MODE &&  w_dtlb_perm.u) ||
+                         (w_eff_req_ctx.mode == S_MODE && (!w_dtlb_perm.u || w_eff_req_ctx.sum)));
 
 // Store TLB permission check
 assign w_perm_store_ok = w_dtlb_perm.w &&
                          w_dtlb_perm.d &&
                          w_dtlb_perm.a &&
-                         ((i_mode == U_MODE &&  w_dtlb_perm.u) ||
-                          (i_mode == S_MODE && (!w_dtlb_perm.u || i_sum)));
+                         ((w_eff_req_ctx.mode == U_MODE &&  w_dtlb_perm.u) ||
+                          (w_eff_req_ctx.mode == S_MODE && (!w_dtlb_perm.u || w_eff_req_ctx.sum)));
 
 // Perm fault: paging on, arbiter granted, TLB hit, but permission denied
-assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_grant_inst                && w_itlb_hit && !w_perm_inst_ok;
-assign w_perm_load_fault  = w_paging_en && w_grant_active && !w_grant_inst && !w_grant_wr && w_dtlb_hit && !w_perm_load_ok;
-assign w_perm_store_fault = w_paging_en && w_grant_active && !w_grant_inst &&  w_grant_wr && w_dtlb_hit && !w_perm_store_ok;
+assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_eff_req_ctx.is_inst                    && w_itlb_hit && !w_perm_inst_ok;
+assign w_perm_load_fault  = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst && !w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_load_ok;
+assign w_perm_store_fault = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst &&  w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_store_ok;
 assign w_perm_fault       = w_perm_inst_fault | w_perm_load_fault | w_perm_store_fault;
 
 // Final fault outputs: PTW structural faults OR perm faults
@@ -298,7 +326,7 @@ assign w_perm_fault       = w_perm_inst_fault | w_perm_load_fault | w_perm_store
 assign o_inst_fault  = w_ptw_inst_fault  | w_perm_inst_fault;
 assign o_load_fault  = w_ptw_load_fault  | w_perm_load_fault;
 assign o_store_fault = w_ptw_store_fault | w_perm_store_fault;
-assign o_fault_addr  = (w_ptw_inst_fault | w_ptw_load_fault | w_ptw_store_fault) ? w_ptw_fault_addr : w_grant_addr;
+assign o_fault_addr  = (w_ptw_inst_fault | w_ptw_load_fault | w_ptw_store_fault) ? w_ptw_fault_addr : w_eff_req_ctx.addr;
 
 // ============================================================
 // PTW / arbiter bus mux
@@ -306,7 +334,7 @@ assign o_fault_addr  = (w_ptw_inst_fault | w_ptw_load_fault | w_ptw_store_fault)
 
 // Physical address for the granted request
 ppn_t w_granted_ppn;
-assign w_granted_ppn = w_grant_inst ? w_itlb_ppn : w_dtlb_ppn;
+assign w_granted_ppn = w_eff_req_ctx.is_inst ? w_itlb_ppn : w_dtlb_ppn;
 
 // PTW walk signals routed directly to/from external memory
 assign w_walk_rdata = i_mem_rdata;
@@ -321,8 +349,8 @@ assign o_mem_rw    = w_walk_en                    ? RW_READ   :
                      w_grant_rw;
 
 assign o_mem_addr  = w_walk_en   ? w_walk_addr                           :
-                     w_paging_en ? {w_granted_ppn, w_grant_addr[11:0]}   :
-                     w_grant_addr;
+                     w_paging_en ? {w_granted_ppn, w_eff_req_ctx.addr[11:0]}   :
+                     w_eff_req_ctx.addr;
 
 assign o_mem_size  = w_walk_en ? WIDTH_I32 : w_grant_size;
 assign o_mem_wdata = w_walk_en ? '0        : w_grant_wdata;

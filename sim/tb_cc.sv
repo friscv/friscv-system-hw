@@ -7,8 +7,8 @@ parameter CLK_PERIOD = 10;  // 10ns clock period (100MHz)
 parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
 parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 
-parameter MEM_SIZE = 2 * 1024;          // 2 KiB
-parameter MEM_BASE = 32'h80000000;      // Memory base address
+parameter MEM_SIZE    = 32 * 1024;        // 32 KiB
+parameter MEM_BASE    = 32'h80000000;     // Memory base address
 parameter GPIO_ADDR   = 32'h40000000;     // GPIO address
 parameter UART_ADDR   = 32'h40600000;     // UART address
 parameter TIMER_ADDR  = 32'h40100000;     // Timer base address
@@ -63,7 +63,9 @@ friscv_core_complex dut (
     .o_mem_wdata ( mem_wdata  ),
     .i_mem_rdata ( mem_rdata  ),
     .o_mem_rw    ( mem_rw     ),
-    .i_mem_wait  ( mem_wait   )
+    .i_mem_wait  ( mem_wait   ),
+    .o_burst_en  (  ),
+    .i_beat_valid (  )
 );
 
 initial begin

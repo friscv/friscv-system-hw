@@ -67,7 +67,7 @@ module friscv_pipeline_control (
 
 logic reg_hazard, csr_hazard, ret_csr_hazard;
 logic serializing_csr_hazard;
-logic mem_stall, hazard_stall;
+logic mem_stall, hazard_stall, trap_pending_stall;
 
 function automatic logic is_serializing_csr(csr_addr_e csr_sel);
 begin
@@ -96,35 +96,35 @@ always_comb begin
     // mret implicitly reads mepc; stall if a csrw is still in EX, MEM, or WB
     ret_csr_hazard = ret_in && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in);
 
-    // Either serialize all CSR writes, or only the narrow always-serializing
-    // subset. Trap-control CSRs are still ordered by the trap/return hazards.
-    serializing_csr_hazard = (ex_csr_en_in  && (ENABLE_SERIALIZE_ALL_CSR_WRITES || is_serializing_csr(ex_csr_sel_in)))  ||
-                             (mem_csr_en_in && (ENABLE_SERIALIZE_ALL_CSR_WRITES || is_serializing_csr(mem_csr_sel_in))) ||
-                             (wb_csr_en_in  && (ENABLE_SERIALIZE_ALL_CSR_WRITES || is_serializing_csr(wb_csr_sel_in)));
+    // Serialize only the narrow always-serializing CSR subset.
+    // Trap-control CSRs are still ordered by the trap/return hazards.
+    serializing_csr_hazard = (ex_csr_en_in  && is_serializing_csr(ex_csr_sel_in))  ||
+                             (mem_csr_en_in && is_serializing_csr(mem_csr_sel_in)) ||
+                             (wb_csr_en_in  && is_serializing_csr(wb_csr_sel_in));
 
     // Stall while trap is pending
     csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in))  ||
                  (id_csr_en_in && mem_csr_en_in && (id_csr_sel_in == mem_csr_sel_in)) ||
                  (id_csr_en_in && wb_csr_en_in  && (id_csr_sel_in == wb_csr_sel_in))  ||
                  serializing_csr_hazard ||
-                 ret_csr_hazard ||
-                 (trap_pending_in && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in));
+                 ret_csr_hazard;
 
     hazard_stall = reg_hazard || csr_hazard;
+    trap_pending_stall = trap_pending_in;
 
     // Suppress mret redirect until the hazard clears so IF sees the committed mepc
     effective_ret = ret_in && !ret_csr_hazard;
     effective_jal = jal_ok_in  && !mem_stall && !hazard_stall;
 
-    stall_if_out  = mem_stall || hazard_stall;
-    stall_id_out  = mem_stall || hazard_stall;
+    stall_if_out  = mem_stall || hazard_stall || trap_pending_stall;
+    stall_id_out  = mem_stall || hazard_stall || trap_pending_stall;
     stall_ex_out  = mem_stall;
     stall_mem_out = mem_stall;
 
     // Flush only when trap committed
     flush_if_out = branch_ok_in || effective_jal || trap_in || effective_ret;
     flush_id_out = branch_ok_in || effective_jal || trap_in || effective_ret;
-    flush_ex_out = (hazard_stall && !mem_stall) || trap_in;
+    flush_ex_out = ((hazard_stall || trap_pending_stall) && !mem_stall) || trap_in;
 
     jump_ok_out     = branch_ok_in || effective_jal;
     jump_target_out = (branch_ok_in) ? branch_target_in : jal_target_in;

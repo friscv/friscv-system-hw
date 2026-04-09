@@ -7,6 +7,7 @@ SIM_TIMEOUT_SECONDS = 120
 
 GREEN = "\033[32m"
 RED   = "\033[31m"
+BOLD  = "\033[1m"
 RESET = "\033[0m"
 
 REPO = Path(__file__).resolve().parent.parent
@@ -110,15 +111,18 @@ with ThreadPoolExecutor(max_workers=workers) as executor:
 for bin_file in sorted(bin_files, key=lambda f: f.stem):
     name = bin_file.stem
     passed, fail_msg, stderr = results[name]
-    print(name)
     if passed is True:
-        print(f"{GREEN}PASS{RESET}")
+        print(f"{GREEN}{BOLD}PASS{RESET} {name}")
         passed_count += 1
     else:
-        print(f"{RED}FAIL{RESET} ({fail_msg or 'no [RESULT] line'})")
+        print(f"{RED}{BOLD}FAIL{RESET} {name} ({fail_msg or 'no [RESULT] line'})")
         failed_count += 1
     if stderr:
         print(stderr)
-    print()
 
-print(f"{GREEN}{passed_count}/{test_count} passed{RESET}  {RED}{failed_count}/{test_count} failed{RESET}")
+print()
+if passed_count == test_count:
+    print(f"{GREEN}{BOLD}All tests passed.{RESET}")
+else:
+    print(f"{GREEN}{BOLD}{passed_count}/{test_count} passed{RESET}  {RED}{BOLD}{failed_count}/{test_count} failed{RESET}")
+print()

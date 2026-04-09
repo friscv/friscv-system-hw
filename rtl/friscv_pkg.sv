@@ -46,9 +46,6 @@ package friscv_pkg;
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
 
-    // Pipeline serialization
-    localparam logic ENABLE_SERIALIZE_ALL_CSR_WRITES = 0;
-
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
     localparam logic ENABLE_REMAP_CLINT = 1;
@@ -197,6 +194,16 @@ package friscv_pkg;
         asid_t      asid;
         ppn_t       ppn;
     } satp_t;
+
+    typedef struct packed {
+        addr_t  addr;
+        satp_t  satp;
+        mode_e  mode;
+        logic   sum;
+        logic   mxr;
+        logic   is_inst;
+        logic   is_write;
+    } mmu_req_ctx_t;
 
     typedef struct packed {
         logic d;  // Dirty

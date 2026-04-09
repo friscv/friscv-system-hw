@@ -78,6 +78,8 @@ module friscv_id_stage #(
     input  logic      ex_csr_en_in,
     input  logic      mem_csr_en_in,
     input  logic      wb_csr_en_in,
+    input  logic      ex_mem_inflight_in,
+    input  logic      mem_mem_inflight_in,
 
     // Outputs and inputs for handling interrupts
     output addr_t     tvec_out,          // Resolved mtvec or stvec
@@ -265,10 +267,12 @@ assign exception_active = mem_trap_in || (exception_safe && (ecall_active || ebr
 // is clear. trap_pending_out lets pipeline_control stall so the instruction is not lost
 // from ir_buff while waiting.
 logic trap_raw, trap_csr_hazard;
+logic trap_pipe_hazard;
 assign trap_raw         = interrupt_active || exception_active;
 assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in);
-assign trap_out         = trap_raw && !trap_csr_hazard;
-assign trap_pending_out = trap_raw;
+assign trap_pipe_hazard = trap_raw && (ex_mem_inflight_in || mem_mem_inflight_in);
+assign trap_out         = trap_raw && !trap_csr_hazard && !trap_pipe_hazard;
+assign trap_pending_out = trap_raw && (trap_csr_hazard || trap_pipe_hazard);
 
 logic mret_active, sret_active;
 assign mret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b001100000010);
