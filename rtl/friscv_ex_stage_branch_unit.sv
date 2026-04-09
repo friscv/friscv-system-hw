@@ -38,13 +38,14 @@ always_comb begin
     case (branch_jal_sel_in)
         BRANCH_INSTR: begin
             case (branch_cond_in)     
-                COND_EQ:  branch_ok_out = z;
-                COND_NE:  branch_ok_out = !z;
-                COND_LT:  branch_ok_out = n ^ v;
-                COND_GE:  branch_ok_out = !(n ^ v);
-                COND_LTU: branch_ok_out = !c;
-                COND_GEU: branch_ok_out = c;
-                default:  branch_ok_out = 1'b0;
+                COND_EQ:     branch_ok_out = z;
+                COND_NE:     branch_ok_out = !z;
+                COND_ALWAYS: branch_ok_out = 1'b1;
+                COND_LT:     branch_ok_out = n ^ v;
+                COND_GE:     branch_ok_out = !(n ^ v);
+                COND_LTU:    branch_ok_out = !c;
+                COND_GEU:    branch_ok_out = c;
+                default:     branch_ok_out = 1'b0;
             endcase
         end
         JAL_INSTR: begin

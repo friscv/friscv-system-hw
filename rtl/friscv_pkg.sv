@@ -31,7 +31,8 @@ package friscv_pkg;
 
     // --- Configurable parameter definitions start ---
 
-    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
+    // Set this to 0 for debugging
+    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 0;
 
     // Parametrized feature generation
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
@@ -44,6 +45,9 @@ package friscv_pkg;
     // Extension selection
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
+
+    // Pipeline serialization
+    localparam logic ENABLE_SERIALIZE_ALL_CSR_WRITES = 0;
 
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
@@ -189,6 +193,7 @@ package friscv_pkg;
 
     typedef struct packed {
         satp_mode_t mode;
+        logic [1:0] reserved;
         asid_t      asid;
         ppn_t       ppn;
     } satp_t;
@@ -272,16 +277,18 @@ package friscv_pkg;
     } jump_sel_e;
 
     typedef enum logic [2:0] {
-        COND_EQ  = 3'b000, 
-        COND_NE  = 3'b001, 
-        COND_LT  = 3'b100, 
-        COND_GE  = 3'b101, 
-        COND_LTU = 3'b110, 
-        COND_GEU = 3'b111
+        COND_EQ     = 3'b000,
+        COND_NE     = 3'b001,
+        COND_ALWAYS = 3'b010,
+        COND_LT     = 3'b100,
+        COND_GE     = 3'b101,
+        COND_LTU    = 3'b110,
+        COND_GEU    = 3'b111
     } branch_cond_e;
 
     typedef enum logic [1:0] {
         RS1     = 2'b00,
+        ZERO_A  = 2'b01,
         PC      = 2'b10,
         RS1_SEL = 2'b11
     } a_bus_sel_e;

@@ -66,7 +66,19 @@ module friscv_pipeline_control (
 );
 
 logic reg_hazard, csr_hazard, ret_csr_hazard;
+logic serializing_csr_hazard;
 logic mem_stall, hazard_stall;
+
+function automatic logic is_serializing_csr(csr_addr_e csr_sel);
+begin
+    case (csr_sel)
+        // satp changes the address translation context globally, so younger
+        // instructions must wait for the committed update.
+        CSR_SATP: is_serializing_csr = 1'b1;
+        default:  is_serializing_csr = 1'b0;
+    endcase
+end
+endfunction
 
 // Early JAL/JALR must be suppressed when
 //  1) EX cannot capture the decoded instruction (mem_stall) or
@@ -84,10 +96,17 @@ always_comb begin
     // mret implicitly reads mepc; stall if a csrw is still in EX, MEM, or WB
     ret_csr_hazard = ret_in && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in);
 
+    // Either serialize all CSR writes, or only the narrow always-serializing
+    // subset. Trap-control CSRs are still ordered by the trap/return hazards.
+    serializing_csr_hazard = (ex_csr_en_in  && (ENABLE_SERIALIZE_ALL_CSR_WRITES || is_serializing_csr(ex_csr_sel_in)))  ||
+                             (mem_csr_en_in && (ENABLE_SERIALIZE_ALL_CSR_WRITES || is_serializing_csr(mem_csr_sel_in))) ||
+                             (wb_csr_en_in  && (ENABLE_SERIALIZE_ALL_CSR_WRITES || is_serializing_csr(wb_csr_sel_in)));
+
     // Stall while trap is pending
     csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in))  ||
                  (id_csr_en_in && mem_csr_en_in && (id_csr_sel_in == mem_csr_sel_in)) ||
                  (id_csr_en_in && wb_csr_en_in  && (id_csr_sel_in == wb_csr_sel_in))  ||
+                 serializing_csr_hazard ||
                  ret_csr_hazard ||
                  (trap_pending_in && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in));
 

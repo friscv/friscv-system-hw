@@ -468,7 +468,7 @@ always_ff @(posedge clk_in) begin
                 end
 
                 // Supervisor Protection and Translation
-                CSR_SATP: csr.satp <= satp_t'(csr_data_in[29:0]);
+                CSR_SATP: csr.satp <= csr_data_in;
 
                 // Machine Trap Setup
                 CSR_MSTATUS: begin
@@ -586,7 +586,7 @@ always_comb begin
         CSR_SIP:           csr_out = {22'b0, csr.seip, 3'b0, csr.stip, 3'b0, csr.ssip, 1'b0};
 
         // Supervisor Protection and Translation
-        CSR_SATP:          csr_out = {2'b0, csr.satp};
+        CSR_SATP:          csr_out = csr.satp;
 
         default: begin
             csr_out             = 32'h0;
@@ -920,10 +920,10 @@ always_comb begin
                         else if (r_current_mode == S_MODE && csr.mstatus.tvm) illegal_inst = 1'b1;
                         else begin
                             instr_ex_out.sfence_vma = 1'b1;
-                            // Refetch from here, same as FENCE.I
+                            // Flush pipeline and jump to PC+4
                             instr_ex_out.branch_jal_sel = BRANCH_INSTR;
-                            instr_ex_out.branch_cond = COND_EQ;
-                            instr_ex_out.a_bus_sel = RS1;
+                            instr_ex_out.branch_cond = COND_ALWAYS;
+                            instr_ex_out.a_bus_sel = ZERO_A;
                             instr_ex_out.b_bus_sel = IMM;
                             imm_sel = NEXT_PC;
                             instr_ex_out.alu_op = ADD_OP;

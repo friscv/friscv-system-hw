@@ -155,9 +155,9 @@ data_t alu_input_b;
 always_comb begin
     case (instr_buff.a_bus_sel)
         RS1:     a_bus = rs1_buff;
+        ZERO_A:  a_bus = 32'b0;
         PC:      a_bus = pc_buff;
         RS1_SEL: a_bus = {27'b0, rs1_sel_buff};
-        default: a_bus = 32'b0;
     endcase
 
     case (instr_buff.b_bus_sel)
