@@ -26,57 +26,55 @@ module friscv_cpu_subsystem_core (
     friscv_mem_if.master mem_if
 );
 
-mem_width_e  w_size;
-logic [31:0] w_phy_addr;
-logic [31:0] w_dram_addr;
-logic [31:0] w_wdata;
-logic [31:0] w_rdata;
-rw_cmd_e     w_rw;
-logic        w_wait;
-logic        w_burst_en;
-logic        w_beat_valid;
+// Metastability protection for reset
+logic w_rstn_sync;
+sync #(.WIDTH(1)) rstn_sync (
+    .i_clk    ( i_clk       ),
+    .i_unsync ( i_rstn      ),
+    .o_synced ( w_rstn_sync )
+);
+
+mem_width_e w_size;
+addr_t      w_phy_addr;
+addr_t      w_dram_addr;
+data_t      w_wdata;
+data_t      w_rdata;
+rw_cmd_e    w_rw;
+logic       w_wait;
+logic       w_burst_en;
+logic       w_beat_valid;
 
 // The error line is part of the protocol, but it is intentionally ignored for now
 logic w_unused_mem_err;
 assign w_unused_mem_err = mem_if.err;
 
-// Address translation
-always_comb begin
-    if (ENABLE_REMAP_CLINT && w_phy_addr[31:16] == CLINT_PHY_BASE[31:16] && w_phy_addr[15:0] <= 16'hBFFF) begin
-        w_dram_addr = {CLINT_REAL_BASE[31:16], w_phy_addr[15:0]};
-    end else if (DRAM_BASE == 32'h8000_0000) begin
-        w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
-    end else if (DRAM_BASE == 32'h0) begin
-        w_dram_addr = w_phy_addr + DRAM_START_AT;
-    end else begin
-        w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
-    end
-end
-
-// Metastability protection for reset
-logic [1:0]  r_rstn_sync = 2'b00;
-
-always_ff @(posedge i_clk) begin
-    r_rstn_sync <= {r_rstn_sync[0], i_rstn};
+// Address space remapping
+if (ENABLE_REMAP) begin
+    friscv_remap remapper (
+        .i_addr ( w_phy_addr  ),
+        .o_addr ( w_dram_addr )
+    );
+end else begin
+    assign w_dram_addr = w_phy_addr;
 end
 
 friscv_core_complex #(
     .HART_ID(0)
 ) cc_0 (
-    .i_clk        ( i_clk          ),
-    .i_rstn       ( r_rstn_sync[1] ),
-    .o_end        ( o_end          ),
-    .i_msip       ( i_msip         ),
-    .i_mtip       ( i_mtip         ),
-    .i_meip       ( i_meip         ),
-    .o_mem_size   ( w_size         ),
-    .o_mem_addr   ( w_phy_addr     ),
-    .o_mem_wdata  ( w_wdata        ),
-    .i_mem_rdata  ( w_rdata        ),
-    .o_mem_rw     ( w_rw           ),
-    .i_mem_wait   ( w_wait         ),
-    .o_burst_en   ( w_burst_en     ),
-    .i_beat_valid ( w_beat_valid   )
+    .i_clk        ( i_clk        ),
+    .i_rstn       ( w_rstn_sync  ),
+    .o_end        ( o_end        ),
+    .i_msip       ( i_msip       ),
+    .i_mtip       ( i_mtip       ),
+    .i_meip       ( i_meip       ),
+    .o_mem_size   ( w_size       ),
+    .o_mem_addr   ( w_phy_addr   ),
+    .o_mem_wdata  ( w_wdata      ),
+    .i_mem_rdata  ( w_rdata      ),
+    .o_mem_rw     ( w_rw         ),
+    .i_mem_wait   ( w_wait       ),
+    .o_burst_en   ( w_burst_en   ),
+    .i_beat_valid ( w_beat_valid )
 );
 
 // External memory reset sequencer
@@ -84,8 +82,8 @@ friscv_core_complex #(
 logic r_mem_reset_req;
 logic r_mem_in_reset = 1'b1;  // Start in reset
 
-always_ff @(posedge i_clk or negedge r_rstn_sync[1]) begin
-    if (!r_rstn_sync[1]) begin
+always_ff @(posedge i_clk or negedge w_rstn_sync) begin
+    if (!w_rstn_sync) begin
         r_mem_reset_req <= 1'b1;  // Request reset when button pressed
     end else begin
         r_mem_reset_req <= 1'b0;  // Clear request when button released

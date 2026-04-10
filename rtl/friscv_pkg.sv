@@ -32,7 +32,7 @@ package friscv_pkg;
     // --- Configurable parameter definitions start ---
 
     // Set this to 0 for debugging
-    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 0;
+    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
 
     // Parametrized feature generation
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
@@ -45,6 +45,8 @@ package friscv_pkg;
     // Extension selection
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
+
+    localparam logic ENABLE_REMAP = 1;
 
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
