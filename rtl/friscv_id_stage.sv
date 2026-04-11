@@ -186,6 +186,10 @@ typedef struct packed {
     data_t mcause;
     inst_t mtval;
 
+    // Machine Environment Configuration
+    data_t menvcfg;
+    data_t menvcfgh;
+
     // Machine Memory Protection
     data_t pmpcfg0;
     addr_t pmpaddr0;
@@ -493,6 +497,8 @@ always_ff @(posedge clk_in) begin
                 CSR_MIE:        csr.mie        <= csr_data_in;
                 CSR_MTVEC:      csr.mtvec      <= csr_data_in;
                 CSR_MCOUNTEREN: csr.mcounteren <= csr_data_in;
+                CSR_MENVCFG:    csr.menvcfg    <= csr_data_in;
+                CSR_MENVCFGH:   csr.menvcfgh   <= csr_data_in;
                 CSR_MIP: begin  // S-mode soft interrupt bits writable through mip
                     csr.ssip <= csr_data_in[1];
                     csr.stip <= csr_data_in[5];
@@ -554,6 +560,8 @@ always_comb begin
         CSR_MIE:           csr_out = csr.mie;
         CSR_MTVEC:         csr_out = csr.mtvec;
         CSR_MCOUNTEREN:    csr_out = csr.mcounteren;
+        CSR_MENVCFG:       csr_out = csr.menvcfg;
+        CSR_MENVCFGH:      csr_out = csr.menvcfgh;
         CSR_MSTATUSH:      csr_out = 32'h0;
 
         // Machine Trap Handling
@@ -578,6 +586,14 @@ always_comb begin
 
         // Machine Counter Setup
         CSR_MCOUNTINHIBIT: csr_out = csr.mcountinhibit;
+
+        // User/Supervisor Counter/Timer shadows (read-only)
+        CSR_CYCLE:         csr_out = csr.mcycle[31:0];
+        CSR_INSTRET:       csr_out = csr.minstret[31:0];
+        CSR_CYCLEH:        csr_out = csr.mcycle[63:32];
+        CSR_INSTRETH:      csr_out = csr.minstret[63:32];
+        CSR_TIME:          csr_out = csr.mcycle[31:0];    // TODO: wire mtime from CLINT
+        CSR_TIMEH:         csr_out = csr.mcycle[63:32];   // TODO: wire mtime from CLINT
 
         // Supervisor Trap Setup
         // sstatus is mstatus with M-mode-only bits (MIE[3], MPIE[7], MPP[12:11], MPRV[17]) zeroed

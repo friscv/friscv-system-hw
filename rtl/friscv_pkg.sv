@@ -116,6 +116,8 @@ package friscv_pkg;
         CSR_MTVEC      = 12'h305,
         CSR_MCOUNTEREN = 12'h306,
         CSR_MSTATUSH   = 12'h310,
+        CSR_MENVCFG    = 12'h30A,
+        CSR_MENVCFGH   = 12'h31A,
 
         // Machine Trap Handling
         CSR_MSCRATCH = 12'h340,
@@ -138,7 +140,15 @@ package friscv_pkg;
         CSR_MINSTRETH = 12'hB82,
 
         // Machine Counter Setup
-        CSR_MCOUNTINHIBIT = 12'h320
+        CSR_MCOUNTINHIBIT = 12'h320,
+
+        // User/Supervisor Counter/Timers
+        CSR_CYCLE     = 12'hC00,
+        CSR_TIME      = 12'hC01,
+        CSR_INSTRET   = 12'hC02,
+        CSR_CYCLEH    = 12'hC80,
+        CSR_TIMEH     = 12'hC81,
+        CSR_INSTRETH  = 12'hC82
     } csr_addr_e;
 
     typedef enum logic [1:0] {
