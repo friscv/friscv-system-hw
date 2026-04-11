@@ -548,7 +548,7 @@ always_comb begin
         // Machine Trap Setup
         CSR_MSTATUS:       csr_out = csr.mstatus;
         //                                mx----zyxwvutsrqponmlkjihgfedcb a
-        CSR_MISA:          csr_out = {31'b0100000000000100000000010000000,{ENABLE_EXTENSION_A}};
+        CSR_MISA:          csr_out = {31'b0100000000010100000000010000000,{ENABLE_EXTENSION_A}};
         CSR_MEDELEG:       csr_out = csr.medeleg;
         CSR_MIDELEG:       csr_out = csr.mideleg;
         CSR_MIE:           csr_out = csr.mie;

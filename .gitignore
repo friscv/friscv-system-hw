@@ -27,6 +27,7 @@ bd/*/*
 *.mcs
 *.xsa
 *.elf
+*.bak
 
 # Do not ignore generated overlays
 !overlay/*.bit
