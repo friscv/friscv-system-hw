@@ -36,9 +36,17 @@ set file_size [file size $bin_file]
 # Round up to nearest 4KB boundary for zeroing
 set zero_size [expr {(($file_size + 4095) / 4096) * 4096}]
 
-for {set addr $ddr_base} {$addr < ($ddr_base + $zero_size)} {incr addr 4} {
-    mwr $addr 0x0
+puts "Zeroing memory..."
+
+set zero_words [expr {$zero_size / 4}]
+set burst_words 1024
+for {set word_idx 0} {$word_idx < $zero_words} {incr word_idx $burst_words} {
+    set words_this_burst [expr {($word_idx + $burst_words <= $zero_words) ? $burst_words : ($zero_words - $word_idx)}]
+    set burst_addr [expr {$ddr_base + ($word_idx * 4)}]
+    mwr $burst_addr 0x0 $words_this_burst
 }
+
+puts "Loading program..."
 
 # Load program
 dow -data $bin_file $ddr_base

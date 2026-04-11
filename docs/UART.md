@@ -18,7 +18,7 @@ Pin No. | Board Port Label | ZYNQ Port Label | Function
 
 **Address Map:**
 
-The base address of hardware UART is `0x4060_0000`. Each NS16550 register occupies one 32-bit word (only the low 8 bits are used). The address space spans `0x4060_0000`–`0x4060_FFFF`.
+The base address of hardware UART is `0x1000_0000`. Each NS16550 register occupies one 32-bit word (only the low 8 bits are used). The address space spans `0x1000_0000`–`0x1000_FFFF`.
 
 Offset  | Register              | Description
 ------- | --------------------- | -----------
@@ -213,7 +213,7 @@ The constant values are defined as in [Pinouts and Addresses](#pinouts-and-addre
 
 // AXI UART 16550 register definitions
 // Each register occupies one 32-bit word, only the low 8 bits are used.
-#define UART_BASE  0x40600000
+#define UART_BASE  0x10000000
 
 #define UART_RBR  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Receive Buffer (read)
 #define UART_THR  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Transmit Holding (write)

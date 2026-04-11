@@ -13,7 +13,7 @@ parameter MEM_SIZE     = 32 * 1024;     // 32 KiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
 parameter DRAM_BASE    = 32'h00100000;  // Memory base address (Memory view)
 parameter GPIO_ADDR    = 32'h40000000;  // GPIO address
-parameter UART_ADDR    = 32'h40600000;  // UART address
+parameter UART_ADDR    = 32'h40600000;  // UART address (post-remap: 0x10000000 -> 0x40600000)
 parameter TIMER_ADDR   = 32'h40100000;  // Timer base address
 parameter RESULT_ADDR  = 32'h80000500;  // Result address (CPU view)
 

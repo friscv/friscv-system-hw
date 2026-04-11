@@ -10,7 +10,7 @@ parameter PROG_FILE = "../../../../../test/prog.bin";  // Program binary file
 parameter MEM_SIZE    = 32 * 1024;        // 32 KiB
 parameter MEM_BASE    = 32'h80000000;     // Memory base address
 parameter GPIO_ADDR   = 32'h40000000;     // GPIO address
-parameter UART_ADDR   = 32'h40600000;     // UART address
+parameter UART_ADDR   = 32'h10000000;     // UART address
 parameter TIMER_ADDR  = 32'h40100000;     // Timer base address
 parameter RESULT_ADDR = 32'h80000500;     // Result address (MEM_BASE + 1.25K)
 

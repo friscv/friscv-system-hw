@@ -23,6 +23,8 @@ module friscv_remap (
 always_comb begin
     if (ENABLE_REMAP_CLINT && i_addr[31:16] == CLINT_PHY_BASE[31:16] && i_addr[15:0] <= 16'hBFFF)
         o_addr = {CLINT_REAL_BASE[31:16], i_addr[15:0]};
+    else if (ENABLE_REMAP_UART && i_addr[31:16] == UART_PHY_BASE[31:16] && i_addr[15:0] <= 16'hBFFF)
+        o_addr = {UART_REAL_BASE[31:16], i_addr[15:0]};
     else if (DRAM_BASE == 32'h8000_0000)
         o_addr = i_addr[31] ? {1'b0, i_addr[30:0]} + DRAM_START_AT : i_addr;
     else if (DRAM_BASE == 32'h0)

@@ -14,7 +14,7 @@
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
-        timebase-frequency = <90909088>;
+        timebase-frequency = <38461540>;
 
         CPU0: cpu@0 {
             device_type = "cpu";
@@ -22,7 +22,7 @@
             reg = <0>;
             status = "okay";
             riscv,isa = "rv32ima_zifencei_zicsr";
-            clock-frequency = <90909088>;
+            clock-frequency = <38461540>;
 
             cpu0_intc: interrupt-controller {
                 #address-cells = <0>;
@@ -44,9 +44,9 @@
         interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>;
     };
 
-    uart0: serial@40600000 {
+    uart0: serial@10000000 {
         compatible = "ns16550a";
-        reg = <0x40600000 0x100>;
+        reg = <0x10000000 0x100>;
         reg-shift = <2>;
         reg-io-width = <4>;
         clock-frequency = <90909088>;

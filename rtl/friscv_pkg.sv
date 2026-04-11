@@ -49,8 +49,10 @@ package friscv_pkg;
     localparam logic ENABLE_REMAP = 1;
 
     // CLINT address workaround
-    // Remaps standard address to free address in AXI - 0x02000000 -> 0x40100000
+    // Remaps standard address to free address in AXI - 0x0200_0000 -> 0x4010_0000
     localparam logic ENABLE_REMAP_CLINT = 1;
+    // Remaps 0x1000_0000 -> 0x4060_0000
+    localparam logic ENABLE_REMAP_UART = 1;
 
     // --- Configurable parameter definitions end ---
 
@@ -75,6 +77,8 @@ package friscv_pkg;
     localparam addr_t DRAM_START_AT   = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
     localparam addr_t CLINT_REAL_BASE = 32'h40100000;  // Must match AXI address map
     localparam addr_t CLINT_PHY_BASE  = 32'h02000000;  // RISC-V convention
+    localparam addr_t UART_REAL_BASE  = 32'h40600000;
+    localparam addr_t UART_PHY_BASE   = 32'h10000000;
     localparam addr_t RESET_VEC       = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;  // Reset to ZSBL if enabled, else jump to RAM
 
     typedef enum logic [11:0] {
