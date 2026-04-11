@@ -89,9 +89,32 @@ data_t      w_amo_store_data;
 data_t      w_amo_load_data;
 logic       w_amo_core_wait;
 logic       w_amo_active;
+logic       w_amo_start;
+logic       r_amo_addr_valid;
+addr_t      r_amo_addr;
+mem_width_e r_amo_size;
 
-assign o_mem_size  = w_l2_size;
-assign o_mem_addr  = w_l2_addr;
+assign w_amo_start = (w_l2_amo_op != AMO_NONE) && !r_amo_addr_valid;
+
+always_ff @(posedge i_clk) begin
+    if (!i_rstn) begin
+        r_amo_addr_valid <= 1'b0;
+        r_amo_addr       <= '0;
+        r_amo_size       <= WIDTH_I32;
+    end else begin
+        // Freeze AMO target address and size for the whole LOAD-STORE sequence
+        if (w_amo_start) begin
+            r_amo_addr_valid <= 1'b1;
+            r_amo_addr       <= w_l2_addr;
+            r_amo_size       <= w_l2_size;
+        end else if (r_amo_addr_valid && w_amo_rw == RW_IDLE) begin
+            r_amo_addr_valid <= 1'b0;
+        end
+    end
+end
+
+assign o_mem_size  = w_amo_active ? (r_amo_addr_valid ? r_amo_size : w_l2_size) : w_l2_size;
+assign o_mem_addr  = w_amo_active ? (r_amo_addr_valid ? r_amo_addr : w_l2_addr) : w_l2_addr;
 assign o_mem_wdata = w_amo_active ? w_amo_store_data : w_l2_wdata;
 
 // Page fault signals
@@ -263,7 +286,8 @@ if (ENABLE_EXTENSION_A) begin
         .i_mem_load_data  ( i_mem_rdata      ),
         .o_mem_store_data ( w_amo_store_data )
     );
-    assign w_amo_active = (w_l2_amo_op != AMO_NONE);
+    // Keep AMO path selected across both LOAD and STORE phases
+    assign w_amo_active = (w_l2_amo_op != AMO_NONE) || (w_amo_rw != RW_IDLE) || r_amo_addr_valid;
 end else begin
     assign w_amo_active     = 1'b0;
     assign w_amo_rw         = RW_IDLE;

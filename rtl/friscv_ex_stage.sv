@@ -75,13 +75,16 @@ reg_addr_t rd_sel_buff;
 reg_addr_t rs1_sel_buff;
 reg_addr_t rs2_sel_buff;
 instr_ex_t instr_buff;
+logic branch_ok_raw;
+logic branch_ok_prev;
+logic sfence_vma_prev;
 
 friscv_ex_stage_branch_unit branch_unit (
     .branch_jal_sel_in ( instr_buff.branch_jal_sel ),
     .branch_cond_in    ( instr_buff.branch_cond    ),
     .src1_in           ( rs1_buff                  ),
     .src2_in           ( rs2_buff                  ),
-    .branch_ok_out     ( branch_ok_out             )
+    .branch_ok_out     ( branch_ok_raw             )
 );
 
 // ============================================================
@@ -100,6 +103,8 @@ always_ff @(posedge clk_in) begin
         rs1_sel_buff <= 5'b0;
         rs2_sel_buff <= 5'b0;
         instr_buff   <= NOP_CTRL;
+        branch_ok_prev <= 1'b0;
+        sfence_vma_prev <= 1'b0;
     end else if (!stage_stall_in) begin
         if (stage_flush_in || branch_ok_out) begin
             pc_buff     <= 32'h0;
@@ -117,6 +122,13 @@ always_ff @(posedge clk_in) begin
             rs2_sel_buff   <= rs2_sel_in;
             instr_buff     <= instr_ex_in;
         end
+
+        // Pulse branch redirect and sfence.vma side effect only once per instruction
+        branch_ok_prev <= branch_ok_raw;
+        sfence_vma_prev <= instr_buff.sfence_vma;
+    end else begin
+        branch_ok_prev <= branch_ok_raw;
+        sfence_vma_prev <= instr_buff.sfence_vma;
     end
 end
 
@@ -137,7 +149,8 @@ assign csr_sel_out          = instr_buff.csr_addr;
 assign csr_readback_out     = csr_buff;
 assign csr_en_out           = instr_buff.csr_op;
 assign instr_valid_out      = instr_buff.instr_valid;
-assign flush_tlb_out        = instr_buff.sfence_vma;
+assign branch_ok_out        = branch_ok_raw && !branch_ok_prev;
+assign flush_tlb_out        = instr_buff.sfence_vma && !sfence_vma_prev;
 assign flush_vpn_out        = vpn_t'(rs1_buff[31:12]);
 assign flush_vpn_en_out     = (rs1_sel_buff != 5'b0);
 assign flush_asid_out       = asid_t'(rs2_buff[8:0]);

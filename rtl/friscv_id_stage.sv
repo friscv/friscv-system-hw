@@ -157,6 +157,7 @@ typedef struct packed {
     logic seip;
 
     // Supervisor Trap Setup
+    data_t scounteren;
     addr_t stvec;
 
     // Supervisor Trap Handling
@@ -453,6 +454,7 @@ always_ff @(posedge clk_in) begin
                     csr.mstatus.sum  <= csr_data_in[18];
                     csr.mstatus.mxr  <= csr_data_in[19];
                 end
+                CSR_SCOUNTEREN: csr.scounteren <= csr_data_in;
                 CSR_SIE: begin  // S-mode visible bits of mie only
                     csr.mie[1] <= csr_data_in[1];
                     csr.mie[5] <= csr_data_in[5];
@@ -580,6 +582,7 @@ always_comb begin
         // Supervisor Trap Setup
         // sstatus is mstatus with M-mode-only bits (MIE[3], MPIE[7], MPP[12:11], MPRV[17]) zeroed
         CSR_SSTATUS:       csr_out = data_t'(csr.mstatus) & ~32'h0002_1888;
+        CSR_SCOUNTEREN:    csr_out = csr.scounteren;
         CSR_SIE:           csr_out = csr.mie & 32'h0000_0222;  // S-mode bits: SEIE[9], STIE[5], SSIE[1]
         CSR_STVEC:         csr_out = csr.stvec;
         CSR_SSCRATCH:      csr_out = csr.sscratch;

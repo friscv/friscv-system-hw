@@ -82,6 +82,7 @@ package friscv_pkg;
 
         // Supervisor Trap Setup
         CSR_SSTATUS    = 12'h100,
+        CSR_SCOUNTEREN = 12'h106,
         CSR_SIE        = 12'h104,
         CSR_STVEC      = 12'h105,
 

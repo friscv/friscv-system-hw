@@ -43,6 +43,8 @@ typedef enum logic [1:0] {
 state_e r_state, w_next_state;
 data_t  r_load_data;
 data_t  w_load_data;  // r_load_data, or live rdata on the cycle the load completes
+amo_op_e r_amo_op;
+data_t   r_rs2_val;
 
 // Use live rdata on load-completion cycle (r_load_data not yet updated),
 // use the registered capture for all S_STORE cycles
@@ -55,8 +57,20 @@ always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_state     <= S_IDLE;
         r_load_data <= 32'b0;
+        r_amo_op    <= AMO_NONE;
+        r_rs2_val   <= 32'b0;
     end else begin
         r_state <= w_next_state;
+
+        // Freeze AMO op/operand for the whole LOAD-STORE sequence.
+        if (r_state == S_IDLE && i_amo_op != AMO_NONE) begin
+            r_amo_op  <= i_amo_op;
+            r_rs2_val <= i_rs2_val;
+        end
+
+        if (w_next_state == S_IDLE)
+            r_amo_op <= AMO_NONE;
+
         // Capture load data when load completes
         if (r_state == S_LOAD && !i_mem_wait) begin
             r_load_data <= i_mem_load_data;
@@ -66,17 +80,17 @@ end
 
 // Calculate op result using w_load_data, which is stable throughout S_STORE
 always_comb begin
-    case (i_amo_op)
+    case (r_amo_op)
         AMO_NONE: o_mem_store_data = w_load_data;
-        AMO_SWAP: o_mem_store_data = i_rs2_val;
-        AMO_ADD:  o_mem_store_data = w_load_data + i_rs2_val;
-        AMO_XOR:  o_mem_store_data = w_load_data ^ i_rs2_val;
-        AMO_AND:  o_mem_store_data = w_load_data & i_rs2_val;
-        AMO_OR:   o_mem_store_data = w_load_data | i_rs2_val;
-        AMO_MIN:  o_mem_store_data = ($signed(w_load_data) < $signed(i_rs2_val)) ? w_load_data : i_rs2_val;
-        AMO_MAX:  o_mem_store_data = ($signed(w_load_data) > $signed(i_rs2_val)) ? w_load_data : i_rs2_val;
-        AMO_MINU: o_mem_store_data = (w_load_data < i_rs2_val) ? w_load_data : i_rs2_val;
-        AMO_MAXU: o_mem_store_data = (w_load_data > i_rs2_val) ? w_load_data : i_rs2_val;
+        AMO_SWAP: o_mem_store_data = r_rs2_val;
+        AMO_ADD:  o_mem_store_data = w_load_data + r_rs2_val;
+        AMO_XOR:  o_mem_store_data = w_load_data ^ r_rs2_val;
+        AMO_AND:  o_mem_store_data = w_load_data & r_rs2_val;
+        AMO_OR:   o_mem_store_data = w_load_data | r_rs2_val;
+        AMO_MIN:  o_mem_store_data = ($signed(w_load_data) < $signed(r_rs2_val)) ? w_load_data : r_rs2_val;
+        AMO_MAX:  o_mem_store_data = ($signed(w_load_data) > $signed(r_rs2_val)) ? w_load_data : r_rs2_val;
+        AMO_MINU: o_mem_store_data = (w_load_data < r_rs2_val) ? w_load_data : r_rs2_val;
+        AMO_MAXU: o_mem_store_data = (w_load_data > r_rs2_val) ? w_load_data : r_rs2_val;
         default:  o_mem_store_data = w_load_data;
     endcase
 end
