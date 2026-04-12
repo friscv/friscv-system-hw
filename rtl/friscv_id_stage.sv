@@ -28,6 +28,9 @@ module friscv_id_stage #(
     input  logic      mtip_in,
     input  logic      meip_in,
 
+    // CLINT time
+    input  mtime_t    mtime_in,
+
     // Instruction fetch page fault
     input  logic      inst_fault_in,
     input  addr_t     fault_addr_in,
@@ -166,6 +169,10 @@ typedef struct packed {
     data_t scause;
     inst_t stval;
 
+    // Supervisor Timer (Sstc)
+    data_t stimecmp;
+    data_t stimecmph;
+
     // Supervisor Protection and Translation
     satp_t satp;
 
@@ -249,6 +256,11 @@ assign exception_safe = !branch_ok_in && (|pc_in_buff);
 
 logic m_interrupt_active, s_interrupt_active;
 
+logic stip_hw;
+logic stip_eff;
+assign stip_hw  = csr.menvcfgh[31] && (mtime_in >= {csr.stimecmph, csr.stimecmp});
+assign stip_eff = csr.stip || stip_hw;
+
 assign m_interrupt_active = interrupt_safe &&
                             (csr.mstatus.mie || r_current_mode != M_MODE) &&
                             (msip_in && csr.mie[3] ||
@@ -258,7 +270,7 @@ assign m_interrupt_active = interrupt_safe &&
 assign s_interrupt_active = interrupt_safe &&
                             (csr.mstatus.sie || r_current_mode == U_MODE) &&
                             ((csr.ssip && csr.mie[1] && csr.mideleg[1]) ||
-                             (csr.stip && csr.mie[5] && csr.mideleg[5]) ||
+                             (stip_eff && csr.mie[5] && csr.mideleg[5]) ||
                              (csr.seip && csr.mie[9] && csr.mideleg[9]));
 
 logic interrupt_active, exception_active;
@@ -329,7 +341,7 @@ always_comb begin
         current_cause = 32'd3;
     else if (csr.seip && csr.mie[9] && csr.mideleg[9])
         current_cause = 32'd9;
-    else if (csr.stip && csr.mie[5] && csr.mideleg[5])
+    else if (stip_eff && csr.mie[5] && csr.mideleg[5])
         current_cause = 32'd5;
     else if (csr.ssip && csr.mie[1] && csr.mideleg[1])
         current_cause = 32'd1;
@@ -395,7 +407,7 @@ always_ff @(posedge clk_in) begin
                 csr.stval           <= trap_tval;
 
                 if      (csr.seip && csr.mie[9] && csr.mideleg[9]) csr.scause <= {1'b1, 31'd9};
-                else if (csr.stip && csr.mie[5] && csr.mideleg[5]) csr.scause <= {1'b1, 31'd5};
+                else if (stip_eff && csr.mie[5] && csr.mideleg[5]) csr.scause <= {1'b1, 31'd5};
                 else if (csr.ssip && csr.mie[1] && csr.mideleg[1]) csr.scause <= {1'b1, 31'd1};
                 else if (inst_fault_in && !branch_ok_in)           csr.scause <= 32'd12;
                 else if (mem_trap_in && !mem_trap_is_store_in)     csr.scause <= 32'd13;
@@ -477,6 +489,10 @@ always_ff @(posedge clk_in) begin
                     end
                 end
 
+                // Supervisor Timer (Sstc)
+                CSR_STIMECMP:  csr.stimecmp  <= csr_data_in;
+                CSR_STIMECMPH: csr.stimecmph <= csr_data_in;
+
                 // Supervisor Protection and Translation
                 CSR_SATP: csr.satp <= csr_data_in;
 
@@ -541,7 +557,7 @@ end
 // Determine whether the selected CSR is implemented
 logic csr_not_implemented;
 
-always_comb begin
+always_comb begin : csr_read
     csr_not_implemented = 1'b0;
     case (selected_csr)
         // Machine Information Registers
@@ -569,7 +585,7 @@ always_comb begin
         CSR_MEPC:          csr_out = csr.mepc;
         CSR_MCAUSE:        csr_out = csr.mcause;
         CSR_MTVAL:         csr_out = csr.mtval;
-        CSR_MIP:           csr_out = {20'b0, meip_in, 1'b0, csr.seip, 1'b0, mtip_in, 1'b0, csr.stip, 1'b0, msip_in, 1'b0, csr.ssip, 1'b0};
+        CSR_MIP:           csr_out = {20'b0, meip_in, 1'b0, csr.seip, 1'b0, mtip_in, 1'b0, stip_eff, 1'b0, msip_in, 1'b0, csr.ssip, 1'b0};
 
         // Machine Memory Protection
         CSR_PMPCFG0:       csr_out = csr.pmpcfg0;
@@ -592,8 +608,8 @@ always_comb begin
         CSR_INSTRET:       csr_out = csr.minstret[31:0];
         CSR_CYCLEH:        csr_out = csr.mcycle[63:32];
         CSR_INSTRETH:      csr_out = csr.minstret[63:32];
-        CSR_TIME:          csr_out = csr.mcycle[31:0];    // TODO: wire mtime from CLINT
-        CSR_TIMEH:         csr_out = csr.mcycle[63:32];   // TODO: wire mtime from CLINT
+        CSR_TIME:          csr_out = mtime_in[31:0];
+        CSR_TIMEH:         csr_out = mtime_in[63:32];
 
         // Supervisor Trap Setup
         // sstatus is mstatus with M-mode-only bits (MIE[3], MPIE[7], MPP[12:11], MPRV[17]) zeroed
@@ -606,7 +622,11 @@ always_comb begin
         CSR_SCAUSE:        csr_out = csr.scause;
         CSR_STVAL:         csr_out = csr.stval;
         // S-mode visible interrupt pending bits only
-        CSR_SIP:           csr_out = {22'b0, csr.seip, 3'b0, csr.stip, 3'b0, csr.ssip, 1'b0};
+        CSR_SIP:           csr_out = {22'b0, csr.seip, 3'b0, stip_eff, 3'b0, csr.ssip, 1'b0};
+
+        // Supervisor Timer (Sstc)
+        CSR_STIMECMP:      csr_out = csr.stimecmp;
+        CSR_STIMECMPH:     csr_out = csr.stimecmph;
 
         // Supervisor Protection and Translation
         CSR_SATP:          csr_out = csr.satp;
@@ -616,7 +636,7 @@ always_comb begin
             csr_not_implemented = 1'b1;
         end
     endcase
-end
+end : csr_read
 
 // ============================================================
 // Immediate generation

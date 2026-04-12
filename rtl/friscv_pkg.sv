@@ -47,6 +47,7 @@ package friscv_pkg;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
 
     localparam logic ENABLE_REMAP = 1;
+    localparam logic ENABLE_HW_HALT = 1;
 
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x0200_0000 -> 0x4010_0000
@@ -96,6 +97,10 @@ package friscv_pkg;
         CSR_SCAUSE     = 12'h142,
         CSR_STVAL      = 12'h143,
         CSR_SIP        = 12'h144,
+
+        // Supervisor Timer (Sstc)
+        CSR_STIMECMP   = 12'h14D,
+        CSR_STIMECMPH  = 12'h15D,
 
         // Supervisor Protection and Translation
         CSR_SATP       = 12'h180,
@@ -150,6 +155,8 @@ package friscv_pkg;
         CSR_TIMEH     = 12'hC81,
         CSR_INSTRETH  = 12'hC82
     } csr_addr_e;
+
+    typedef logic [63:0]              mtime_t;
 
     typedef enum logic [1:0] {
         U_MODE = 2'b00,

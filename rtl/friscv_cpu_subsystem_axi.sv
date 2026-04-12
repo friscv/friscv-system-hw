@@ -23,6 +23,8 @@ module friscv_cpu_subsystem_axi (
     input  logic        i_msip,
     input  logic        i_mtip,
     input  logic        i_meip,
+
+    input  logic [63:0] i_mtime,
  
     // AXI4 Master Write Address Channel
     output logic        m_axi_awvalid,
@@ -71,13 +73,14 @@ module friscv_cpu_subsystem_axi (
 friscv_mem_if mem_if ();
 
 friscv_cpu_subsystem_core core (
-    .i_clk   ( i_clk  ),
-    .i_rstn  ( i_rstn ),
-    .o_end   ( o_end  ),
-    .i_msip  ( i_msip ),
-    .i_mtip  ( i_mtip ),
-    .i_meip  ( i_meip ),
-    .mem_if  ( mem_if )
+    .i_clk   ( i_clk   ),
+    .i_rstn  ( i_rstn  ),
+    .o_end   ( o_end   ),
+    .i_msip  ( i_msip  ),
+    .i_mtip  ( i_mtip  ),
+    .i_meip  ( i_meip  ),
+    .i_mtime ( i_mtime ),
+    .mem_if  ( mem_if  )
 );
 
 friscv_axi4_full_adapter m_axi (

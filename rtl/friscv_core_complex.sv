@@ -24,6 +24,7 @@ module friscv_core_complex #(
     input  logic       i_msip,
     input  logic       i_mtip,
     input  logic       i_meip,
+    input  mtime_t     i_mtime,
 
     output mem_width_e o_mem_size,
     output addr_t      o_mem_addr,
@@ -212,7 +213,7 @@ logic r_end_signal;
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_end_signal <= 1'b0;
-    end else if (w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
+    end else if (ENABLE_HW_HALT && w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
         r_end_signal <= 1'b1;
     end
 end
@@ -234,6 +235,9 @@ friscv_core #(
     .i_msip           ( i_msip          ),
     .i_mtip           ( i_mtip          ),
     .i_meip           ( i_meip          ),
+
+    // CLINT time
+    .i_mtime          ( i_mtime         ),
 
     // Page fault signals
     .i_inst_fault     ( w_inst_fault    ),

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sun Apr 12 01:25:03 2026" VIVADOVERSION="2025.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sun Apr 12 20:28:43 2026" VIVADOVERSION="2025.2">
 
   <SYSTEMINFO ARCH="zynq" BOARD="tul.com.tw:pynq-z2:part0:1.0" DEVICE="7z020" NAME="design_1" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -1141,10 +1141,14 @@
             <CONNECTION INSTANCE="processing_system7_0" PORT="FCLK_CLK0"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="msip_out" SIGIS="undef"/>
+        <PORT DIR="O" NAME="msip_out" SIGIS="undef" SIGNAME="friscv_clint_msip_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="msip"/>
+          </CONNECTIONS>
+        </PORT>
         <PORT DIR="O" NAME="mtip_out" SIGIS="undef" SIGNAME="friscv_clint_mtip_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="i_mtip"/>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="mtip"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="rstn_in" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="proc_sys_reset_0_peripheral_aresetn">
@@ -1232,6 +1236,11 @@
             <CONNECTION INSTANCE="fv_interconnect" PORT="M04_AXI_wvalid"/>
           </CONNECTIONS>
         </PORT>
+        <PORT DIR="O" LEFT="63" NAME="time_out" RIGHT="0" SIGIS="undef" SIGNAME="friscv_clint_time_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="mtime"/>
+          </CONNECTIONS>
+        </PORT>
       </PORTS>
       <BUSINTERFACES>
         <BUSINTERFACE BUSNAME="fv_interconnect_M04_AXI" DATAWIDTH="32" NAME="s_axi" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
@@ -1307,21 +1316,6 @@
         <PORT DIR="O" NAME="done" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_done">
           <CONNECTIONS>
             <CONNECTION INSTANCE="External_Ports" PORT="done_out"/>
-          </CONNECTIONS>
-        </PORT>
-        <PORT DIR="I" NAME="i_meip" SIGIS="undef" SIGNAME="zero_dout">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="zero" PORT="dout"/>
-          </CONNECTIONS>
-        </PORT>
-        <PORT DIR="I" NAME="i_msip" SIGIS="undef" SIGNAME="zero_dout">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="zero" PORT="dout"/>
-          </CONNECTIONS>
-        </PORT>
-        <PORT DIR="I" NAME="i_mtip" SIGIS="undef" SIGNAME="friscv_clint_mtip_out">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_clint" PORT="mtip_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="m_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_araddr">
@@ -1487,6 +1481,26 @@
         <PORT DIR="O" NAME="m_axi_wvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wvalid">
           <CONNECTIONS>
             <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="meip" SIGIS="undef" SIGNAME="zero_dout">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="zero" PORT="dout"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="msip" SIGIS="undef" SIGNAME="friscv_clint_msip_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_clint" PORT="msip_out"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="63" NAME="mtime" RIGHT="0" SIGIS="undef" SIGNAME="friscv_clint_time_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_clint" PORT="time_out"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="mtip" SIGIS="undef" SIGNAME="friscv_clint_mtip_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_clint" PORT="mtip_out"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
@@ -4698,9 +4712,9 @@
             <CONNECTION INSTANCE="fv_interconnect" PORT="M03_ARESETN"/>
             <CONNECTION INSTANCE="gpio_aresetn" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M04_ARESETN"/>
-            <CONNECTION INSTANCE="friscv_clint" PORT="rstn_in"/>
             <CONNECTION INSTANCE="debounce_rstn" PORT="rst_n"/>
             <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="friscv_clint" PORT="rstn_in"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="0" NAME="peripheral_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
@@ -5762,10 +5776,10 @@
             <CONNECTION INSTANCE="processing_system7_0" PORT="M_AXI_GP0_ACLK"/>
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_ACLK"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M04_ACLK"/>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="aclk"/>
-            <CONNECTION INSTANCE="friscv_clint" PORT="clk_in"/>
             <CONNECTION INSTANCE="debounce_rstn" PORT="clk"/>
             <CONNECTION INSTANCE="fv_uart16550" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="aclk"/>
+            <CONNECTION INSTANCE="friscv_clint" PORT="clk_in"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="FCLK_RESET0_N" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="processing_system7_0_FCLK_RESET0_N">
@@ -6436,8 +6450,7 @@
       <PORTS>
         <PORT DIR="O" LEFT="0" NAME="dout" RIGHT="0" SIGIS="undef" SIGNAME="zero_dout">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="i_msip"/>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="i_meip"/>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="meip"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>

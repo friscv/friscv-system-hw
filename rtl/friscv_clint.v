@@ -28,6 +28,8 @@ module friscv_clint (
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 rstn_in RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
     input  wire        rstn_in,
+    
+    output wire [63:0] time_out,
 
     input  wire [31:0] s_axi_awaddr,
     input  wire        s_axi_awvalid,
@@ -62,6 +64,8 @@ reg [31:0] waddr = 32'b0;
 reg [31:0] wdata = 32'b0;
 reg awcomplete = 0;
 reg wcomplete  = 0;
+
+assign time_out = mtime;
 
 // Write channel
 always @(posedge clk_in) begin

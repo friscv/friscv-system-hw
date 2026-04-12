@@ -26,6 +26,9 @@ module friscv_core #(
     input  logic       i_mtip,
     input  logic       i_meip,
 
+    // CLINT time
+    input  mtime_t     i_mtime,
+
     // Page fault signals
     input  logic       i_inst_fault,
     input  logic       i_load_fault,
@@ -213,6 +216,9 @@ friscv_id_stage #(
     .msip_in          ( i_msip           ),
     .mtip_in          ( i_mtip           ),
     .meip_in          ( i_meip           ),
+
+    // CLINT time
+    .mtime_in         ( i_mtime          ),
 
     // Page fault signals, from MMU
     .inst_fault_in    ( i_inst_fault     ),
