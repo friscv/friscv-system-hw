@@ -299,7 +299,7 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.ENABLE_ADVANCED_OPTIONS {0} \
     CONFIG.NUM_MI {5} \
-    CONFIG.S00_HAS_DATA_FIFO {2} \
+    CONFIG.S00_HAS_DATA_FIFO {0} \
     CONFIG.STRATEGY {1} \
   ] $fv_interconnect
 
@@ -734,7 +734,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_SPI1_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_SPI_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_SPI_PERIPHERAL_VALID {0} \
-    CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
+    CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {32} \
     CONFIG.PCW_S_AXI_HP0_ID_WIDTH {6} \
     CONFIG.PCW_TPIU_PERIPHERAL_CLKSRC {External} \
     CONFIG.PCW_TRACE_INTERNAL_WIDTH {2} \
