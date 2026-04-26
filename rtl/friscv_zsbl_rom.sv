@@ -47,7 +47,7 @@ assign o_data = r_data;
 
 initial begin
     // Auto-generated program at RESET_VEC (0x1000)
-    mem[0] = 32'h0150_0513;  // addi	x10,x0,21
+    mem[0] = 32'h01e0_0513;  // addi	x10,x0,30
     mem[1] = 32'h0a80_00ef;  // jal	x1,10ac <uart_init>
     mem[2] = 32'h0000_0517;  // auipc	x10,0x0
     mem[3] = 32'h22c5_0513;  // addi	x10,x10,556 # 1234 <ready_msg>

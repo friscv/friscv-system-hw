@@ -14,7 +14,7 @@
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
-        timebase-frequency = <38461540>;
+        timebase-frequency = <55555557>;
 
         CPU0: cpu@0 {
             device_type = "cpu";
@@ -22,7 +22,7 @@
             reg = <0>;
             status = "okay";
             riscv,isa = "rv32ima_zifencei_zicsr";
-            clock-frequency = <38461540>;
+            clock-frequency = <55555557>;
 
             cpu0_intc: interrupt-controller {
                 #address-cells = <0>;
@@ -49,7 +49,7 @@
         reg = <0x10000000 0x100>;
         reg-shift = <2>;
         reg-io-width = <4>;
-        clock-frequency = <38461540>;
+        clock-frequency = <55555557>;
         current-speed = <115200>;
     };
 };

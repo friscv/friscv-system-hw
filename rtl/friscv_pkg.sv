@@ -34,8 +34,11 @@ package friscv_pkg;
     // Set this to 0 for debugging
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
 
-    // Parametrized feature generation
+    // Performance optimizations
+    // If enabled, execute JAL(R) in IF instead of EX
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
+    // If enabled, buffer outbound requests to improve timing
+    localparam logic ENABLE_L2_BUFFER = 1;
 
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;

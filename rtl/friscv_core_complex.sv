@@ -76,13 +76,24 @@ logic        w_flush_asid_en;
 // Level 2 bus and L1-L2 arbitration
 // ============================================================
 
+addr_t      w_l2_req_addr;
+mem_width_e w_l2_req_size;
+data_t      w_l2_req_wdata;
+rw_cmd_e    w_l2_req_rw;
+data_t      w_l2_req_rdata;
+logic       w_l2_req_wait;
+amo_op_e    w_l2_req_amo_op;
+
 addr_t      w_l2_addr;
 mem_width_e w_l2_size;
 data_t      w_l2_wdata;
 rw_cmd_e    w_l2_rw;
-data_t      w_l2_rdata;
-logic       w_l2_wait;
+data_t      w_l2_backend_rdata;
+logic       w_l2_backend_wait;
 amo_op_e    w_l2_amo_op;
+
+friscv_l2_if l2_upstream_if();
+friscv_l2_if l2_downstream_if();
 
 // AMO unit signals
 rw_cmd_e    w_amo_rw;
@@ -148,13 +159,13 @@ if (ENABLE_MMU) begin
         .i_amo_op        ( w_amo_op        ),
 
         // External Memory Interface
-        .o_mem_size      ( w_l2_size       ),
-        .o_mem_addr      ( w_l2_addr       ),
-        .o_mem_wdata     ( w_l2_wdata      ),
-        .i_mem_rdata     ( w_l2_rdata      ),
-        .o_mem_rw        ( w_l2_rw         ),
-        .i_mem_wait      ( w_l2_wait       ),
-        .o_amo_op        ( w_l2_amo_op     ),
+        .o_mem_size      ( w_l2_req_size   ),
+        .o_mem_addr      ( w_l2_req_addr   ),
+        .o_mem_wdata     ( w_l2_req_wdata  ),
+        .i_mem_rdata     ( w_l2_req_rdata  ),
+        .o_mem_rw        ( w_l2_req_rw     ),
+        .i_mem_wait      ( w_l2_req_wait   ),
+        .o_amo_op        ( w_l2_req_amo_op ),
 
         // Protection and Translation Control
         .i_satp          ( w_satp          ),
@@ -175,33 +186,33 @@ if (ENABLE_MMU) begin
     );
 end else begin
     friscv_l1_arbiter l1_arbiter (
-        .i_clk        ( i_clk        ),
-        .i_rstn       ( i_rstn       ),
+        .i_clk        ( i_clk           ),
+        .i_rstn       ( i_rstn          ),
 
-        .i_inst_addr  ( w_inst_addr  ),
-        .o_inst_data  ( w_inst_data  ),
-        .i_inst_en    ( w_inst_en    ),
-        .o_inst_wait  ( w_inst_wait  ),
+        .i_inst_addr  ( w_inst_addr     ),
+        .o_inst_data  ( w_inst_data     ),
+        .i_inst_en    ( w_inst_en       ),
+        .o_inst_wait  ( w_inst_wait     ),
 
-        .i_data_addr  ( w_data_addr  ),
-        .i_data_size  ( w_data_size  ),
-        .i_data_wdata ( w_data_wdata ),
-        .o_data_rdata ( w_data_rdata ),
-        .i_data_en    ( w_data_en    ),
-        .i_data_wr    ( w_data_wr    ),
-        .o_data_wait  ( w_data_wait  ),
-        .i_amo_op     ( w_amo_op     ),
+        .i_data_addr  ( w_data_addr     ),
+        .i_data_size  ( w_data_size     ),
+        .i_data_wdata ( w_data_wdata    ),
+        .o_data_rdata ( w_data_rdata    ),
+        .i_data_en    ( w_data_en       ),
+        .i_data_wr    ( w_data_wr       ),
+        .o_data_wait  ( w_data_wait     ),
+        .i_amo_op     ( w_amo_op        ),
 
-        .o_mem_addr   ( w_l2_addr    ),
-        .o_mem_size   ( w_l2_size    ),
-        .o_mem_wdata  ( w_l2_wdata   ),
-        .i_mem_rdata  ( w_l2_rdata   ),
-        .o_mem_rw     ( w_l2_rw      ),
-        .i_mem_wait   ( w_l2_wait    ),
-        .o_amo_op     ( w_l2_amo_op  ),
-        .o_grant_inst (              ),
-        .o_grant_start(              ),
-        .o_grant_start_inst(         )
+        .o_mem_addr   ( w_l2_req_addr   ),
+        .o_mem_size   ( w_l2_req_size   ),
+        .o_mem_wdata  ( w_l2_req_wdata  ),
+        .i_mem_rdata  ( w_l2_req_rdata  ),
+        .o_mem_rw     ( w_l2_req_rw     ),
+        .i_mem_wait   ( w_l2_req_wait   ),
+        .o_amo_op     ( w_l2_req_amo_op ),
+        .o_grant_inst (                 ),
+        .o_grant_start(                 ),
+        .o_grant_start_inst(            )
     );
 
     assign w_inst_fault  = 1'b0;
@@ -209,6 +220,48 @@ end else begin
     assign w_store_fault = 1'b0;
     assign w_fault_addr  = '0;
 end
+
+assign l2_upstream_if.valid  = (w_l2_req_rw != RW_IDLE);
+assign l2_upstream_if.addr   = w_l2_req_addr;
+assign l2_upstream_if.size   = w_l2_req_size;
+assign l2_upstream_if.wdata  = w_l2_req_wdata;
+assign l2_upstream_if.rw     = w_l2_req_rw;
+assign l2_upstream_if.amo_op = w_l2_req_amo_op;
+
+assign w_l2_req_wait  = l2_upstream_if.stall;
+assign w_l2_req_rdata = l2_upstream_if.rdata;
+
+// ============================================================
+// Level 2 bus buffering
+// ============================================================
+
+if (ENABLE_L2_BUFFER) begin
+    friscv_l2_buffer l2_buff (
+        .i_clk         ( i_clk            ),
+        .i_rstn        ( i_rstn           ),
+        .if_upstream   ( l2_upstream_if   ),
+        .if_downstream ( l2_downstream_if )
+    );
+end else begin
+    assign l2_upstream_if.stall = l2_downstream_if.stall;
+    assign l2_upstream_if.rdata = l2_downstream_if.rdata;
+
+    assign l2_downstream_if.valid  = l2_upstream_if.valid;
+    assign l2_downstream_if.addr   = l2_upstream_if.addr;
+    assign l2_downstream_if.size   = l2_upstream_if.size;
+    assign l2_downstream_if.wdata  = l2_upstream_if.wdata;
+    assign l2_downstream_if.rw     = l2_upstream_if.rw;
+    assign l2_downstream_if.amo_op = l2_upstream_if.amo_op;
+end
+
+assign l2_downstream_if.stall = w_l2_backend_wait;
+assign l2_downstream_if.rdata = w_l2_backend_rdata;
+
+assign w_l2_addr   = l2_downstream_if.addr;
+assign w_l2_size   = l2_downstream_if.size;
+assign w_l2_wdata  = l2_downstream_if.wdata;
+assign w_l2_rw     = l2_downstream_if.rw;
+assign w_l2_amo_op = l2_downstream_if.amo_op;
 
 // ============================================================
 // End signal detection on write to END_ADDRESS
@@ -288,7 +341,7 @@ if (ENABLE_EXTENSION_A) begin
         .i_clk            ( i_clk            ),
         .i_rstn           ( i_rstn           ),
         .i_amo_op         ( r_amo_addr_valid ? w_l2_amo_op : AMO_NONE ),
-        .i_rs2_val        ( w_data_wdata     ),
+        .i_rs2_val        ( w_l2_wdata       ),
         .o_core_load_data ( w_amo_load_data  ),
         .o_core_wait      ( w_amo_core_wait  ),
         .i_mem_wait       ( i_mem_wait       ),
@@ -338,14 +391,14 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
         end
     end
 
-    assign w_l2_rdata = w_l2_is_rom ? w_zsbl_data :
-                        w_amo_active ? w_amo_load_data :
-                        i_mem_rdata;
+    assign w_l2_backend_rdata = w_l2_is_rom ? w_zsbl_data :
+                                w_amo_active ? w_amo_load_data :
+                                i_mem_rdata;
 
-    assign w_l2_wait  = w_l2_is_rom ? (w_l2_addr != r_rom_addr_prev) :
-                        w_amo_bootstrap ? 1'b1 :
-                        w_amo_active ? w_amo_core_wait :
-                        i_mem_wait;
+    assign w_l2_backend_wait = w_l2_is_rom ? (w_l2_addr != r_rom_addr_prev) :
+                               w_amo_bootstrap ? 1'b1 :
+                               w_amo_active ? w_amo_core_wait :
+                               i_mem_wait;
 
     assign o_mem_rw   = w_l2_is_rom ? RW_IDLE :
                         w_amo_bootstrap ? RW_IDLE :
@@ -354,10 +407,10 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
 
 end else begin
     // No ROM, pass through all reads/writes to AXI (or AMO unit)
-    assign w_l2_rdata = w_amo_active ? w_amo_load_data : i_mem_rdata;
-    assign w_l2_wait  = w_amo_bootstrap ? 1'b1 :
-                        w_amo_active ? w_amo_core_wait :
-                        i_mem_wait;
+    assign w_l2_backend_rdata = w_amo_active ? w_amo_load_data : i_mem_rdata;
+    assign w_l2_backend_wait  = w_amo_bootstrap ? 1'b1 :
+                                w_amo_active ? w_amo_core_wait :
+                                i_mem_wait;
     assign o_mem_rw   = w_amo_bootstrap ? RW_IDLE :
                         w_amo_active ? w_amo_rw :
                         w_l2_rw;
