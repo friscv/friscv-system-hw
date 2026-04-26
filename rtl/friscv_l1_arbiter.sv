@@ -43,7 +43,9 @@ module friscv_l1_arbiter (
     output rw_cmd_e    o_mem_rw,
     input  logic       i_mem_wait,
     output amo_op_e    o_amo_op,
-    output logic       o_grant_inst
+    output logic       o_grant_inst,
+    output logic       o_grant_start,
+    output logic       o_grant_start_inst
 );
 
 // FSM States
@@ -53,41 +55,69 @@ typedef enum logic [1:0] {
     S_GRANT_DATA
 } state_t;
 
-state_t state, next_state;
-logic priority_flag; // 0=Inst, 1=Data
+state_t r_state, w_next_state;
+logic r_priority_flag;  // 0=Inst, 1=Data
+
+addr_t      r_inst_addr;
+addr_t      r_data_addr;
+mem_width_e r_data_size;
+data_t      r_data_wdata;
+logic       r_data_wr;
+amo_op_e    r_data_amo;
 
 // FSM Update
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
-        state <= S_IDLE;
-        priority_flag <= 1'b0;
+        r_state <= S_IDLE;
+        r_priority_flag <= 1'b0;
+        r_inst_addr  <= '0;
+        r_data_addr  <= '0;
+        r_data_size  <= WIDTH_I32;
+        r_data_wdata <= '0;
+        r_data_wr    <= 1'b0;
+        r_data_amo   <= AMO_NONE;
     end else begin
-        state <= next_state;
+        r_state <= w_next_state;
+
+        // Freeze the request attributes for the lifetime of the granted bus transaction.
+        if (r_state == S_IDLE) begin
+            if (w_next_state == S_GRANT_INST) begin
+                r_inst_addr <= i_inst_addr;
+            end
+            if (w_next_state == S_GRANT_DATA) begin
+                r_data_addr  <= i_data_addr;
+                r_data_size  <= i_data_size;
+                r_data_wdata <= i_data_wdata;
+                r_data_wr    <= i_data_wr;
+                r_data_amo   <= i_amo_op;
+            end
+        end
+
         // Rotate priority on transaction completion
-        if (state != S_IDLE && next_state == S_IDLE) begin
-            priority_flag <= !priority_flag;
+        if (r_state != S_IDLE && w_next_state == S_IDLE) begin
+            r_priority_flag <= !r_priority_flag;
         end
     end
 end
 
 // Next State Logic
 always_comb begin
-    next_state = state;
-    case (state)
+    w_next_state = r_state;
+    case (r_state)
         S_IDLE: begin
             if (i_data_en && i_inst_en) begin
-                next_state = (priority_flag) ? S_GRANT_DATA : S_GRANT_INST;
+                w_next_state = (r_priority_flag) ? S_GRANT_DATA : S_GRANT_INST;
             end else if (i_data_en) begin
-                next_state = S_GRANT_DATA;
+                w_next_state = S_GRANT_DATA;
             end else if (i_inst_en) begin
-                next_state = S_GRANT_INST;
+                w_next_state = S_GRANT_INST;
             end
         end
         S_GRANT_INST: begin
-            if (!i_mem_wait) next_state = S_IDLE;
+            if (!i_mem_wait) w_next_state = S_IDLE;
         end
         S_GRANT_DATA: begin
-            if (!i_mem_wait) next_state = S_IDLE;
+            if (!i_mem_wait) w_next_state = S_IDLE;
         end
         default: ;
     endcase
@@ -103,26 +133,26 @@ always_comb begin
     o_data_wait = 1'b0;
     o_amo_op    = AMO_NONE;
 
-    case (state)
+    case (r_state)
         S_IDLE: begin
             // If requesting, insert wait cycle for arbitration
             if (i_inst_en) o_inst_wait = 1'b1;
             if (i_data_en) o_data_wait = 1'b1;
         end
         S_GRANT_INST: begin
-            o_mem_addr  = i_inst_addr;
+            o_mem_addr  = r_inst_addr;
             o_mem_size  = WIDTH_I32;
             o_mem_rw    = RW_READ;
             o_inst_wait = i_mem_wait;
             if (i_data_en) o_data_wait = 1'b1;
         end
         S_GRANT_DATA: begin
-            o_mem_addr  = i_data_addr;
-            o_mem_size  = i_data_size;
-            o_mem_wdata = i_data_wdata;
-            o_mem_rw    = i_data_wr ? RW_WRITE : RW_READ;
+            o_mem_addr  = r_data_addr;
+            o_mem_size  = r_data_size;
+            o_mem_wdata = r_data_wdata;
+            o_mem_rw    = r_data_wr ? RW_WRITE : RW_READ;
             o_data_wait = i_mem_wait;
-            o_amo_op    = i_amo_op;
+            o_amo_op    = r_data_amo;
             if (i_inst_en) o_inst_wait = 1'b1;
         end
         default: ;
@@ -131,6 +161,8 @@ end
 
 assign o_inst_data  = i_mem_rdata;
 assign o_data_rdata = i_mem_rdata;
-assign o_grant_inst = (state == S_GRANT_INST);
+assign o_grant_inst = (r_state == S_GRANT_INST);
+assign o_grant_start = (r_state == S_IDLE) && (w_next_state != S_IDLE);
+assign o_grant_start_inst = (r_state == S_IDLE) && (w_next_state == S_GRANT_INST);
 
 endmodule

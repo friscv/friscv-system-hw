@@ -107,7 +107,7 @@ always_ff @(posedge i_clk) begin : tlb_fill_and_flush
 
         if (i_flush) begin  // Global flush enable, has priority
 
-            if (i_flush_vpn_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VPN+ASID match, not global
+            if (ENABLE_FINE_TLB_FLUSH && i_flush_vpn_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VPN+ASID match, not global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va_asid
                     logic [VPN_WIDTH-1:0] mask;
@@ -120,7 +120,7 @@ always_ff @(posedge i_clk) begin : tlb_fill_and_flush
                         r_tlb[g] <= '0;
                 end
 
-            end else if (i_flush_vpn_en) begin  // sfence.vma rs1, x0: VPN match, all ASIDs and global
+            end else if (ENABLE_FINE_TLB_FLUSH && i_flush_vpn_en) begin  // sfence.vma rs1, x0: VPN match, all ASIDs and global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va
                     logic [VPN_WIDTH-1:0] mask;
@@ -133,7 +133,7 @@ always_ff @(posedge i_clk) begin : tlb_fill_and_flush
                         r_tlb[g] <= '0;
                 end
 
-            end else if (i_flush_asid_en) begin  // sfence.vma x0, rs2: ASID match, not global
+            end else if (ENABLE_FINE_TLB_FLUSH && i_flush_asid_en) begin  // sfence.vma x0, rs2: ASID match, not global
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_asid
                     if (r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)

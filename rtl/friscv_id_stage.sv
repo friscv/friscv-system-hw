@@ -69,7 +69,11 @@ module friscv_id_stage #(
     output data_t     csr_out,
     output instr_ex_t instr_ex_out,
 
-    // Inputs from WB stage    
+    // Inputs from older stages for state visibility
+    input  reg_addr_t ex_rd_sel_in,
+    input  reg_addr_t mem_rd_sel_in,
+
+    // Inputs from WB stage
     input  reg_addr_t rd_sel_in,
     input  data_t     rd_data_in,
     input  csr_addr_e csr_sel_in,
@@ -90,6 +94,7 @@ module friscv_id_stage #(
     output logic      trap_out,
     output logic      trap_pending_out,
     output logic      ret_out,           // Active for both mret and sret
+    input  logic      ret_commit_in,
 
     // Outputs to MMU
     output satp_t     satp_out,
@@ -244,14 +249,14 @@ end
 // Trap logic
 // ============================================================
 
-logic [1:0] r_mret_inhibit;
+logic r_mret_inhibit;
 
 // Check if interrupt is safe to execute - safe if
 //  1) Not returning from a previous interrupt,
 //  2) Not executing a branch and
 //  3) Not in the middle of a fetch
 logic interrupt_safe, exception_safe;
-assign interrupt_safe = (r_mret_inhibit == 2'b00) && !branch_ok_in && (|pc_in_buff);
+assign interrupt_safe = !r_mret_inhibit && !branch_ok_in && (|pc_in_buff);
 assign exception_safe = !branch_ok_in && (|pc_in_buff);
 
 logic m_interrupt_active, s_interrupt_active;
@@ -284,12 +289,26 @@ assign exception_active = mem_trap_in || (exception_safe && (ecall_active || ebr
 // is clear. trap_pending_out lets pipeline_control stall so the instruction is not lost
 // from ir_buff while waiting.
 logic trap_raw, trap_csr_hazard;
-logic trap_pipe_hazard;
+logic trap_gpr_hazard;
 assign trap_raw         = interrupt_active || exception_active;
 assign trap_csr_hazard  = trap_raw && (ex_csr_en_in || mem_csr_en_in || wb_csr_en_in);
-assign trap_pipe_hazard = trap_raw && (ex_mem_inflight_in || mem_mem_inflight_in);
-assign trap_out         = trap_raw && !trap_csr_hazard && !trap_pipe_hazard;
-assign trap_pending_out = trap_raw && (trap_csr_hazard || trap_pipe_hazard);
+assign trap_gpr_hazard  = trap_raw &&
+                          ((ex_rd_sel_in  != 5'd0) ||
+                           (mem_rd_sel_in != 5'd0) ||
+                           (rd_sel_in     != 5'd0));
+
+// Flag to not re-take an already taken trap.
+logic trap_seen;
+
+// An incoming trap has a pipeline hazard if
+//  1) there is a memory instruction in the pipeline or
+//  2) a dispatched instruction will write back to a register.
+// These must commit before taking a trap.
+logic trap_pipe_hazard;
+assign trap_pipe_hazard = trap_raw &&
+                          (ex_mem_inflight_in || mem_mem_inflight_in || trap_gpr_hazard);
+assign trap_out         = trap_raw && !trap_seen && !trap_csr_hazard && !trap_pipe_hazard;
+assign trap_pending_out = trap_raw && !trap_seen && (trap_csr_hazard || trap_pipe_hazard);
 
 logic mret_active, sret_active;
 assign mret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b001100000010);
@@ -387,24 +406,27 @@ end
 always_ff @(posedge clk_in) begin
     if(!rst_n_in) begin
         csr <= '0;
-        r_mret_inhibit <= 2'b00;
+        r_mret_inhibit <= 1'b0;
         r_current_mode <= M_MODE;
+        trap_seen      <= 1'b0;
     end else begin
-        // Only advance countdown when pipeline is not stalled
-        if ((mret_active || sret_active) && !ex_csr_en_in && !mem_csr_en_in && !wb_csr_en_in)
-            r_mret_inhibit <= 2'd2;
-        else if (r_mret_inhibit != 2'b00 && !stage_stall_in)
-            r_mret_inhibit <= r_mret_inhibit - 1;
+        if (!trap_raw)
+            trap_seen <= 1'b0;
+
+        if (r_mret_inhibit && !stage_stall_in)
+            r_mret_inhibit <= 1'b0;
 
         if (trap_out) begin
+            trap_seen <= 1'b1;
+            r_mret_inhibit <= 1'b0;
             if (trap_to_s_mode) begin
                 // Delegated trap: enter S-mode
-                r_current_mode <= S_MODE;
-                csr.sepc            <= trap_epc;
-                csr.mstatus.spie    <= csr.mstatus.sie;
-                csr.mstatus.sie     <= 1'b0;
-                csr.mstatus.spp     <= (r_current_mode == S_MODE) ? 1'b1 : 1'b0;
-                csr.stval           <= trap_tval;
+                r_current_mode   <= S_MODE;
+                csr.sepc         <= trap_epc;
+                csr.mstatus.spie <= csr.mstatus.sie;
+                csr.mstatus.sie  <= 1'b0;
+                csr.mstatus.spp  <= (r_current_mode == S_MODE) ? 1'b1 : 1'b0;
+                csr.stval        <= trap_tval;
 
                 if      (csr.seip && csr.mie[9] && csr.mideleg[9]) csr.scause <= {1'b1, 31'd9};
                 else if (stip_eff && csr.mie[5] && csr.mideleg[5]) csr.scause <= {1'b1, 31'd5};
@@ -448,17 +470,19 @@ always_ff @(posedge clk_in) begin
                 else if (illegal_inst)  csr.mcause <= 32'd2;
             end
 
-        end else if (sret_active && !ex_csr_en_in && !mem_csr_en_in && !wb_csr_en_in) begin
-            csr.mstatus.sie     <= csr.mstatus.spie;
-            csr.mstatus.spie    <= 1'b1;
-            r_current_mode <= csr.mstatus.spp ? S_MODE : U_MODE;
-            csr.mstatus.spp     <= 1'b0;
+        end else if (ret_commit_in && sret_active) begin
+            r_mret_inhibit   <= 1'b1;
+            csr.mstatus.sie  <= csr.mstatus.spie;
+            csr.mstatus.spie <= 1'b1;
+            r_current_mode   <= csr.mstatus.spp ? S_MODE : U_MODE;
+            csr.mstatus.spp  <= 1'b0;
 
-        end else if (mret_active && !ex_csr_en_in && !mem_csr_en_in && !wb_csr_en_in) begin
-            csr.mstatus.mie     <= csr.mstatus.mpie;
-            csr.mstatus.mpie    <= 1'b1;
-            r_current_mode <= csr.mstatus.mpp;
-            csr.mstatus.mpp     <= U_MODE;
+        end else if (ret_commit_in && mret_active) begin
+            r_mret_inhibit   <= 1'b1;
+            csr.mstatus.mie  <= csr.mstatus.mpie;
+            csr.mstatus.mpie <= 1'b1;
+            r_current_mode   <= csr.mstatus.mpp;
+            csr.mstatus.mpp  <= U_MODE;
 
         end else if (csr_en_in && instr_ret_in && !wb_csr_ro) begin
             case (csr_sel_in)

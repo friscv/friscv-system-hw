@@ -50,7 +50,7 @@ data_t   r_rs2_val;
 // use the registered capture for all S_STORE cycles
 assign w_load_data = (r_state == S_LOAD && !i_mem_wait) ? i_mem_load_data : r_load_data;
 
-assign o_core_load_data = r_load_data;
+assign o_core_load_data = w_load_data;
 assign o_core_wait = w_next_state != S_IDLE;
 
 always_ff @(posedge i_clk) begin

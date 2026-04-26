@@ -97,6 +97,9 @@ data_t          ex_csr_readback_out;
 logic           ex_csr_en_out;
 logic           ex_instr_valid_out;
 
+logic ex_instr_is_mem;
+assign ex_instr_is_mem = ex_mem_instr_sel_out != MEM_INSTR_NONE;
+
 // MEM stage signals
 logic           mem_trap_out;
 addr_t          mem_trap_pc_out;
@@ -165,6 +168,10 @@ friscv_pipeline_control control_unit (
     .wb_rd_sel_in     ( wb_rd_sel_out      ),
     .wb_csr_en_in     ( wb_csr_en_out      ),
     .wb_csr_sel_in    ( wb_csr_sel_out     ),
+
+    // Older memory operations must drain before return redirects take effect
+    .ex_mem_inflight_in ( ex_instr_is_mem  ),
+    .mem_mem_inflight_in( d_mem_en_out     ),
 
     // Memory wait signals
     .if_wait_in       ( i_mem_wait_in      ),
@@ -256,6 +263,10 @@ friscv_id_stage #(
     .csr_out          ( id_csr_out       ),
     .instr_ex_out     ( id_uinstr        ),
 
+    // Inputs from older stages
+    .ex_rd_sel_in     ( ex_rd_sel_out    ),
+    .mem_rd_sel_in    ( mem_rd_sel_out   ),
+
     // Inputs from WB stage
     .rd_sel_in        ( wb_rd_sel_out    ),
     .rd_data_in       ( wb_rd_data_out   ),
@@ -268,21 +279,22 @@ friscv_id_stage #(
     .ex_csr_en_in     ( ex_csr_en_out    ),
     .mem_csr_en_in    ( mem_csr_en_out   ),
     .wb_csr_en_in     ( wb_csr_en_out    ),
-    .ex_mem_inflight_in( ex_mem_instr_sel_out != MEM_INSTR_NONE ),
-    .mem_mem_inflight_in( d_mem_en_out ),
+    .ex_mem_inflight_in( ex_instr_is_mem ),
+    .mem_mem_inflight_in( d_mem_en_out   ),
     
     // Interrupts
-    .tvec_out         ( id_tvec_out       ), 
-    .epc_out          ( id_epc_out        ),
-    .trap_out         ( id_trap_out       ),
-    .trap_pending_out ( id_trap_pending   ),
-    .ret_out          ( id_ret_out        ),
+    .tvec_out         ( id_tvec_out      ), 
+    .epc_out          ( id_epc_out       ),
+    .trap_out         ( id_trap_out      ),
+    .trap_pending_out ( id_trap_pending  ),
+    .ret_out          ( id_ret_out       ),
+    .ret_commit_in    ( id_effective_ret ),
 
     // Outputs to MMU
-    .satp_out         ( satp_out          ),
-    .sum_out          ( sum_out           ),
-    .mxr_out          ( mxr_out           ),
-    .mode_out         ( mode_out          )
+    .satp_out         ( satp_out         ),
+    .sum_out          ( sum_out          ),
+    .mxr_out          ( mxr_out          ),
+    .mode_out         ( mode_out         )
 );
 
 friscv_ex_stage ex_stage (
@@ -337,6 +349,7 @@ friscv_mem_stage mem_stage (
 
     // Stage control signals
     .stage_stall_in      ( stall_mem               ),
+    .trap_commit_in      ( id_trap_out             ),
 
     // Inputs from EX stage
     .pc_in               ( ex_pc_out               ),

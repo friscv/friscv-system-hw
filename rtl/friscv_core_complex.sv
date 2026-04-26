@@ -91,11 +91,15 @@ data_t      w_amo_load_data;
 logic       w_amo_core_wait;
 logic       w_amo_active;
 logic       w_amo_start;
+logic       w_amo_bootstrap;
 logic       r_amo_addr_valid;
 addr_t      r_amo_addr;
 mem_width_e r_amo_size;
 
-assign w_amo_start = (w_l2_amo_op != AMO_NONE) && !r_amo_addr_valid;
+assign w_amo_start = (w_l2_amo_op != AMO_NONE) &&
+                     (w_l2_rw != RW_IDLE) &&
+                     !r_amo_addr_valid;
+assign w_amo_bootstrap = (w_l2_amo_op != AMO_NONE) && !r_amo_addr_valid;
 
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
@@ -195,7 +199,9 @@ end else begin
         .o_mem_rw     ( w_l2_rw      ),
         .i_mem_wait   ( w_l2_wait    ),
         .o_amo_op     ( w_l2_amo_op  ),
-        .o_grant_inst (              )
+        .o_grant_inst (              ),
+        .o_grant_start(              ),
+        .o_grant_start_inst(         )
     );
 
     assign w_inst_fault  = 1'b0;
@@ -281,7 +287,7 @@ if (ENABLE_EXTENSION_A) begin
     friscv_amo_unit amo_unit (
         .i_clk            ( i_clk            ),
         .i_rstn           ( i_rstn           ),
-        .i_amo_op         ( w_l2_amo_op      ),
+        .i_amo_op         ( r_amo_addr_valid ? w_l2_amo_op : AMO_NONE ),
         .i_rs2_val        ( w_data_wdata     ),
         .o_core_load_data ( w_amo_load_data  ),
         .o_core_wait      ( w_amo_core_wait  ),
@@ -298,6 +304,7 @@ end else begin
     assign w_amo_store_data = '0;
     assign w_amo_load_data  = '0;
     assign w_amo_core_wait  = 1'b0;
+    assign w_amo_bootstrap  = 1'b0;
 end
 
 // ============================================================
@@ -336,18 +343,24 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
                         i_mem_rdata;
 
     assign w_l2_wait  = w_l2_is_rom ? (w_l2_addr != r_rom_addr_prev) :
+                        w_amo_bootstrap ? 1'b1 :
                         w_amo_active ? w_amo_core_wait :
                         i_mem_wait;
 
     assign o_mem_rw   = w_l2_is_rom ? RW_IDLE :
+                        w_amo_bootstrap ? RW_IDLE :
                         w_amo_active ? w_amo_rw :
                         w_l2_rw;
 
 end else begin
     // No ROM, pass through all reads/writes to AXI (or AMO unit)
     assign w_l2_rdata = w_amo_active ? w_amo_load_data : i_mem_rdata;
-    assign w_l2_wait  = w_amo_active ? w_amo_core_wait : i_mem_wait;
-    assign o_mem_rw   = w_amo_active ? w_amo_rw        : w_l2_rw;
+    assign w_l2_wait  = w_amo_bootstrap ? 1'b1 :
+                        w_amo_active ? w_amo_core_wait :
+                        i_mem_wait;
+    assign o_mem_rw   = w_amo_bootstrap ? RW_IDLE :
+                        w_amo_active ? w_amo_rw :
+                        w_l2_rw;
 end
 
 // TODO replace when cache connected

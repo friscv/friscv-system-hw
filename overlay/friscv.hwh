@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sun Apr 12 20:28:43 2026" VIVADOVERSION="2025.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sun Apr 26 14:42:30 2026" VIVADOVERSION="2025.2">
 
   <SYSTEMINFO ARCH="zynq" BOARD="tul.com.tw:pynq-z2:part0:1.0" DEVICE="7z020" NAME="design_1" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -2581,7 +2581,7 @@
         <PARAMETER NAME="PCHK_MAX_WR_BURSTS" VALUE="2"/>
         <PARAMETER NAME="PCHK_WAITS" VALUE="0"/>
         <PARAMETER NAME="S00_ARB_PRIORITY" VALUE="0"/>
-        <PARAMETER NAME="S00_HAS_DATA_FIFO" VALUE="2"/>
+        <PARAMETER NAME="S00_HAS_DATA_FIFO" VALUE="0"/>
         <PARAMETER NAME="S00_HAS_REGSLICE" VALUE="0"/>
         <PARAMETER NAME="S01_ARB_PRIORITY" VALUE="0"/>
         <PARAMETER NAME="S01_HAS_DATA_FIFO" VALUE="0"/>
@@ -2769,7 +2769,7 @@
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_BVALID"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="63" NAME="M00_AXI_rdata" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_rdata">
+        <PORT DIR="I" LEFT="31" NAME="M00_AXI_rdata" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_rdata">
           <CONNECTIONS>
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_RDATA"/>
           </CONNECTIONS>
@@ -2794,7 +2794,7 @@
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_RVALID"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="63" NAME="M00_AXI_wdata" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wdata">
+        <PORT DIR="O" LEFT="31" NAME="M00_AXI_wdata" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wdata">
           <CONNECTIONS>
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_WDATA"/>
           </CONNECTIONS>
@@ -2809,7 +2809,7 @@
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_WREADY"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="7" NAME="M00_AXI_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wstrb">
+        <PORT DIR="O" LEFT="3" NAME="M00_AXI_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wstrb">
           <CONNECTIONS>
             <CONNECTION INSTANCE="processing_system7_0" PORT="S_AXI_HP0_WSTRB"/>
           </CONNECTIONS>
@@ -3408,7 +3408,7 @@
             <PORTMAP LOGICAL="WVALID" PHYSICAL="S00_AXI_wvalid"/>
           </PORTMAPS>
         </BUSINTERFACE>
-        <BUSINTERFACE BUSNAME="fv_interconnect_M00_AXI" DATAWIDTH="64" NAME="M00_AXI" TYPE="MASTER" VLNV="xilinx.com:interface:aximm:1.0">
+        <BUSINTERFACE BUSNAME="fv_interconnect_M00_AXI" DATAWIDTH="32" NAME="M00_AXI" TYPE="MASTER" VLNV="xilinx.com:interface:aximm:1.0">
           <PORTMAPS>
             <PORTMAP LOGICAL="ARADDR" PHYSICAL="M00_AXI_araddr"/>
             <PORTMAP LOGICAL="ARBURST" PHYSICAL="M00_AXI_arburst"/>
@@ -4766,7 +4766,7 @@
         <PARAMETER NAME="C_S_AXI_ACP_ID_WIDTH" VALUE="3"/>
         <PARAMETER NAME="C_S_AXI_GP0_ID_WIDTH" VALUE="6"/>
         <PARAMETER NAME="C_S_AXI_GP1_ID_WIDTH" VALUE="6"/>
-        <PARAMETER NAME="C_S_AXI_HP0_DATA_WIDTH" VALUE="64"/>
+        <PARAMETER NAME="C_S_AXI_HP0_DATA_WIDTH" VALUE="32"/>
         <PARAMETER NAME="C_S_AXI_HP0_ID_WIDTH" VALUE="6"/>
         <PARAMETER NAME="C_S_AXI_HP1_DATA_WIDTH" VALUE="64"/>
         <PARAMETER NAME="C_S_AXI_HP1_ID_WIDTH" VALUE="6"/>
@@ -5465,7 +5465,7 @@
         <PARAMETER NAME="PCW_S_AXI_GP0_ID_WIDTH" VALUE="6"/>
         <PARAMETER NAME="PCW_S_AXI_GP1_FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PCW_S_AXI_GP1_ID_WIDTH" VALUE="6"/>
-        <PARAMETER NAME="PCW_S_AXI_HP0_DATA_WIDTH" VALUE="64"/>
+        <PARAMETER NAME="PCW_S_AXI_HP0_DATA_WIDTH" VALUE="32"/>
         <PARAMETER NAME="PCW_S_AXI_HP0_FREQMHZ" VALUE="38"/>
         <PARAMETER NAME="PCW_S_AXI_HP0_ID_WIDTH" VALUE="6"/>
         <PARAMETER NAME="PCW_S_AXI_HP1_DATA_WIDTH" VALUE="64"/>
@@ -6124,7 +6124,7 @@
         </PORT>
         <PORT DIR="O" LEFT="2" NAME="S_AXI_HP0_RACOUNT" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="7" NAME="S_AXI_HP0_RCOUNT" RIGHT="0" SIGIS="undef"/>
-        <PORT DIR="O" LEFT="63" NAME="S_AXI_HP0_RDATA" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_rdata">
+        <PORT DIR="O" LEFT="31" NAME="S_AXI_HP0_RDATA" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_rdata">
           <CONNECTIONS>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M00_AXI_rdata"/>
           </CONNECTIONS>
@@ -6152,7 +6152,7 @@
         </PORT>
         <PORT DIR="O" LEFT="5" NAME="S_AXI_HP0_WACOUNT" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="7" NAME="S_AXI_HP0_WCOUNT" RIGHT="0" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="63" NAME="S_AXI_HP0_WDATA" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wdata">
+        <PORT DIR="I" LEFT="31" NAME="S_AXI_HP0_WDATA" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wdata">
           <CONNECTIONS>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M00_AXI_wdata"/>
           </CONNECTIONS>
@@ -6168,7 +6168,7 @@
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="S_AXI_HP0_WRISSUECAP1_EN" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="7" NAME="S_AXI_HP0_WSTRB" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wstrb">
+        <PORT DIR="I" LEFT="3" NAME="S_AXI_HP0_WSTRB" RIGHT="0" SIGIS="undef" SIGNAME="fv_interconnect_M00_AXI_wstrb">
           <CONNECTIONS>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M00_AXI_wstrb"/>
           </CONNECTIONS>
@@ -6317,13 +6317,13 @@
             <PORTMAP LOGICAL="WVALID" PHYSICAL="M_AXI_GP0_WVALID"/>
           </PORTMAPS>
         </BUSINTERFACE>
-        <BUSINTERFACE BUSNAME="fv_interconnect_M00_AXI" DATAWIDTH="64" NAME="S_AXI_HP0" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
+        <BUSINTERFACE BUSNAME="fv_interconnect_M00_AXI" DATAWIDTH="32" NAME="S_AXI_HP0" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
           <PARAMETER NAME="ARUSER_WIDTH" VALUE="0"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
           <PARAMETER NAME="BUSER_WIDTH" VALUE="0"/>
           <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_processing_system7_0_0_FCLK_CLK0"/>
-          <PARAMETER NAME="DATA_WIDTH" VALUE="64"/>
+          <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
           <PARAMETER NAME="FREQ_HZ" VALUE="38461540"/>
           <PARAMETER NAME="HAS_BRESP" VALUE="1"/>
           <PARAMETER NAME="HAS_BURST" VALUE="1"/>

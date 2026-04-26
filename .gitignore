@@ -58,3 +58,7 @@ test/*.dis
 
 # Software build artifacts
 software/*.dtb
+
+# Simulation caches
+sim/cache/
+sim/out/

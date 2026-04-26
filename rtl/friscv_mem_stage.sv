@@ -21,6 +21,7 @@ module friscv_mem_stage (
 
     // Stage control signals
     input  logic           stage_stall_in,
+    input  logic           trap_commit_in,
 
     // Inputs from EX stage
     input  addr_t          pc_in,
@@ -180,36 +181,85 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             reserve_valid <= 1'b0;
         end
 
-        if (!stage_stall_in) begin
-            pc_buff               <= pc_in;
-            pc_plus_4_buff        <= pc_plus_4_in;
-            alu_data_buff         <= alu_data_in;
-            store_data_buff       <= store_data_in;
-            rd_sel_buff           <= rd_sel_in;
-            mem_instr_sel_buff    <= mem_instr_sel_in;
-            load_store_width_buff <= load_store_width_in;
-            wb_data_sel_buff      <= wb_data_sel_in;
-            r_mem_active          <= w_is_mem_instr && cond_valid;
-            r_load_data_valid     <= 1'b0;  // Clear on new instruction
+        if (trap_commit_in) begin
+            // The fault has been consumed by the trap logic. Keep MEM as a
+            // bubble while the earlier pipeline stages redirect to the handler.
+            pc_buff               <= 32'h0;
+            pc_plus_4_buff        <= 32'h0;
+            alu_data_buff         <= 32'h0;
+            store_data_buff       <= 32'h0;
+            rd_sel_buff           <= 5'b0;
+            mem_instr_sel_buff    <= MEM_INSTR_NONE;
+            load_store_width_buff <= WIDTH_I32;
+            wb_data_sel_buff      <= WB_DATA_SEL_ALU;
+            r_mem_active          <= 1'b0;
+            r_load_data_valid     <= 1'b0;
             r_sc_res_valid        <= 1'b0;
-            conditional_buff      <= conditional_in;
-            clear_reserve_buff    <= clear_reserve_in;
-            amo_op_buff           <= amo_op_in;
-            cond_valid_r          <= cond_valid;
-            csr_sel_buff          <= csr_sel_in;
-            csr_readback_buff     <= csr_readback_in;
-            csr_en_buff           <= csr_en_in;
-            instr_valid_buff      <= instr_valid_in;
-            r_mem_fault           <= 1'b0;  // Clear fault on new instruction
-
-            // Capture page fault even when pipeline advances
+            conditional_buff      <= 1'b0;
+            clear_reserve_buff    <= 1'b0;
+            amo_op_buff           <= AMO_NONE;
+            cond_valid_r          <= 1'b0;
+            csr_sel_buff          <= CSR_ZERO;
+            csr_readback_buff     <= 32'b0;
+            csr_en_buff           <= 1'b0;
+            instr_valid_buff      <= 1'b0;
+            r_mem_fault           <= 1'b0;
+        end else if (r_mem_fault) begin
+            // Hold the oldest captured memory fault until ID commits the trap.
+            r_mem_active      <= 1'b0;
+            r_load_data_valid <= 1'b0;
+            r_sc_res_valid    <= 1'b0;
+            instr_valid_buff  <= 1'b0;
+        end else if (!stage_stall_in) begin
+            // When an older memory op faults on the same cycle the pipeline
+            // would otherwise advance, the younger EX instruction must be
+            // ignored completely.
             if (r_mem_active && (load_fault_in || store_fault_in)) begin
-                r_mem_fault          <= 1'b1;
-                r_mem_fault_pc       <= pc_buff;
-                r_mem_fault_va       <= fault_addr_in;
-                r_mem_fault_is_store <= store_fault_in;
-                rd_sel_buff          <= 5'b0;
-                r_mem_active         <= 1'b0;
+                pc_buff               <= 32'h0;
+                pc_plus_4_buff        <= 32'h0;
+                alu_data_buff         <= 32'h0;
+                store_data_buff       <= 32'h0;
+                rd_sel_buff           <= 5'b0;
+                mem_instr_sel_buff    <= MEM_INSTR_NONE;
+                load_store_width_buff <= WIDTH_I32;
+                wb_data_sel_buff      <= WB_DATA_SEL_ALU;
+                r_mem_active          <= 1'b0;
+                r_load_data_valid     <= 1'b0;
+                r_sc_res_valid        <= 1'b0;
+                conditional_buff      <= 1'b0;
+                clear_reserve_buff    <= 1'b0;
+                amo_op_buff           <= AMO_NONE;
+                cond_valid_r          <= 1'b0;
+                csr_sel_buff          <= CSR_ZERO;
+                csr_readback_buff     <= 32'b0;
+                csr_en_buff           <= 1'b0;
+                instr_valid_buff      <= 1'b0;
+                r_mem_fault           <= 1'b1;
+                r_mem_fault_pc        <= pc_buff;
+                r_mem_fault_va        <= fault_addr_in;
+                r_mem_fault_is_store  <= store_fault_in;
+            end else begin
+                // If no faults, capture the new instruction.
+                pc_buff               <= pc_in;
+                pc_plus_4_buff        <= pc_plus_4_in;
+                alu_data_buff         <= alu_data_in;
+                store_data_buff       <= store_data_in;
+                rd_sel_buff           <= rd_sel_in;
+                mem_instr_sel_buff    <= mem_instr_sel_in;
+                load_store_width_buff <= load_store_width_in;
+                wb_data_sel_buff      <= wb_data_sel_in;
+                r_mem_active          <= w_is_mem_instr && cond_valid;
+                r_load_data_valid     <= 1'b0;  // Clear on new instruction
+                r_sc_res_valid        <= 1'b0;
+                conditional_buff      <= conditional_in;
+                clear_reserve_buff    <= clear_reserve_in;
+                amo_op_buff           <= amo_op_in;
+                cond_valid_r          <= cond_valid;
+                csr_sel_buff          <= csr_sel_in;
+                csr_readback_buff     <= csr_readback_in;
+                csr_en_buff           <= csr_en_in;
+                instr_valid_buff      <= instr_valid_in;
+                r_mem_fault           <= 1'b0;  // Clear fault on new instruction
             end
 
             if (!clear_reserve_in) begin
@@ -253,7 +303,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 end
 
 assign d_mem_en_out = r_mem_active;
-assign d_mem_wr_out = mem_instr_sel_buff == MEM_INSTR_STORE;
+assign d_mem_wr_out = r_mem_active && (mem_instr_sel_buff == MEM_INSTR_STORE);
 
 // ============================================================
 // Address and width enum conversion alignment
@@ -283,7 +333,7 @@ assign rd_sel_out      = rd_sel_buff;
 assign pc_plus_4_out   = pc_plus_4_buff;
 assign alu_data_out    = alu_data_buff;
 assign wb_data_sel_out = wb_data_sel_buff;
-assign d_mem_amo_op_out = amo_op_buff;
+assign d_mem_amo_op_out = r_mem_active ? amo_op_buff : AMO_NONE;
 
 // ============================================================
 // Load data expansion to 32b

@@ -70,11 +70,14 @@ rw_cmd_e      w_grant_rw;
 logic         w_stall;
 amo_op_e      w_grant_amo;
 logic         w_grant_inst;
+logic         w_grant_start;
+logic         w_grant_start_inst;
 logic         w_grant_wr;
 logic         w_grant_active;
 mmu_req_ctx_t r_req_ctx;
 logic         r_req_ctx_valid;
 mmu_req_ctx_t w_eff_req_ctx;
+mmu_req_ctx_t w_start_req_ctx;
 
 // ============================================================
 // TLB layer
@@ -192,7 +195,9 @@ friscv_l1_arbiter l1_arbiter (
     .o_mem_rw     ( w_grant_rw    ),
     .i_mem_wait   ( w_stall       ),
     .o_amo_op     ( w_grant_amo   ),
-    .o_grant_inst ( w_grant_inst  )
+    .o_grant_inst ( w_grant_inst  ),
+    .o_grant_start( w_grant_start ),
+    .o_grant_start_inst( w_grant_start_inst )
 );
 
 // ============================================================
@@ -207,6 +212,16 @@ assign w_paging_en = (|w_eff_req_ctx.satp.mode) && (w_eff_req_ctx.mode != M_MODE
 assign w_grant_active = (w_grant_rw != RW_IDLE);
 
 assign w_grant_wr = (w_grant_rw == RW_WRITE);
+
+always_comb begin
+    w_start_req_ctx.addr     = w_grant_start_inst ? i_inst_addr : i_data_addr;
+    w_start_req_ctx.satp     = i_satp;
+    w_start_req_ctx.mode     = i_mode;
+    w_start_req_ctx.sum      = i_sum;
+    w_start_req_ctx.mxr      = i_mxr;
+    w_start_req_ctx.is_inst  = w_grant_start_inst;
+    w_start_req_ctx.is_write = !w_grant_start_inst && i_data_wr;
+end
 
 always_comb begin
     w_eff_req_ctx.addr     = w_grant_addr;
@@ -225,11 +240,11 @@ always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_req_ctx       <= '0;
         r_req_ctx_valid <= 1'b0;
+    end else if (w_grant_start) begin
+        r_req_ctx       <= w_start_req_ctx;
+        r_req_ctx_valid <= 1'b1;
     end else if (!w_grant_active) begin
         r_req_ctx_valid <= 1'b0;
-    end else if (!r_req_ctx_valid) begin
-        r_req_ctx       <= w_eff_req_ctx;
-        r_req_ctx_valid <= 1'b1;
     end
 end
 

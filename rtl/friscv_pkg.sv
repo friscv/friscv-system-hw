@@ -41,14 +41,20 @@ package friscv_pkg;
     localparam logic ENABLE_MMU = 1;
     // Must be a power of 2 greater than 1
     localparam int   TLB_ENTRIES = 4;
+    // If not enabled, any sfence.vma will flush all TLB entries
+    localparam logic ENABLE_FINE_TLB_FLUSH = 1;
 
     // Extension selection
     localparam logic ENABLE_EXTENSION_A = 1;
     localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
+    // ALWAYS ENABLED localparam logic ENABLE_EXTENSION_ZICSR = 1;
+    // ALWAYS ENABLED localparam logic ENABLE_EXTENSION_SSTC = 1;
 
-    localparam logic ENABLE_REMAP = 1;
+    // If enabled, a write to END_ADDRESS will stall the core until reset
     localparam logic ENABLE_HW_HALT = 1;
 
+    // Address space remapping configuration
+    localparam logic ENABLE_REMAP = 1;
     // CLINT address workaround
     // Remaps standard address to free address in AXI - 0x0200_0000 -> 0x4010_0000
     localparam logic ENABLE_REMAP_CLINT = 1;
