@@ -60,11 +60,11 @@ always_ff @(posedge clk_in) begin
     end else begin
         if (flush_in || jump_ok_in || trap_in || ret_in) begin
             if (ret_in) begin
-                pc_reg <= {epc_in[ADDR_WIDTH-1:2], 2'b00};
+                pc_reg <= epc_in;
             end else if (trap_in) begin
-                pc_reg <= {tvec_in[ADDR_WIDTH-1:2], 2'b00};
+                pc_reg <= tvec_in;
             end else if (jump_ok_in) begin
-                pc_reg <= {jump_target_in[ADDR_WIDTH-1:2], 2'b0};
+                pc_reg <= jump_target_in;
             end else begin
                 pc_reg <= RESET_VEC;
             end

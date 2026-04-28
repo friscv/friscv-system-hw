@@ -326,7 +326,7 @@ logic interrupt_active, exception_active;
 assign interrupt_active = m_interrupt_active || s_interrupt_active;
 
 logic ecall_active, ebreak_active;
-assign exception_active = mem_trap_in || (exception_safe && (ecall_active || ebreak_active || illegal_inst || inst_fault_in));
+assign exception_active = mem_trap_in || (exception_safe && (ecall_active || ebreak_active || illegal_inst || inst_fault_in || target_misaligned));
 
 // Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
 // trap fires. Suppress the effective trap (flush + CSR state write) until the pipeline
@@ -363,21 +363,22 @@ assign ret_out = mret_active || sret_active;
 // Compute exception cause code
 logic [4:0] exception_cause_code;
 always_comb begin
-    if (inst_fault_in && !branch_ok_in)  // Instruction fetch page fault
+    if (inst_fault_in && !branch_ok_in)  // Instruction page fault
         exception_cause_code = 5'd12;
     else if (mem_trap_in && !mem_trap_is_store_in)  // Load page fault
         exception_cause_code = 5'd13;
-    else if (mem_trap_in &&  mem_trap_is_store_in)  // Store page fault
+    else if (mem_trap_in &&  mem_trap_is_store_in)  // Store/AMO page fault
         exception_cause_code = 5'd15;
     else if (ecall_active)
         case (r_current_mode)
-            U_MODE:  exception_cause_code = 5'd8;
-            S_MODE:  exception_cause_code = 5'd9;
-            default: exception_cause_code = 5'd11;  // M_MODE
+            U_MODE:  exception_cause_code = 5'd8;   // Environment call from U-mode
+            S_MODE:  exception_cause_code = 5'd9;   // Environment call from S-mode
+            default: exception_cause_code = 5'd11;  // Environment call from M-mode
         endcase
-    else if (ebreak_active) exception_cause_code = 5'd3;
-    else if (illegal_inst)  exception_cause_code = 5'd2;
-    else                    exception_cause_code = 5'd0;
+    else if (ebreak_active)     exception_cause_code = 5'd3;  // Breakpoint
+    else if (illegal_inst)      exception_cause_code = 5'd2;  // Illegal instruction
+    else if (target_misaligned) exception_cause_code = 5'b0;  // Instruction address misaligned
+    else                        exception_cause_code = 5'd0;  // No exception
 end
 
 // A trap is delegated to S-mode when:
@@ -485,8 +486,9 @@ always_ff @(posedge clk_in) begin
                         default: csr.scause <= 32'd11;
                     endcase
                 end
-                else if (ebreak_active) csr.scause <= 32'd3;
-                else if (illegal_inst)  csr.scause <= 32'd2;
+                else if (ebreak_active)     csr.scause <= 32'd3;
+                else if (illegal_inst)      csr.scause <= 32'd2;
+                else if (target_misaligned) csr.scause <= 32'd0;
 
             end else begin
                 // Non-delegated trap: enter M-mode
@@ -510,8 +512,9 @@ always_ff @(posedge clk_in) begin
                         default: csr.mcause <= 32'd11;
                     endcase
                 end
-                else if (ebreak_active) csr.mcause <= 32'd3;
-                else if (illegal_inst)  csr.mcause <= 32'd2;
+                else if (ebreak_active)     csr.mcause <= 32'd3;
+                else if (illegal_inst)      csr.mcause <= 32'd2;
+                else if (target_misaligned) csr.mcause <= 32'd0;
             end
 
         end else if (ret_commit_in && sret_active) begin
@@ -730,33 +733,56 @@ end
 // Early JAL/JALR
 // ============================================================
 
+addr_t jal_target;
+assign jal_target_out = jal_ok_out ? jal_target : '0;
+
+// Compute target_misaligned independently of trap_out to avoid a combinatorial loop
+logic target_misaligned;
+always_comb begin
+    unique case (ir_buff.r.opcode)
+        JALR: begin
+            addr_t jalr_base = (rd_sel_in != 0 && ir_buff.r.rs1 == rd_sel_in) ? rd_data_in : regfile[ir_buff.r.rs1];
+            data_t jalr_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
+            addr_t target = (jalr_base + jalr_imm) & ~ 32'd1;
+            target_misaligned = target[1] && instr_valid_buff;
+        end
+        JAL: begin
+            data_t jal_imm = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
+            addr_t target = pc_in_buff + jal_imm;
+            target_misaligned = target[1] && instr_valid_buff;
+        end
+        default: target_misaligned = 1'b0;
+    endcase
+end
+
+// Compute the final target
 always_comb begin
     if (ENABLE_EARLY_JAL_JALR && !trap_out) begin
         addr_t jal_target_base;
         data_t jal_imm;
-        jal_target_base = 32'h0;
-        jal_imm = 32'h0;
+        jal_target_base = '0;
+        jal_imm = '0;
 
         case (ir_buff.r.opcode)
             JALR: begin
-                jal_ok_out = 1'b1;
+                jal_ok_out = !target_misaligned;
                 jal_target_base = (rd_sel_in != 0 && ir_buff.r.rs1 == rd_sel_in) ? rd_data_in : regfile[ir_buff.r.rs1];
                 jal_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};  // I-type immediate
-                jal_target_out = (jal_target_base + jal_imm) & ~32'h1;
+                jal_target = (jal_target_base + jal_imm) & ~32'h1;
             end
             JAL: begin
-                jal_ok_out = 1'b1;
+                jal_ok_out = !target_misaligned;
                 jal_imm = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};  // J-type immediate
-                jal_target_out = pc_in_buff + jal_imm;
+                jal_target = pc_in_buff + jal_imm;
             end
             default: begin
                 jal_ok_out = 1'b0;
-                jal_target_out = 32'h0;
+                jal_target = '0;
             end
         endcase
     end else begin
         jal_ok_out = 1'b0;
-        jal_target_out = 32'h0;
+        jal_target = '0;
     end
 end
 
