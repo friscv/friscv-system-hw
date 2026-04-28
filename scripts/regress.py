@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 
@@ -14,6 +16,7 @@ ACT_ELFS = REPO / "verif" / "arch-test" / "riscv-arch-test" / "work" / "friscv-r
 SIM_EXE = REPO / "build" / "verilator" / "tb_integration" / "Vtb_integration"
 OUT = REPO / "build" / "regress" / "arch-test"
 OBJCOPY = "riscv64-unknown-elf-objcopy"
+MAX_WORKERS = int(os.environ.get("JOBS", str(os.cpu_count() or 1)))
 
 GREEN = "\033[32m"
 RED = "\033[31m"
@@ -104,9 +107,13 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
 
     results = []
-    for elf in tests:
-        result = run_test(elf)
-        results.append(result)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        futures = [pool.submit(run_test, elf) for elf in tests]
+        for future in as_completed(futures):
+            results.append(future.result())
+
+    results.sort(key=lambda result: result["name"])
+    for result in results:
         print_result(result)
 
     report = OUT / "results.json"
