@@ -1,5 +1,5 @@
 VERILATOR := verilator
-VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Wno-fatal -Wno-TIMESCALEMOD -Wno-PINMISSING
+VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Wno-fatal -Wno-TIMESCALEMOD
 VERILATOR_OUT := build/verilator/tb_integration
 ACT_ROOT := verif/arch-test/riscv-arch-test
 ACT_CONFIG_SRC := verif/arch-test/friscv-rv32ia
@@ -38,7 +38,7 @@ act-build: act-config
 	UV_LINK_MODE=$(UV_LINK_MODE) CONFIG_FILES=$(ACT_CONFIG) EXCLUDE_EXTENSIONS=$(ACT_EXCLUDE_EXTENSIONS) $(MAKE) -C $(ACT_ROOT) --jobs $(JOBS)
 
 .PYTHON: regress
-regress:
+regress: verilate
 	python3 scripts/regress.py
 
 .PHONY: act

@@ -116,6 +116,7 @@ endgenerate
 instr_op_t ir_buff;
 addr_t     pc_in_buff;
 addr_t     pc_plus_4_buff;
+logic      instr_valid_buff;
 imm_e      imm_sel;
 
 assign rs1_out = regfile[rs1_sel_out];
@@ -134,6 +135,7 @@ always_ff @(posedge clk_in) begin
         ir_buff        <= NOP;
         pc_in_buff     <= '0;
         pc_plus_4_buff <= '0;
+        instr_valid_buff <= 1'b0;
     end else begin
         if (rd_sel_in != 0)
             regfile[rd_sel_in] <= rd_data_in;
@@ -142,10 +144,12 @@ always_ff @(posedge clk_in) begin
             ir_buff        <= NOP;
             pc_in_buff     <= '0;
             pc_plus_4_buff <= '0;
+            instr_valid_buff <= 1'b0;
         end else if (!stage_stall_in) begin
             ir_buff <= ir_in;
             pc_in_buff <= pc_in;
             pc_plus_4_buff <= pc_plus_4_in;
+            instr_valid_buff <= 1'b1;
         end
     end
 end
@@ -233,6 +237,45 @@ assign decode_csr_ro = selected_csr[11:10] == 2'b11;
 
 mode_e decode_csr_mode;
 assign decode_csr_mode = mode_e'(selected_csr[9:8]);
+
+logic       selected_is_ctr;
+logic [4:0] selected_ctr_bit;
+logic       ctr_access_illegal;
+
+// Determine which counter is selected
+always_comb begin
+    selected_is_ctr  = 1'b1;
+    selected_ctr_bit = 5'd0;
+
+    case (selected_csr)
+        CSR_CYCLE, CSR_CYCLEH: begin
+            selected_ctr_bit = 5'd0;
+        end
+        CSR_TIME, CSR_TIMEH: begin
+            selected_ctr_bit = 5'd1;
+        end
+        CSR_INSTRET, CSR_INSTRETH: begin
+            selected_ctr_bit = 5'd2;
+        end
+        default: begin
+            selected_is_ctr = 1'b0;
+        end
+    endcase
+end
+
+// Determine if current mode can access selected counter
+always_comb begin
+    ctr_access_illegal = 1'b0;
+
+    if (selected_is_ctr) begin
+        case (r_current_mode)
+            M_MODE:  ctr_access_illegal = 1'b0;
+            S_MODE:  ctr_access_illegal = !csr.mcounteren[selected_ctr_bit];
+            default: ctr_access_illegal = !csr.mcounteren[selected_ctr_bit] ||
+                                          !csr.scounteren[selected_ctr_bit];
+        endcase
+    end
+end
 
 // Determine if the instruction being decoded will write to a CSR
 // CSR write will have no effect if either the destination is x0 or uimm is 5'b0
@@ -494,7 +537,7 @@ always_ff @(posedge clk_in) begin
                     csr.mstatus.sum  <= csr_data_in[18];
                     csr.mstatus.mxr  <= csr_data_in[19];
                 end
-                CSR_SCOUNTEREN: csr.scounteren <= csr_data_in;
+                CSR_SCOUNTEREN: csr.scounteren <= csr_data_in & 32'h0000_0007;
                 CSR_SIE: begin  // S-mode visible bits of mie only
                     csr.mie[1] <= csr_data_in[1];
                     csr.mie[5] <= csr_data_in[5];
@@ -536,7 +579,7 @@ always_ff @(posedge clk_in) begin
                 CSR_MIDELEG:    csr.mideleg    <= csr_data_in & 32'h0000_0222;  // Bits 1,5,9 only
                 CSR_MIE:        csr.mie        <= csr_data_in;
                 CSR_MTVEC:      csr.mtvec      <= csr_data_in;
-                CSR_MCOUNTEREN: csr.mcounteren <= csr_data_in;
+                CSR_MCOUNTEREN: csr.mcounteren <= csr_data_in & 32'h0000_0007;
                 CSR_MENVCFG:    csr.menvcfg    <= csr_data_in;
                 CSR_MENVCFGH:   csr.menvcfgh   <= csr_data_in;
                 CSR_MIP: begin  // S-mode soft interrupt bits writable through mip
@@ -558,7 +601,7 @@ always_ff @(posedge clk_in) begin
                 CSR_PMPADDR3: csr.pmpaddr3 <= csr_data_in;
 
                 // Machine Counter Setup
-                CSR_MCOUNTINHIBIT: csr.mcountinhibit <= csr_data_in;
+                CSR_MCOUNTINHIBIT: csr.mcountinhibit <= csr_data_in & 32'h0000_0005;
                 default: ;
             endcase
         end
@@ -720,7 +763,7 @@ end
 always_comb begin
     // Set signals to have no side effect by default
     instr_ex_out = NOP_CTRL;
-    instr_ex_out.instr_valid = 1'b1;
+    instr_ex_out.instr_valid = instr_valid_buff;
     instr_ex_out.csr_addr = selected_csr;
 
     rs1_sel_out = 5'b0;
@@ -1030,7 +1073,8 @@ always_comb begin
 
                 illegal_inst = (decode_csr_ro && is_csr_write) ||
                                (r_current_mode < decode_csr_mode) ||
-                               csr_not_implemented;
+                               csr_not_implemented ||
+                               ctr_access_illegal;
 
                 case (ir_buff.r.funct3)
                     3'b001: begin  //  CSRRW

@@ -41,6 +41,7 @@ module friscv_wb_stage (
     output csr_addr_e    csr_sel_out,
     output data_t        csr_data_out,
     output logic         csr_en_out,
+    output logic         instr_valid_out,
     output logic         inst_ret_out
 );
 
@@ -88,10 +89,11 @@ assign rd_sel_out   = rd_sel_buff;
 assign csr_sel_out  = csr_sel_buff;
 assign csr_data_out = csr_data_buff;
 assign csr_en_out   = csr_en_buff;
+assign instr_valid_out = instr_valid_buff;
 assign inst_ret_out = instr_valid_buff && !stage_stall_in;
 
 // ============================================================
-// Result mux (was in MEM stage)
+// Result mux
 // ============================================================
 
 always_comb begin

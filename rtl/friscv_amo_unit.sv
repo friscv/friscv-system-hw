@@ -51,7 +51,14 @@ data_t   r_rs2_val;
 assign w_load_data = (r_state == S_LOAD && !i_mem_wait) ? i_mem_load_data : r_load_data;
 
 assign o_core_load_data = w_load_data;
-assign o_core_wait = w_next_state != S_IDLE;
+
+// Core should wait if
+//  1) On the initiating cycle when AMO is idle
+//  2) During a load
+//  3) During a stall, except when downstream is not waiting, that is the last cycle
+assign o_core_wait = ((r_state == S_IDLE) && (i_amo_op != AMO_NONE)) ||
+                     (r_state == S_LOAD) ||
+                     ((r_state == S_STORE) && i_mem_wait);
 
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
@@ -98,24 +105,30 @@ end
 // State transition logic
 always_comb begin
     w_next_state = r_state;
-    o_mem_rw = RW_IDLE;
     
     case (r_state)
         S_IDLE: begin
             if (i_amo_op != AMO_NONE) begin
                 w_next_state = S_LOAD;
-                o_mem_rw = RW_READ;
             end
         end
         S_LOAD: begin
             w_next_state = (i_mem_wait) ? S_LOAD : S_STORE;
-            o_mem_rw = RW_READ;
         end
         S_STORE: begin
             w_next_state = (i_mem_wait) ? S_STORE : S_IDLE;
-            o_mem_rw = RW_WRITE;
         end
         default: ;
+    endcase
+end
+
+// Output decode
+always_comb begin
+    case (r_state)
+        S_IDLE:  o_mem_rw = (i_amo_op != AMO_NONE) ? RW_READ : RW_IDLE;
+        S_LOAD:  o_mem_rw = RW_READ;
+        S_STORE: o_mem_rw = RW_WRITE;
+        default: o_mem_rw = RW_IDLE;
     endcase
 end
 

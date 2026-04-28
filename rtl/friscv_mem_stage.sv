@@ -136,8 +136,11 @@ logic  r_sc_res;
 //  2) It is not a store conditional instruction
 logic cond_valid;
 logic cond_valid_r;
+logic sc_clears_reserve;
 
-assign cond_valid = (conditional_in) ? reserve_valid && (reserve_addr == alu_data_in) : 1'b1;
+// If a previous SC cleared the reservation, the next SC must not see cond valid
+assign sc_clears_reserve = instr_valid_buff && conditional_buff;
+assign cond_valid = (conditional_in) ? reserve_valid && !sc_clears_reserve && (reserve_addr == alu_data_in) : 1'b1;
 
 // ============================================================
 // Input capture
@@ -266,7 +269,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 if (reserve_in) begin
                     reserve_valid <= 1'b1;
                     reserve_addr  <= alu_data_in;
-                end else if (conditional_buff && r_mem_active) begin
+                end else if (sc_clears_reserve) begin
                     // SC.W completed; clear reservation so a subsequent SC fails.
                     reserve_valid <= 1'b0;
                 end
@@ -288,7 +291,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             // Clear reservation after SC completes
             if (conditional_buff) begin
                 reserve_valid <= 1'b0;
-                r_sc_res <= !cond_valid;
+                r_sc_res <= !cond_valid_r;
                 r_sc_res_valid <= 1'b1;
             end
 

@@ -54,6 +54,9 @@ module friscv_pipeline_control (
     input  reg_addr_t wb_rd_sel_in,
     input  logic      wb_csr_en_in,
     input  csr_addr_e wb_csr_sel_in,
+    input  logic      ex_instr_valid_in,
+    input  logic      mem_instr_valid_in,
+    input  logic      wb_instr_valid_in,
 
     // Older memory ops ahead of a return must retire before redirecting to epc
     input  logic      ex_mem_inflight_in,
@@ -71,6 +74,7 @@ module friscv_pipeline_control (
 
 logic reg_hazard, csr_hazard, ret_csr_hazard, ret_pipe_hazard;
 logic serializing_csr_hazard;
+logic counter_csr_hazard;
 logic mem_stall, hazard_stall, trap_pending_stall;
 
 function automatic logic is_serializing_csr(csr_addr_e csr_sel);
@@ -80,6 +84,17 @@ begin
         // instructions must wait for the committed update.
         CSR_SATP: is_serializing_csr = 1'b1;
         default:  is_serializing_csr = 1'b0;
+    endcase
+end
+endfunction
+
+function automatic logic is_counter_csr(csr_addr_e csr_sel);
+begin
+    case (csr_sel)
+        CSR_CYCLE, CSR_CYCLEH,
+        CSR_TIME, CSR_TIMEH,
+        CSR_INSTRET, CSR_INSTRETH: is_counter_csr = 1'b1;
+        default:                   is_counter_csr = 1'b0;
     endcase
 end
 endfunction
@@ -109,11 +124,16 @@ always_comb begin
                              (mem_csr_en_in && is_serializing_csr(mem_csr_sel_in)) ||
                              (wb_csr_en_in  && is_serializing_csr(wb_csr_sel_in));
 
+    // Counter CSR operations must wait for valid instructions to commit
+    counter_csr_hazard = id_csr_en_in && is_counter_csr(id_csr_sel_in) &&
+                         (ex_instr_valid_in || mem_instr_valid_in || wb_instr_valid_in);
+
     // Stall while trap is pending
     csr_hazard = (id_csr_en_in && ex_csr_en_in  && (id_csr_sel_in == ex_csr_sel_in))  ||
                  (id_csr_en_in && mem_csr_en_in && (id_csr_sel_in == mem_csr_sel_in)) ||
                  (id_csr_en_in && wb_csr_en_in  && (id_csr_sel_in == wb_csr_sel_in))  ||
                  serializing_csr_hazard ||
+                 counter_csr_hazard ||
                  ret_csr_hazard ||
                  ret_pipe_hazard;
 

@@ -124,6 +124,7 @@ csr_addr_e wb_csr_sel_out;
 data_t     wb_csr_data_out;
 logic      wb_csr_en_out;
 logic      wb_inst_ret_out;
+logic      wb_instr_valid_out;
 
 // Interrupts
 addr_t id_tvec_out, id_epc_out;
@@ -168,6 +169,9 @@ friscv_pipeline_control control_unit (
     .wb_rd_sel_in     ( wb_rd_sel_out      ),
     .wb_csr_en_in     ( wb_csr_en_out      ),
     .wb_csr_sel_in    ( wb_csr_sel_out     ),
+    .ex_instr_valid_in ( ex_instr_valid_out ),
+    .mem_instr_valid_in( mem_instr_valid_out),
+    .wb_instr_valid_in ( wb_instr_valid_out ),
 
     // Older memory operations must drain before return redirects take effect
     .ex_mem_inflight_in ( ex_instr_is_mem  ),
@@ -432,6 +436,7 @@ friscv_wb_stage wb_stage (
     .csr_sel_out     ( wb_csr_sel_out         ),
     .csr_data_out    ( wb_csr_data_out        ),
     .csr_en_out      ( wb_csr_en_out          ),
+    .instr_valid_out ( wb_instr_valid_out     ),
     .inst_ret_out    ( wb_inst_ret_out        )
 );
 
