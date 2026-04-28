@@ -262,7 +262,7 @@ always_ff @(posedge clk or negedge rstn) begin
                     default: ;
                 endcase
             end else if (write_addr >= DRAM_BASE && write_addr < DRAM_BASE + MEM_SIZE) begin
-                automatic logic [31:0] idx = write_addr - DRAM_BASE;
+                automatic logic [31:0] idx = (write_addr - DRAM_BASE) & 32'hFFFFFFFC;
                 if (m_axi_wstrb[0]) memory[idx+0] <= m_axi_wdata[7:0];
                 if (m_axi_wstrb[1]) memory[idx+1] <= m_axi_wdata[15:8];
                 if (m_axi_wstrb[2]) memory[idx+2] <= m_axi_wdata[23:16];

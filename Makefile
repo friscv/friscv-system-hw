@@ -37,9 +37,12 @@ act-build: act-config
 	rm -rf $(ACT_WORK)/build $(ACT_WORK)/elfs
 	UV_LINK_MODE=$(UV_LINK_MODE) CONFIG_FILES=$(ACT_CONFIG) EXCLUDE_EXTENSIONS=$(ACT_EXCLUDE_EXTENSIONS) $(MAKE) -C $(ACT_ROOT) --jobs $(JOBS)
 
-.PHONY: act
-act: verilate act-build
+.PYTHON: regress
+regress:
 	python3 scripts/regress.py
+
+.PHONY: act
+act: verilate act-build regress
 
 .PHONY: clean
 clean:
