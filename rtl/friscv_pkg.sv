@@ -99,6 +99,7 @@ package friscv_pkg;
         CSR_SCOUNTEREN = 12'h106,
         CSR_SIE        = 12'h104,
         CSR_STVEC      = 12'h105,
+        CSR_SENVCFG    = 12'h10A,
 
         // Supervisor Trap Handling
         CSR_SSCRATCH   = 12'h140,
@@ -182,7 +183,7 @@ package friscv_pkg;
         logic        tvm;         // [20]    Trap Virtual Memory
         logic        mxr;         // [19]    Make eXecutable Readable
         logic        sum;         // [18]    Supervisor User Memory access
-        logic        mprv;        // [17]    Modify PRiVilege (WPRI)
+        logic        mprv;        // [17]    Modify PRiVilege
         logic [1:0]  xs;          // [16:15] eXtension Status (WPRI)
         logic [1:0]  fs;          // [14:13] Floating-point Status (WPRI)
         mode_e       mpp;         // [12:11] M Previous Privilege

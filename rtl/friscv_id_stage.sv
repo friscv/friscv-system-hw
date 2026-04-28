@@ -171,6 +171,7 @@ typedef struct packed {
     // Supervisor Trap Setup
     data_t scounteren;
     addr_t stvec;
+    data_t senvcfg;
 
     // Supervisor Trap Handling
     data_t sscratch;
@@ -544,6 +545,7 @@ always_ff @(posedge clk_in) begin
                     csr.mie[9] <= csr_data_in[9];
                 end
                 CSR_STVEC:    csr.stvec    <= csr_data_in;
+                CSR_SENVCFG:  csr.senvcfg  <= csr_data_in;
                 CSR_SSCRATCH: csr.sscratch <= csr_data_in;
                 CSR_SEPC:     csr.sepc     <= csr_data_in;
                 CSR_SCAUSE:   csr.scause   <= csr_data_in;
@@ -571,6 +573,7 @@ always_ff @(posedge clk_in) begin
                     csr.mstatus.mpie <= csr_data_in[7];
                     csr.mstatus.spp  <= csr_data_in[8];
                     csr.mstatus.mpp  <= mode_e'(csr_data_in[12:11]);
+                    csr.mstatus.mprv <= csr_data_in[17];
                     csr.mstatus.sum  <= csr_data_in[18];
                     csr.mstatus.mxr  <= csr_data_in[19];
                     csr.mstatus.tvm  <= csr_data_in[20];
@@ -684,6 +687,7 @@ always_comb begin : csr_read
         CSR_SCOUNTEREN:    csr_out = csr.scounteren;
         CSR_SIE:           csr_out = csr.mie & 32'h0000_0222;  // S-mode bits: SEIE[9], STIE[5], SSIE[1]
         CSR_STVEC:         csr_out = csr.stvec;
+        CSR_SENVCFG:       csr_out = csr.senvcfg;
         CSR_SSCRATCH:      csr_out = csr.sscratch;
         CSR_SEPC:          csr_out = csr.sepc;
         CSR_SCAUSE:        csr_out = csr.scause;
