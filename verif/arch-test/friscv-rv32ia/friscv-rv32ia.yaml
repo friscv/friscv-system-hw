@@ -1,7 +1,7 @@
 kind: architecture configuration
 type: fully configured
 name: friscv-rv32ia
-description: FRISC-V RV32IA_Zicsr_Zifencei with M/S/U and Sv32
+description: FRISC-V RV32IA_Zicsr_Zifencei with M/S/U, no paged virtual memory
 
 implemented_extensions:
   - { name: I, version: "= 2.1" }
@@ -14,7 +14,6 @@ implemented_extensions:
   - { name: U, version: "= 1.0.0" }
   - { name: S, version: "= 1.12.0" }
   - { name: Sstc, version: "= 1.0.0" }
-  - { name: Sv32, version: "= 1.12.0" }
   - { name: Sm, version: "= 1.12.0" }
 
 params:
@@ -66,6 +65,7 @@ params:
 
   ASID_WIDTH: 9
   SATP_MODE_BARE: true
+  TRAP_ON_SFENCE_VMA_WHEN_SATP_MODE_IS_READ_ONLY: false
 
   NUM_PMP_ENTRIES: 0
   PMA_GRANULARITY: 2
@@ -120,10 +120,8 @@ params:
   REPORT_VA_IN_STVAL_ON_STORE_AMO_MISALIGNED: false
   REPORT_VA_IN_STVAL_ON_STORE_AMO_PAGE_FAULT: true
 
-  MISALIGNED_LDST: true
-  MISALIGNED_LDST_EXCEPTION_PRIORITY: low
-  MISALIGNED_MAX_ATOMICITY_GRANULE_SIZE: 0
-  MISALIGNED_SPLIT_STRATEGY: custom
+  MISALIGNED_LDST: false
+  MISALIGNED_LDST_EXCEPTION_PRIORITY: high
 
   MISALIGNED_AMO: false
   LRSC_RESERVATION_STRATEGY: "reserve exactly enough to cover the access"

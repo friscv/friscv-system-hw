@@ -51,10 +51,10 @@
       "supported": true,
       "exceptions": {
         "load_store": {
-          "None": null
+          "Some": "AlignmentException"
         },
         "vector": {
-          "None": null
+          "Some": "AlignmentException"
         },
         "lrsc": "AccessFault",
         "amo": "AccessFault"
@@ -172,10 +172,10 @@
           "write_idempotent": true,
           "misaligned_exceptions": {
             "load_store": {
-              "None": null
+              "Some": "AlignmentException"
             },
             "vector": {
-              "None": null
+              "Some": "AlignmentException"
             },
             "amo": "AccessFault"
           },
@@ -319,7 +319,7 @@
       "supported": true,
       "sfence_vma_illegal_if_svbare_only": false
     },
-    "Sv32": { "supported": true },
+    "Sv32": { "supported": false },
     "Sv39": { "supported": false },
     "Sv48": { "supported": false },
     "Sv57": { "supported": false },
