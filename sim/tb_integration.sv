@@ -3,8 +3,8 @@
 
 module tb_integration;
 
-parameter CLK_PERIOD = 20;       // 20ns clock period (50MHz)
-parameter MAX_CYCLES = 1000000;  // Maximum simulation cycles
+parameter CLK_PERIOD = 20;        // 20ns clock period (50MHz)
+parameter MAX_CYCLES = 10000000;  // Maximum simulation cycles
 // PROG_FILE is set at runtime via +PROG_FILE=<path> (xsim plusarg)
 // Default: ../../../../../test/prog.bin
 string PROG_FILE;

@@ -358,7 +358,7 @@ logic mret_active, sret_active;
 assign mret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b001100000010);
 assign sret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b000100000010);
 
-assign ret_out = mret_active || sret_active;
+assign ret_out = (mret_active || sret_active) && !illegal_inst;
 
 // Compute exception cause code
 logic [4:0] exception_cause_code;
