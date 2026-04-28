@@ -8,8 +8,12 @@ parameter MAX_CYCLES = 100000;  // Maximum simulation cycles
 // PROG_FILE is set at runtime via +PROG_FILE=<path> (xsim plusarg)
 // Default: ../../../../../test/prog.bin
 string PROG_FILE;
+string SIG_OUT;
+logic [31:0] sig_start;
+logic [31:0] sig_end;
+logic        sig_dump_en;
 
-parameter MEM_SIZE     = 32 * 1024;     // 32 KiB
+parameter MEM_SIZE     = 1024 * 1024;   // 1 MiB
 parameter CPU_MEM_BASE = 32'h80000000;  // Memory base address (CPU view)
 parameter DRAM_BASE    = 32'h00100000;  // Memory base address (Memory view)
 parameter GPIO_ADDR    = 32'h40000000;  // GPIO address
@@ -23,6 +27,7 @@ logic end_signal;
 
 logic w_mtip;
 logic w_msip;
+logic [63:0] w_mtime;
 
 // AXI Signals
 logic        m_axi_awvalid;
@@ -107,6 +112,7 @@ assign m_axi_rlast   = rd_to_timer ? tmr_rvalid  : mem_rlast;
 friscv_clint clint_inst (
     .clk_in         ( clk                         ),
     .rstn_in        ( rstn                        ),
+    .time_out       ( w_mtime                     ),
     .s_axi_awaddr   ( m_axi_awaddr                ),
     .s_axi_awvalid  ( m_axi_awvalid & wr_to_timer ),
     .s_axi_awready  ( tmr_awready                 ),
@@ -136,6 +142,7 @@ friscv_cpu_subsystem_axi dut (
     .i_msip        ( w_msip        ),
     .i_mtip        ( w_mtip        ),
     .i_meip        ( 1'b0          ),
+    .i_mtime       ( w_mtime       ),
 
     // AXI4 Master Write Address Channel
     .m_axi_awvalid ( m_axi_awvalid ),
@@ -323,6 +330,7 @@ end
 // =========================================================================
 initial begin
     int fd;
+    int sig_fd;
     int bytes_read;
     
     $display("==============================================");
@@ -338,6 +346,12 @@ initial begin
     // Resolve program file: +PROG_FILE=<path> overrides the default
     if (!$value$plusargs("PROG_FILE=%s", PROG_FILE))
         PROG_FILE = "../../../../../test/prog.bin";
+
+    sig_dump_en = $value$plusargs("SIG_OUT=%s", SIG_OUT);
+    if (!$value$plusargs("SIG_START=%h", sig_start))
+        sig_start = 32'h0;
+    if (!$value$plusargs("SIG_END=%h", sig_end))
+        sig_end = 32'h0;
 
     // Initialize memory
     for (int i = 0; i < MEM_SIZE; i++) memory[i] = 8'h0;
@@ -355,6 +369,11 @@ initial begin
                 memory[bytes_read] = result[7:0];
                 bytes_read++;
             end
+        end
+        if (!$feof(fd)) begin
+            $display("ERROR: Program exceeds MEM_SIZE (%0d bytes)", MEM_SIZE);
+            $display("[RESULT] FAIL (program too large)");
+            $finish;
         end
         $fclose(fd);
         $display("Loaded %0d bytes", bytes_read);
@@ -388,6 +407,26 @@ initial begin
         $display("Result (0x%08h): 0x%08h", RESULT_ADDR, result);
     end
     $display("==============================================");
+
+    if (sig_dump_en) begin
+        automatic logic [31:0] start_offset = sig_start - CPU_MEM_BASE;
+        automatic logic [31:0] end_offset   = sig_end   - CPU_MEM_BASE;
+
+        sig_fd = $fopen(SIG_OUT, "w");
+        if (sig_fd == 0) begin
+            $display("[SIG] ERROR: Cannot open signature output: %s", SIG_OUT);
+        end else if (sig_start < CPU_MEM_BASE || sig_end < sig_start || end_offset > MEM_SIZE) begin
+            $display("[SIG] ERROR: Invalid signature range 0x%08h..0x%08h", sig_start, sig_end);
+            $fclose(sig_fd);
+        end else begin
+            for (int i = start_offset; i < end_offset; i += 4) begin
+                automatic logic [31:0] word = {memory[i+3], memory[i+2], memory[i+1], memory[i+0]};
+                $fdisplay(sig_fd, "%08x", word);
+            end
+            $fclose(sig_fd);
+            $display("[SIG] Wrote %s for 0x%08h..0x%08h", SIG_OUT, sig_start, sig_end);
+        end
+    end
     
     if (gpio_reg == 32'hAABBCCDD)
         $display("[RESULT] PASS");

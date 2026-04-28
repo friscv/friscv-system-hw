@@ -55,6 +55,7 @@ test/*.o
 test/*.elf
 test/*.bin
 test/*.dis
+build/
 
 # Software build artifacts
 software/*.dtb
