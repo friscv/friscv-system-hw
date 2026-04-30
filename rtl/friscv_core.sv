@@ -96,15 +96,17 @@ csr_addr_e      ex_csr_sel_out;
 data_t          ex_csr_readback_out;
 logic           ex_csr_en_out;
 logic           ex_instr_valid_out;
+ex_trap_e       ex_trap_out;
+addr_t          ex_trap_pc_out;
+logic           ex_commit;
 
 logic ex_instr_is_mem;
 assign ex_instr_is_mem = ex_mem_instr_sel_out != MEM_INSTR_NONE;
 
 // MEM stage signals
-logic           mem_trap_out;
+mem_trap_e      mem_trap_out;
 addr_t          mem_trap_pc_out;
 addr_t          mem_trap_va_out;
-logic           mem_trap_is_store_out;
 addr_t          mem_pc_plus_4_out;
 data_t          mem_alu_data_out;
 data_t          mem_load_data_out;
@@ -116,6 +118,7 @@ data_t          mem_csr_data_out;
 data_t          mem_csr_readback_out;
 logic           mem_csr_en_out;
 logic           mem_instr_valid_out;
+logic           mem_commit;
 
 // WB stage signals
 data_t     wb_rd_data_out;
@@ -236,10 +239,15 @@ friscv_id_stage #(
     .fault_addr_in    ( i_fault_addr     ),
 
     // Page fault signals, from MEM stage
-    .mem_trap_in          ( mem_trap_out          ),
-    .mem_trap_pc_in       ( mem_trap_pc_out       ),
-    .mem_trap_va_in       ( mem_trap_va_out       ),
-    .mem_trap_is_store_in ( mem_trap_is_store_out ),
+    .mem_trap_in      ( mem_trap_out     ),
+    .mem_trap_pc_in   ( mem_trap_pc_out  ),
+    .mem_trap_va_in   ( mem_trap_va_out  ),
+    .mem_trap_commit_out ( mem_commit    ),
+
+    // EX stage trap
+    .ex_trap_in       ( ex_trap_out      ),
+    .ex_trap_pc_in    ( ex_trap_pc_out   ),
+    .ex_trap_commit_out ( ex_commit      ),
 
     // Stage control signals
     .flush_in         ( flush_id         ),
@@ -344,7 +352,12 @@ friscv_ex_stage ex_stage (
     .flush_vpn_out        ( flush_vpn_out           ),
     .flush_vpn_en_out     ( flush_vpn_en_out        ),
     .flush_asid_out       ( flush_asid_out          ),
-    .flush_asid_en_out    ( flush_asid_en_out       )
+    .flush_asid_en_out    ( flush_asid_en_out       ),
+
+    // Trap signals
+    .trap_commit_in       ( ex_commit               ),
+    .trap_out             ( ex_trap_out             ),
+    .trap_pc_out          ( ex_trap_pc_out          )
 );
 
 friscv_mem_stage mem_stage (
@@ -378,12 +391,11 @@ friscv_mem_stage mem_stage (
     .mem_trap_out        ( mem_trap_out            ),
     .mem_trap_pc_out     ( mem_trap_pc_out         ),
     .mem_trap_va_out     ( mem_trap_va_out         ),
-    .mem_trap_is_store_out ( mem_trap_is_store_out ),
 
     // AMO control
     .reserve_in          ( ex_reserve_out          ),
     .conditional_in      ( ex_conditional_out      ),
-    .clear_reserve_in    ( id_trap_out             ),
+    .clear_reserve_in    ( mem_commit              ),
     .amo_op_in           ( ex_amo_op_out           ),
 
     // Outputs to WB stage

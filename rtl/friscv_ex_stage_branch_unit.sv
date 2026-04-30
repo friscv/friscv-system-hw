@@ -20,7 +20,9 @@ module friscv_ex_stage_branch_unit (
     input  branch_cond_e branch_cond_in,
     input  data_t        src1_in,
     input  data_t        src2_in,
-    output logic         branch_ok_out
+    input  addr_t        target,
+    output logic         branch_ok_out,
+    output logic         misaligned_out
 );
 
 logic [DATA_WIDTH:0] w_sub;
@@ -28,6 +30,8 @@ logic  n, z, c, v;
 
 // src1 + ~src2 + 1 = src1 - src2, infers CARRY4 chain
 assign w_sub = {1'b0, src1_in} + {1'b0, ~src2_in} + (DATA_WIDTH+1)'(1);
+
+assign misaligned_out = branch_ok_out && (target[1:0] != 2'b0);
 
 always_comb begin
     n = w_sub[DATA_WIDTH-1];

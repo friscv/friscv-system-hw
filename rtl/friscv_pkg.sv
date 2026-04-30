@@ -34,6 +34,9 @@ package friscv_pkg;
     // Set this to 0 for debugging
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
 
+    // Check if the address being accessed is valid
+    localparam logic ENABLE_ADDRESS_SPACE_CHECK = 1;
+
     // Performance optimizations
     // If enabled, execute JAL(R) in IF instead of EX
     localparam logic ENABLE_EARLY_JAL_JALR = 1;
@@ -215,12 +218,35 @@ package friscv_pkg;
     typedef logic [PTE_LEVEL_W-1:0] pte_level_t;
 
     typedef enum logic [3:0] { 
-        SATP_BARE = 4'd0,
-        SATP_SV32 = 4'd1,
-        SATP_SV39 = 4'd8,
-        SATP_SV48 = 4'd9,
-        SATP_SV57 = 4'd10
+        SATP_BARE = 0,
+        SATP_SV32 = 1,
+        SATP_SV39 = 8,
+        SATP_SV48 = 9,
+        SATP_SV57 = 10
     } satp_mode_e;
+
+    typedef enum logic [2:0] {
+        TRAP_SRC_NONE = 0,
+        TRAP_SRC_MEM  = 1,
+        TRAP_SRC_EX   = 2,
+        TRAP_SRC_ID   = 3,
+        TRAP_SRC_IF   = 4
+    } trap_src_e;
+
+    typedef enum logic {
+        EX_TRAP_NONE       = 0,
+        EX_TRAP_MISALIGNED = 1
+    } ex_trap_e;
+
+    typedef enum logic [2:0] {
+        MEM_TRAP_NONE             = 0,
+        MEM_TRAP_LOAD             = 1,
+        MEM_TRAP_STORE            = 2,
+        MEM_TRAP_LOAD_MISALIGNED  = 3,
+        MEM_TRAP_STORE_MISALIGNED = 4,
+        MEM_TRAP_LOAD_ACCESS      = 5,
+        MEM_TRAP_STORE_ACCESS     = 6
+    } mem_trap_e;
 
     typedef struct packed {
         satp_mode_t mode;
@@ -312,9 +338,9 @@ package friscv_pkg;
     } instr_op_t;
 
     typedef enum logic [1:0] {
-        BRANCH_JAL_NONE = 2'b00,
-        BRANCH_INSTR    = 2'b01,
-        JAL_INSTR       = 2'b10
+        BRANCH_JAL_NONE = 0,
+        BRANCH_INSTR    = 1,
+        JAL_INSTR       = 2
     } jump_sel_e;
 
     typedef enum logic [2:0] {
@@ -328,16 +354,16 @@ package friscv_pkg;
     } branch_cond_e;
 
     typedef enum logic [1:0] {
-        RS1     = 2'b00,
-        ZERO_A  = 2'b01,
-        PC      = 2'b10,
-        RS1_SEL = 2'b11
+        RS1     = 0,
+        ZERO_A  = 1,
+        PC      = 2,
+        RS1_SEL = 3
     } a_bus_sel_e;
 
     typedef enum logic [1:0] {
-        RS2 = 2'b00,
-        IMM = 2'b01,
-        CSR = 2'b10
+        RS2 = 0,
+        IMM = 1,
+        CSR = 2
     } b_bus_sel_e;
 
     typedef enum logic [3:0] {
@@ -373,11 +399,11 @@ package friscv_pkg;
     } mem_instr_sel_e;
 
     typedef enum logic [2:0] {
-        WB_DATA_SEL_PC_PLUS_4 = 3'b000,
-        WB_DATA_SEL_ALU       = 3'b001,
-        WB_DATA_SEL_MEM       = 3'b010,
-        WB_DATA_SEL_SC_RES    = 3'b011,
-        WB_DATA_SEL_CSR       = 3'b100
+        WB_DATA_SEL_PC_PLUS_4 = 0,
+        WB_DATA_SEL_ALU       = 1,
+        WB_DATA_SEL_MEM       = 2,
+        WB_DATA_SEL_SC_RES    = 3,
+        WB_DATA_SEL_CSR       = 4
     } wb_data_sel_e;
 
     typedef struct packed {

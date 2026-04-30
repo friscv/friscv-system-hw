@@ -55,6 +55,11 @@ module friscv_ex_stage (
     // Outputs to control logic
     output logic           branch_ok_out,
 
+    // Trap signals
+    input  logic           trap_commit_in,
+    output ex_trap_e       trap_out,
+    output addr_t          trap_pc_out,
+
     // TLB flush
     output logic           flush_tlb_out,
     output vpn_t           flush_vpn_out,
@@ -78,13 +83,26 @@ instr_ex_t instr_buff;
 logic branch_ok_raw;
 logic branch_ok_prev;
 logic sfence_vma_prev;
+logic misaligned_branch_raw;
+
+// ============================================================
+// Branch control
+// ============================================================
+
+ex_trap_e r_trap;
+addr_t    r_trap_pc;
+
+assign trap_out = r_trap;
+assign trap_pc_out = r_trap_pc;
 
 friscv_ex_stage_branch_unit branch_unit (
     .branch_jal_sel_in ( instr_buff.branch_jal_sel ),
     .branch_cond_in    ( instr_buff.branch_cond    ),
     .src1_in           ( rs1_buff                  ),
     .src2_in           ( rs2_buff                  ),
-    .branch_ok_out     ( branch_ok_raw             )
+    .target            ( alu_data_out              ),
+    .branch_ok_out     ( branch_ok_raw             ),
+    .misaligned_out    ( misaligned_branch_raw     )
 );
 
 // ============================================================
@@ -93,42 +111,76 @@ friscv_ex_stage_branch_unit branch_unit (
 
 always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
-        pc_plus_4_buff <= 32'h0;
-        pc_buff      <= 32'h0;
-        rs1_buff     <= 32'h0;
-        rs2_buff     <= 32'h0;
-        imm32_buff   <= 32'h0;
-        csr_buff     <= 32'h0;
+
+        pc_plus_4_buff <= '0;
+        pc_buff      <= '0;
+        rs1_buff     <= '0;
+        rs2_buff     <= '0;
+        imm32_buff   <= '0;
+        csr_buff     <= '0;
         rd_sel_buff  <= 5'b0;
         rs1_sel_buff <= 5'b0;
         rs2_sel_buff <= 5'b0;
         instr_buff   <= NOP_CTRL;
         branch_ok_prev <= 1'b0;
         sfence_vma_prev <= 1'b0;
-    end else if (!stage_stall_in) begin
-        if (stage_flush_in || branch_ok_out) begin
-            pc_buff     <= 32'h0;
-            rd_sel_buff <= 5'b0;
-            instr_buff  <= NOP_CTRL;
+        r_trap <= EX_TRAP_NONE;
+        r_trap_pc <= '0;
+
+    end else begin
+
+        if (trap_commit_in) begin
+            // The trap has been consumed by ID. Keep this as a bubble.
+            r_trap <= EX_TRAP_NONE;
+            r_trap_pc <= '0;
+
+        end else if (r_trap != EX_TRAP_NONE) begin
+            // Hold the captured trap until ID commits it.
+
+        end else if (!stage_stall_in) begin
+
+            if (!stage_flush_in &&
+                instr_buff.instr_valid &&
+                branch_ok_raw &&
+                misaligned_branch_raw
+            ) begin
+                // Stop the pipeline on a taken misaligned branch
+                instr_buff <= NOP_CTRL;
+                rd_sel_buff <= 5'b0;
+                branch_ok_prev <= 1'b0;
+                sfence_vma_prev <= 1'b0;
+
+                r_trap <= EX_TRAP_MISALIGNED;
+                r_trap_pc <= pc_buff;
+
+            end else begin
+                if (stage_flush_in || branch_ok_out) begin
+                    pc_buff     <= 32'h0;
+                    rd_sel_buff <= 5'b0;
+                    instr_buff  <= NOP_CTRL;
+                end else begin
+                    pc_plus_4_buff <= pc_plus_4_in;
+                    pc_buff        <= pc_in;
+                    rs1_buff       <= rs1_in;
+                    rs2_buff       <= rs2_in;
+                    imm32_buff     <= imm32_in;
+                    csr_buff       <= csr_in;
+                    rd_sel_buff    <= rd_sel_in;
+                    rs1_sel_buff   <= rs1_sel_in;
+                    rs2_sel_buff   <= rs2_sel_in;
+                    instr_buff     <= instr_ex_in;
+                end
+
+                // Pulse branch redirect and sfence.vma side effect only once per instruction
+                branch_ok_prev <= branch_ok_raw;
+                sfence_vma_prev <= instr_buff.sfence_vma;
+            end
+
         end else begin
-            pc_plus_4_buff <= pc_plus_4_in;
-            pc_buff        <= pc_in;
-            rs1_buff       <= rs1_in;
-            rs2_buff       <= rs2_in;
-            imm32_buff     <= imm32_in;
-            csr_buff       <= csr_in;
-            rd_sel_buff    <= rd_sel_in;
-            rs1_sel_buff   <= rs1_sel_in;
-            rs2_sel_buff   <= rs2_sel_in;
-            instr_buff     <= instr_ex_in;
+            branch_ok_prev <= branch_ok_raw;
+            sfence_vma_prev <= instr_buff.sfence_vma;
         end
 
-        // Pulse branch redirect and sfence.vma side effect only once per instruction
-        branch_ok_prev <= branch_ok_raw;
-        sfence_vma_prev <= instr_buff.sfence_vma;
-    end else begin
-        branch_ok_prev <= branch_ok_raw;
-        sfence_vma_prev <= instr_buff.sfence_vma;
     end
 end
 
@@ -149,7 +201,7 @@ assign csr_sel_out          = instr_buff.csr_addr;
 assign csr_readback_out     = csr_buff;
 assign csr_en_out           = instr_buff.csr_op;
 assign instr_valid_out      = instr_buff.instr_valid;
-assign branch_ok_out        = branch_ok_raw && !branch_ok_prev;
+assign branch_ok_out        = branch_ok_raw && !branch_ok_prev && !misaligned_branch_raw;
 assign flush_tlb_out        = instr_buff.sfence_vma && !sfence_vma_prev;
 assign flush_vpn_out        = vpn_t'(rs1_buff[31:12]);
 assign flush_vpn_en_out     = (rs1_sel_buff != 5'b0);

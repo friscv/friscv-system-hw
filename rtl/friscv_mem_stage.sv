@@ -62,10 +62,9 @@ module friscv_mem_stage (
     input  addr_t          fault_addr_in,
 
     // Page fault output to ID stage
-    output logic           mem_trap_out,
+    output mem_trap_e      mem_trap_out,
     output addr_t          mem_trap_pc_out,
     output addr_t          mem_trap_va_out,
-    output logic           mem_trap_is_store_out,
 
     // Data memory interface
     output addr_t          d_mem_addr_out,
@@ -78,40 +77,60 @@ module friscv_mem_stage (
     output amo_op_e        d_mem_amo_op_out
 );
 
-// Input registers
-addr_t          pc_buff;
-addr_t          pc_plus_4_buff;
-addr_t          alu_data_buff;
-data_t          store_data_buff;
-reg_addr_t      rd_sel_buff;
-mem_instr_sel_e mem_instr_sel_buff;
-mem_width_e     load_store_width_buff;
-wb_data_sel_e   wb_data_sel_buff;
-logic           conditional_buff;
-logic           clear_reserve_buff;
-amo_op_e        amo_op_buff;
-csr_addr_e      csr_sel_buff;
-data_t          csr_readback_buff;
-logic           csr_en_buff;
-logic           instr_valid_buff;
+// Input buffers
+typedef struct packed {
+    addr_t          pc;
+    addr_t          pc_plus_4;
+    addr_t          alu_data;
+    data_t          store_data;
+    reg_addr_t      rd_sel;
+    mem_instr_sel_e mem_instr_sel;
+    mem_width_e     load_store_width;
+    wb_data_sel_e   wb_data_sel;
+    logic           conditional;
+    logic           clear_reserve;
+    amo_op_e        amo_op;
+    csr_addr_e      csr_sel;
+    data_t          csr_readback;
+    logic           csr_en;
+    logic           instr_valid;
+} mem_pipe_t;
 
-// Page fault capture
+localparam mem_pipe_t MEM_PIPE_BUBBLE = '{
+    pc: '0,
+    pc_plus_4: '0,
+    alu_data: '0,
+    store_data: '0,
+    rd_sel: 5'b0,
+    mem_instr_sel: MEM_INSTR_NONE,
+    load_store_width: WIDTH_I32,
+    wb_data_sel: WB_DATA_SEL_ALU,
+    conditional: 1'b0,
+    clear_reserve: 1'b0,
+    amo_op: AMO_NONE,
+    csr_sel: CSR_ZERO,
+    csr_readback: '0,
+    csr_en: 1'b0,
+    instr_valid: 1'b0
+};
+
+mem_pipe_t pipe_buff;
+
+// Fault capture
 // Set when a fault fires on the memory commit cycle
-logic  r_mem_fault;
-addr_t r_mem_fault_pc;
-addr_t r_mem_fault_va;
-logic  r_mem_fault_is_store;
+mem_trap_e r_mem_fault;
+addr_t     r_mem_fault_pc;
+addr_t     r_mem_fault_va;
 
-assign mem_trap_out          = r_mem_fault;
-assign mem_trap_pc_out       = r_mem_fault_pc;
-assign mem_trap_va_out       = r_mem_fault_va;
-assign mem_trap_is_store_out = r_mem_fault_is_store;
+assign mem_trap_out    = r_mem_fault;
+assign mem_trap_pc_out = r_mem_fault_pc;
+assign mem_trap_va_out = r_mem_fault_va;
 
 // CSR passthrough
-assign csr_sel_out      = csr_sel_buff;
-assign csr_data_out     = alu_data_buff;
-assign csr_readback_out = csr_readback_buff;
-assign csr_en_out       = csr_en_buff;
+assign csr_sel_out      = pipe_buff.csr_sel;
+assign csr_data_out     = pipe_buff.alu_data;
+assign csr_readback_out = pipe_buff.csr_readback;
+assign csr_en_out       = pipe_buff.csr_en;
 
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
@@ -122,8 +141,20 @@ logic r_load_data_valid;  // Flag indicating load data has been captured
 logic w_is_mem_instr;
 assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
 
+logic w_mem_misaligned;
+always_comb begin
+    case (load_store_width_in)
+        WIDTH_I16, WIDTH_U16: w_mem_misaligned = alu_data_in[0];
+        WIDTH_I32:            w_mem_misaligned = alu_data_in[1:0] != 2'b00;
+        default:              w_mem_misaligned = 1'b0;
+    endcase
+end
+
+logic w_mem_access_fault;
+assign w_mem_access_fault = ENABLE_ADDRESS_SPACE_CHECK && (alu_data_in < ZSBL_BASE);
+
 // Pass valid flag to WB; WB gates it with stall to produce inst_ret
-assign instr_valid_out = instr_valid_buff;
+assign instr_valid_out = pipe_buff.instr_valid;
 
 // Reservation register for AMO LR/SC
 logic  reserve_valid;
@@ -139,7 +170,7 @@ logic cond_valid_r;
 logic sc_clears_reserve;
 
 // If a previous SC cleared the reservation, the next SC must not see cond valid
-assign sc_clears_reserve = instr_valid_buff && conditional_buff;
+assign sc_clears_reserve = pipe_buff.instr_valid && pipe_buff.conditional;
 assign cond_valid = (conditional_in) ? reserve_valid && !sc_clears_reserve && (reserve_addr == alu_data_in) : 1'b1;
 
 // ============================================================
@@ -150,33 +181,18 @@ assign cond_valid = (conditional_in) ? reserve_valid && !sc_clears_reserve && (r
 // Bubbles are inserted by EX sending instructions with rd_sel=0
 always_ff @(posedge clk_in or negedge rst_n_in) begin
     if (!rst_n_in) begin
-        pc_buff               <= 32'h0;
-        pc_plus_4_buff        <= 32'h0;
-        alu_data_buff         <= 32'h0;
-        store_data_buff       <= 32'h0;
-        rd_sel_buff           <= 5'b0;
-        mem_instr_sel_buff    <= MEM_INSTR_NONE;
-        load_store_width_buff <= WIDTH_I32;
-        wb_data_sel_buff      <= WB_DATA_SEL_ALU;
-        r_mem_active          <= 1'b0;
-        r_load_data_valid     <= 1'b0;
-        load_data_buff        <= 32'b0;
-        reserve_valid         <= 1'b0;
-        reserve_addr          <= 32'b0;
-        r_sc_res_valid        <= 1'b0;
-        r_sc_res              <= 1'b0;
-        conditional_buff      <= 1'b0;
-        clear_reserve_buff    <= 1'b0;
-        cond_valid_r          <= 1'b0;
-        amo_op_buff           <= AMO_NONE;
-        csr_sel_buff          <= CSR_ZERO;
-        csr_readback_buff     <= 32'b0;
-        csr_en_buff           <= 1'b0;
-        instr_valid_buff      <= 1'b0;
-        r_mem_fault           <= 1'b0;
-        r_mem_fault_pc        <= 32'h0;
-        r_mem_fault_va        <= 32'h0;
-        r_mem_fault_is_store  <= 1'b0;
+        pipe_buff         <= MEM_PIPE_BUBBLE;
+        r_mem_active      <= 1'b0;
+        r_load_data_valid <= 1'b0;
+        load_data_buff    <= '0;
+        reserve_valid     <= 1'b0;
+        reserve_addr      <= '0;
+        r_sc_res_valid    <= 1'b0;
+        r_sc_res          <= 1'b0;
+        cond_valid_r      <= 1'b0;
+        r_mem_fault       <= MEM_TRAP_NONE;
+        r_mem_fault_pc    <= '0;
+        r_mem_fault_va    <= '0;
     end
 
     else begin
@@ -187,85 +203,79 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         if (trap_commit_in) begin
             // The fault has been consumed by the trap logic. Keep MEM as a
             // bubble while the earlier pipeline stages redirect to the handler.
-            pc_buff               <= 32'h0;
-            pc_plus_4_buff        <= 32'h0;
-            alu_data_buff         <= 32'h0;
-            store_data_buff       <= 32'h0;
-            rd_sel_buff           <= 5'b0;
-            mem_instr_sel_buff    <= MEM_INSTR_NONE;
-            load_store_width_buff <= WIDTH_I32;
-            wb_data_sel_buff      <= WB_DATA_SEL_ALU;
-            r_mem_active          <= 1'b0;
-            r_load_data_valid     <= 1'b0;
-            r_sc_res_valid        <= 1'b0;
-            conditional_buff      <= 1'b0;
-            clear_reserve_buff    <= 1'b0;
-            amo_op_buff           <= AMO_NONE;
-            cond_valid_r          <= 1'b0;
-            csr_sel_buff          <= CSR_ZERO;
-            csr_readback_buff     <= 32'b0;
-            csr_en_buff           <= 1'b0;
-            instr_valid_buff      <= 1'b0;
-            r_mem_fault           <= 1'b0;
-        end else if (r_mem_fault) begin
-            // Hold the oldest captured memory fault until ID commits the trap.
+            pipe_buff         <= MEM_PIPE_BUBBLE;
             r_mem_active      <= 1'b0;
             r_load_data_valid <= 1'b0;
             r_sc_res_valid    <= 1'b0;
-            instr_valid_buff  <= 1'b0;
+            cond_valid_r      <= 1'b0;
+            r_mem_fault       <= MEM_TRAP_NONE;
+        end else if (r_mem_fault != MEM_TRAP_NONE) begin
+            // Hold the oldest captured memory fault until ID commits the trap.
+            r_mem_active          <= 1'b0;
+            r_load_data_valid     <= 1'b0;
+            r_sc_res_valid        <= 1'b0;
+            pipe_buff.instr_valid <= 1'b0;
         end else if (!stage_stall_in) begin
             // When an older memory op faults on the same cycle the pipeline
             // would otherwise advance, the younger EX instruction must be
             // ignored completely.
             if (r_mem_active && (load_fault_in || store_fault_in)) begin
-                pc_buff               <= 32'h0;
-                pc_plus_4_buff        <= 32'h0;
-                alu_data_buff         <= 32'h0;
-                store_data_buff       <= 32'h0;
-                rd_sel_buff           <= 5'b0;
-                mem_instr_sel_buff    <= MEM_INSTR_NONE;
-                load_store_width_buff <= WIDTH_I32;
-                wb_data_sel_buff      <= WB_DATA_SEL_ALU;
-                r_mem_active          <= 1'b0;
-                r_load_data_valid     <= 1'b0;
-                r_sc_res_valid        <= 1'b0;
-                conditional_buff      <= 1'b0;
-                clear_reserve_buff    <= 1'b0;
-                amo_op_buff           <= AMO_NONE;
-                cond_valid_r          <= 1'b0;
-                csr_sel_buff          <= CSR_ZERO;
-                csr_readback_buff     <= 32'b0;
-                csr_en_buff           <= 1'b0;
-                instr_valid_buff      <= 1'b0;
-                r_mem_fault           <= 1'b1;
-                r_mem_fault_pc        <= pc_buff;
-                r_mem_fault_va        <= fault_addr_in;
-                r_mem_fault_is_store  <= store_fault_in;
+                pipe_buff         <= MEM_PIPE_BUBBLE;
+                r_mem_active      <= 1'b0;
+                r_load_data_valid <= 1'b0;
+                r_sc_res_valid    <= 1'b0;
+                cond_valid_r      <= 1'b0;
+                r_mem_fault       <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
+                r_mem_fault_pc    <= pipe_buff.pc;
+                r_mem_fault_va    <= fault_addr_in;
+            end else if (instr_valid_in && w_is_mem_instr && w_mem_misaligned) begin
+                // Load/store to misaligned address
+                pipe_buff         <= MEM_PIPE_BUBBLE;
+                r_mem_active      <= 1'b0;
+                r_load_data_valid <= 1'b0;
+                r_sc_res_valid    <= 1'b0;
+                cond_valid_r      <= 1'b0;
+                r_mem_fault       <= (mem_instr_sel_in == MEM_INSTR_STORE) ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                r_mem_fault_pc    <= pc_in;
+                r_mem_fault_va    <= alu_data_in;
+            end else if (instr_valid_in && w_is_mem_instr && w_mem_access_fault) begin
+                // Access to unmapped region
+                pipe_buff         <= MEM_PIPE_BUBBLE;
+                r_mem_active      <= 1'b0;
+                r_load_data_valid <= 1'b0;
+                r_sc_res_valid    <= 1'b0;
+                cond_valid_r      <= 1'b0;
+                r_mem_fault       <= (mem_instr_sel_in == MEM_INSTR_STORE) ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
+                r_mem_fault_pc    <= pc_in;
+                r_mem_fault_va    <= alu_data_in;
             end else begin
                 // If no faults, capture the new instruction.
-                pc_buff               <= pc_in;
-                pc_plus_4_buff        <= pc_plus_4_in;
-                alu_data_buff         <= alu_data_in;
-                store_data_buff       <= store_data_in;
-                rd_sel_buff           <= rd_sel_in;
-                mem_instr_sel_buff    <= mem_instr_sel_in;
-                load_store_width_buff <= load_store_width_in;
-                wb_data_sel_buff      <= wb_data_sel_in;
-                r_mem_active          <= w_is_mem_instr && cond_valid;
-                r_load_data_valid     <= 1'b0;  // Clear on new instruction
-                r_sc_res_valid        <= 1'b0;
-                conditional_buff      <= conditional_in;
-                clear_reserve_buff    <= clear_reserve_in;
-                amo_op_buff           <= amo_op_in;
-                cond_valid_r          <= cond_valid;
-                csr_sel_buff          <= csr_sel_in;
-                csr_readback_buff     <= csr_readback_in;
-                csr_en_buff           <= csr_en_in;
-                instr_valid_buff      <= instr_valid_in;
-                r_mem_fault           <= 1'b0;  // Clear fault on new instruction
+                pipe_buff <= '{
+                    pc: pc_in,
+                    pc_plus_4: pc_plus_4_in,
+                    alu_data: alu_data_in,
+                    store_data: store_data_in,
+                    rd_sel: rd_sel_in,
+                    mem_instr_sel: mem_instr_sel_in,
+                    load_store_width: load_store_width_in,
+                    wb_data_sel: wb_data_sel_in,
+                    conditional: conditional_in,
+                    clear_reserve: clear_reserve_in,
+                    amo_op: amo_op_in,
+                    csr_sel: csr_sel_in,
+                    csr_readback: csr_readback_in,
+                    csr_en: csr_en_in,
+                    instr_valid: instr_valid_in
+                };
+                r_mem_active      <= w_is_mem_instr && cond_valid;
+                r_load_data_valid <= 1'b0;  // Clear on new instruction
+                r_sc_res_valid    <= 1'b0;
+                cond_valid_r      <= cond_valid;
+                r_mem_fault       <= MEM_TRAP_NONE;  // Clear fault on new instruction
             end
 
-            if (!clear_reserve_in) begin
+            if (!clear_reserve_in &&
+                !(instr_valid_in && w_is_mem_instr && (w_mem_misaligned || w_mem_access_fault))) begin
                 if (reserve_in) begin
                     reserve_valid <= 1'b1;
                     reserve_addr  <= alu_data_in;
@@ -281,15 +291,14 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 
             // Capture page fault
             if (load_fault_in || store_fault_in) begin
-                r_mem_fault          <= 1'b1;
-                r_mem_fault_pc       <= pc_buff;
-                r_mem_fault_va       <= fault_addr_in;
-                r_mem_fault_is_store <= store_fault_in;
-                rd_sel_buff          <= 5'b0;  // Suppress WB writeback for faulting instruction
+                r_mem_fault      <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
+                r_mem_fault_pc   <= pipe_buff.pc;
+                r_mem_fault_va   <= fault_addr_in;
+                pipe_buff.rd_sel <= 5'b0;  // Suppress WB writeback for faulting instruction
             end
 
             // Clear reservation after SC completes
-            if (conditional_buff) begin
+            if (pipe_buff.conditional) begin
                 reserve_valid <= 1'b0;
                 r_sc_res <= !cond_valid_r;
                 r_sc_res_valid <= 1'b1;
@@ -297,7 +306,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 
             // Capture load data when load completes
             // Skip on fault
-            if (mem_instr_sel_buff == MEM_INSTR_LOAD && !load_fault_in) begin
+            if (pipe_buff.mem_instr_sel == MEM_INSTR_LOAD && !load_fault_in) begin
                 load_data_buff <= load_data;
                 r_load_data_valid <= 1'b1;
             end
@@ -306,7 +315,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 end
 
 assign d_mem_en_out = r_mem_active;
-assign d_mem_wr_out = r_mem_active && (mem_instr_sel_buff == MEM_INSTR_STORE);
+assign d_mem_wr_out = r_mem_active && (pipe_buff.mem_instr_sel == MEM_INSTR_STORE);
 
 // ============================================================
 // Address and width enum conversion alignment
@@ -314,16 +323,16 @@ assign d_mem_wr_out = r_mem_active && (mem_instr_sel_buff == MEM_INSTR_STORE);
 
 always_comb begin
     if (d_mem_en_out) begin
-        case (load_store_width_buff)
+        case (pipe_buff.load_store_width)
             WIDTH_U8:  d_mem_size_out = WIDTH_I8;
             WIDTH_U16: d_mem_size_out = WIDTH_I16;
-            default:   d_mem_size_out = load_store_width_buff;
+            default:   d_mem_size_out = pipe_buff.load_store_width;
         endcase
-        case (load_store_width_buff)
-            WIDTH_I8, WIDTH_U8:   d_mem_addr_out = alu_data_buff;
-            WIDTH_I16, WIDTH_U16: d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:1], 1'b0};
-            WIDTH_I32:            d_mem_addr_out = {alu_data_buff[ADDR_WIDTH-1:2], 2'b00};
-            default:              d_mem_addr_out = alu_data_buff;
+        case (pipe_buff.load_store_width)
+            WIDTH_I8, WIDTH_U8:   d_mem_addr_out = pipe_buff.alu_data;
+            WIDTH_I16, WIDTH_U16: d_mem_addr_out = {pipe_buff.alu_data[ADDR_WIDTH-1:1], 1'b0};
+            WIDTH_I32:            d_mem_addr_out = {pipe_buff.alu_data[ADDR_WIDTH-1:2], 2'b00};
+            default:              d_mem_addr_out = pipe_buff.alu_data;
         endcase
     end else begin
         d_mem_size_out = WIDTH_I32;
@@ -331,21 +340,21 @@ always_comb begin
     end
 end
 
-assign d_mem_data_out  = store_data_buff;
-assign rd_sel_out      = rd_sel_buff;
-assign pc_plus_4_out   = pc_plus_4_buff;
-assign alu_data_out    = alu_data_buff;
-assign wb_data_sel_out = wb_data_sel_buff;
-assign d_mem_amo_op_out = r_mem_active ? amo_op_buff : AMO_NONE;
+assign d_mem_data_out  = pipe_buff.store_data;
+assign rd_sel_out      = pipe_buff.rd_sel;
+assign pc_plus_4_out   = pipe_buff.pc_plus_4;
+assign alu_data_out    = pipe_buff.alu_data;
+assign wb_data_sel_out = pipe_buff.wb_data_sel;
+assign d_mem_amo_op_out = r_mem_active ? pipe_buff.amo_op : AMO_NONE;
 
 // ============================================================
 // Load data expansion to 32b
 // ============================================================
 
 always_comb begin
-    case (load_store_width_buff)
+    case (pipe_buff.load_store_width)
         WIDTH_I8: begin
-            case (alu_data_buff[1:0])
+            case (pipe_buff.alu_data[1:0])
                 2'b00: load_data = {{24{d_mem_data_in[ 7]}}, d_mem_data_in[ 7: 0]};
                 2'b01: load_data = {{24{d_mem_data_in[15]}}, d_mem_data_in[15: 8]};
                 2'b10: load_data = {{24{d_mem_data_in[23]}}, d_mem_data_in[23:16]};
@@ -353,7 +362,7 @@ always_comb begin
             endcase
         end
         WIDTH_U8: begin
-            case (alu_data_buff[1:0])
+            case (pipe_buff.alu_data[1:0])
                 2'b00: load_data = {24'h0, d_mem_data_in[ 7: 0]};
                 2'b01: load_data = {24'h0, d_mem_data_in[15: 8]};
                 2'b10: load_data = {24'h0, d_mem_data_in[23:16]};
@@ -361,13 +370,13 @@ always_comb begin
             endcase
         end
         WIDTH_I16: begin
-            if (alu_data_buff[1])
+            if (pipe_buff.alu_data[1])
                 load_data = {{16{d_mem_data_in[31]}}, d_mem_data_in[31:16]};
             else
                 load_data = {{16{d_mem_data_in[15]}}, d_mem_data_in[15:0]};
         end
         WIDTH_U16: begin
-            if (alu_data_buff[1])
+            if (pipe_buff.alu_data[1])
                 load_data = {16'h0, d_mem_data_in[31:16]};
             else
                 load_data = {16'h0, d_mem_data_in[15:0]};
