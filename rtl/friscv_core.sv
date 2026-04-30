@@ -132,6 +132,11 @@ logic      wb_instr_valid_out;
 // Interrupts
 addr_t id_tvec_out, id_epc_out;
 logic  id_trap_out, id_trap_pending, id_ret_out , id_effective_ret;
+logic  data_addr_virtual;
+
+assign data_addr_virtual = ENABLE_MMU &&
+                           (mode_out != M_MODE) &&
+                           (satp_mode_e'(satp_out.mode) != SATP_BARE);
 
 friscv_pipeline_control control_unit (
     // Control signals
@@ -367,6 +372,7 @@ friscv_mem_stage mem_stage (
     // Stage control signals
     .stage_stall_in      ( stall_mem               ),
     .trap_commit_in      ( id_trap_out             ),
+    .addr_virtual_in     ( data_addr_virtual       ),
 
     // Inputs from EX stage
     .pc_in               ( ex_pc_out               ),

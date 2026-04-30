@@ -22,6 +22,7 @@ module friscv_mem_stage (
     // Stage control signals
     input  logic           stage_stall_in,
     input  logic           trap_commit_in,
+    input  logic           addr_virtual_in,
 
     // Inputs from EX stage
     input  addr_t          pc_in,
@@ -151,7 +152,9 @@ always_comb begin
 end
 
 logic w_mem_access_fault;
-assign w_mem_access_fault = ENABLE_ADDRESS_SPACE_CHECK && (alu_data_in < ZSBL_BASE);
+assign w_mem_access_fault = ENABLE_ADDRESS_SPACE_CHECK &&
+                            !addr_virtual_in &&
+                            (alu_data_in < ZSBL_BASE);
 
 // Pass valid flag to WB; WB gates it with stall to produce inst_ret
 assign instr_valid_out = pipe_buff.instr_valid;
@@ -167,11 +170,10 @@ logic  r_sc_res;
 //  2) It is not a store conditional instruction
 logic cond_valid;
 logic cond_valid_r;
-logic sc_clears_reserve;
+logic prev_sc_success;
 
-// If a previous SC cleared the reservation, the next SC must not see cond valid
-assign sc_clears_reserve = pipe_buff.instr_valid && pipe_buff.conditional;
-assign cond_valid = (conditional_in) ? reserve_valid && !sc_clears_reserve && (reserve_addr == alu_data_in) : 1'b1;
+assign prev_sc_success = pipe_buff.instr_valid && pipe_buff.conditional && cond_valid_r;
+assign cond_valid = (conditional_in) ? reserve_valid && !prev_sc_success && (reserve_addr == alu_data_in) : 1'b1;
 
 // ============================================================
 // Input capture
@@ -209,6 +211,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             r_sc_res_valid    <= 1'b0;
             cond_valid_r      <= 1'b0;
             r_mem_fault       <= MEM_TRAP_NONE;
+            reserve_valid     <= 1'b0;
         end else if (r_mem_fault != MEM_TRAP_NONE) begin
             // Hold the oldest captured memory fault until ID commits the trap.
             r_mem_active          <= 1'b0;
@@ -279,8 +282,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 if (reserve_in) begin
                     reserve_valid <= 1'b1;
                     reserve_addr  <= alu_data_in;
-                end else if (sc_clears_reserve) begin
-                    // SC.W completed; clear reservation so a subsequent SC fails.
+                end else if (conditional_in && cond_valid) begin
+                    // A successful SC.W consumes the active reservation.
                     reserve_valid <= 1'b0;
                 end
             end

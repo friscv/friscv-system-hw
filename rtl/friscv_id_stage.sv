@@ -334,8 +334,14 @@ assign interrupt_active = m_interrupt_active || s_interrupt_active;
 
 // Exception active detection
 
+logic inst_addr_virtual;
+assign inst_addr_virtual = ENABLE_MMU &&
+                           (r_current_mode != M_MODE) &&
+                           (satp_mode_e'(csr.satp.mode) != SATP_BARE);
+
 logic inst_access_fault;
 assign inst_access_fault = instr_valid_buff &&
+                           !inst_addr_virtual &&
                            !((pc_in_buff >= DRAM_BASE) ||
                              ((ZSBL_ROM_SIZE_BYTES > 0) &&
                               (pc_in_buff >= RESET_VEC) &&
@@ -345,7 +351,12 @@ logic if_trap;
 assign if_trap = inst_fault_in && !branch_ok_in;
 
 logic id_trap;
-assign id_trap = exception_safe && (inst_access_fault || ecall_active || ebreak_active || illegal_inst || target_misaligned);
+assign id_trap = exception_safe &&
+                 (inst_access_fault ||
+                  ecall_active ||
+                  ebreak_active ||
+                  illegal_inst ||
+                  (ENABLE_EARLY_JAL_JALR && target_misaligned));
 
 logic mem_trap;
 assign mem_trap = mem_trap_in != MEM_TRAP_NONE;
@@ -1090,6 +1101,7 @@ always_comb begin
         
         JALR: begin
             instr_ex_out.branch_jal_sel = JAL_INSTR;
+            instr_ex_out.jalr_target = 1'b1;
             instr_ex_out.a_bus_sel = RS1;
             instr_ex_out.b_bus_sel = IMM;
             instr_ex_out.alu_op = ADD_OP;

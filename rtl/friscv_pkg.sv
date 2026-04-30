@@ -410,6 +410,7 @@ package friscv_pkg;
         logic           instr_valid;
         jump_sel_e      branch_jal_sel;
         branch_cond_e   branch_cond;
+        logic           jalr_target;
         a_bus_sel_e     a_bus_sel;
         b_bus_sel_e     b_bus_sel;
         alu_op_e        alu_op;
@@ -431,6 +432,7 @@ package friscv_pkg;
         instr_valid: 1'b0,
         branch_jal_sel: BRANCH_JAL_NONE,
         branch_cond: COND_NE,
+        jalr_target: 1'b0,
         a_bus_sel: RS1,
         b_bus_sel: RS2,
         alu_op: ADD_OP,
