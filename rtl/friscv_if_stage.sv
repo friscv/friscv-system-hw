@@ -82,7 +82,7 @@ always_ff @(posedge clk_in) begin
         end else if (r_fetch_active && !i_mem_wait_in) begin
             r_fetch_active <= 1'b0;
             ir_buff        <= i_mem_data_in;
-        end 
+        end
     end
 end
 

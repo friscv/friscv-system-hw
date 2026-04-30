@@ -55,6 +55,7 @@ always_ff @(posedge i_clk) begin
 end
 
 assign if_upstream.stall = r_valid ? if_downstream.stall : if_upstream.valid;
+assign if_upstream.err   = if_downstream.err;
 assign if_upstream.rdata = if_downstream.rdata;
 
 assign if_downstream.valid  = r_valid;

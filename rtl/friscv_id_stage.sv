@@ -105,7 +105,8 @@ module friscv_id_stage #(
     output satp_t     satp_out,
     output logic      sum_out,
     output logic      mxr_out,
-    output mode_e     mode_out
+    output mode_e     mode_out,
+    output mode_e     data_mode_out
 );
 
 data_t regfile [REGISTER_NUM];
@@ -123,6 +124,8 @@ addr_t     pc_in_buff;
 addr_t     pc_plus_4_buff;
 logic      instr_valid_buff;
 imm_e      imm_sel;
+logic      inst_fault_buff;
+addr_t     fault_addr_buff;
 
 assign rs1_out = regfile[rs1_sel_out];
 assign rs2_out = regfile[rs2_sel_out];
@@ -136,25 +139,37 @@ assign pc_plus_4_out = pc_plus_4_buff;
 
 always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
-        // Do not reset regfile to synthesize as distributed RAM
-        ir_buff        <= NOP;
-        pc_in_buff     <= '0;
-        pc_plus_4_buff <= '0;
+        ir_buff          <= NOP;
+        pc_in_buff       <= '0;
+        pc_plus_4_buff   <= '0;
         instr_valid_buff <= 1'b0;
+        inst_fault_buff  <= 1'b0;
+        fault_addr_buff  <= '0;
+
+        for (int i = 0; i < REGISTER_NUM; i++) begin
+            regfile[i] = '0;
+        end
+
     end else begin
         if (rd_sel_in != 0)
             regfile[rd_sel_in] <= rd_data_in;
 
         if (flush_in) begin
-            ir_buff        <= NOP;
-            pc_in_buff     <= '0;
-            pc_plus_4_buff <= '0;
+            ir_buff          <= NOP;
+            pc_in_buff       <= '0;
+            pc_plus_4_buff   <= '0;
             instr_valid_buff <= 1'b0;
+            inst_fault_buff  <= 1'b0;
+            fault_addr_buff  <= '0;
+
         end else if (!stage_stall_in) begin
-            ir_buff <= ir_in;
-            pc_in_buff <= pc_in;
-            pc_plus_4_buff <= pc_plus_4_in;
+            ir_buff          <= ir_in;
+            pc_in_buff       <= pc_in;
+            pc_plus_4_buff   <= pc_plus_4_in;
             instr_valid_buff <= 1'b1;
+            inst_fault_buff  <= inst_fault_in;
+            fault_addr_buff  <= fault_addr_in;
+
         end
     end
 end
@@ -348,7 +363,7 @@ assign inst_access_fault = instr_valid_buff &&
                               (pc_in_buff < (RESET_VEC + ZSBL_ROM_SIZE_BYTES))));
 
 logic if_trap;
-assign if_trap = inst_fault_in && !branch_ok_in;
+assign if_trap = inst_fault_buff && !branch_ok_in;
 
 logic id_trap;
 assign id_trap = exception_safe &&
@@ -368,8 +383,8 @@ trap_src_e trap_src;
 assign trap_src =
     mem_trap ? TRAP_SRC_MEM :
     ex_trap  ? TRAP_SRC_EX  :
-    id_trap  ? TRAP_SRC_ID  :
     if_trap  ? TRAP_SRC_IF  :
+    id_trap  ? TRAP_SRC_ID  :
                TRAP_SRC_NONE;
 
 logic ecall_active, ebreak_active;
@@ -525,10 +540,9 @@ end
 addr_t trap_tval;
 always_comb begin
     case (trap_src)
-        TRAP_SRC_IF:  trap_tval = fault_addr_in;
+        TRAP_SRC_IF:  trap_tval = fault_addr_buff;
         TRAP_SRC_ID:  trap_tval = inst_access_fault ? pc_in_buff :
-                                 illegal_inst       ? ir_buff.b :
-                                                      '0;
+                                  illegal_inst      ? ir_buff.b  : '0;
         TRAP_SRC_EX:  trap_tval = '0;
         TRAP_SRC_MEM: begin
             case (mem_trap_in)
@@ -593,6 +607,7 @@ always_ff @(posedge clk_in) begin
             end
 
         end else if (ret_commit_in && sret_active) begin
+            // Commit SRET
             r_mret_inhibit   <= 1'b1;
             csr.mstatus.sie  <= csr.mstatus.spie;
             csr.mstatus.spie <= 1'b1;
@@ -600,11 +615,14 @@ always_ff @(posedge clk_in) begin
             csr.mstatus.spp  <= 1'b0;
 
         end else if (ret_commit_in && mret_active) begin
+            // Commit MRET
             r_mret_inhibit   <= 1'b1;
             csr.mstatus.mie  <= csr.mstatus.mpie;
             csr.mstatus.mpie <= 1'b1;
             r_current_mode   <= csr.mstatus.mpp;
             csr.mstatus.mpp  <= U_MODE;
+            if (csr.mstatus.mpp != M_MODE)
+                csr.mstatus.mprv <= 1'b0;
 
         end else if (csr_en_in && instr_ret_in && !wb_csr_ro) begin
             case (csr_sel_in)
@@ -1241,5 +1259,6 @@ assign satp_out = csr.satp;
 assign sum_out  = csr.mstatus.sum;
 assign mxr_out  = csr.mstatus.mxr;
 assign mode_out = r_current_mode;
+assign data_mode_out = (r_current_mode == M_MODE && csr.mstatus.mprv) ? csr.mstatus.mpp : r_current_mode;
 
 endmodule

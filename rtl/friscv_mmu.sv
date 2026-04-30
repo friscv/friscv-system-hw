@@ -24,6 +24,7 @@ module friscv_mmu (
     output data_t       o_inst_data,
     input  logic        i_inst_en,
     output logic        o_inst_wait,
+    output logic        o_inst_err,
 
     // Data Memory Interface
     input  addr_t       i_data_addr,
@@ -33,6 +34,7 @@ module friscv_mmu (
     input  logic        i_data_en,
     input  logic        i_data_wr,
     output logic        o_data_wait,
+    output logic        o_data_err,
     input  amo_op_e     i_amo_op,
 
     // External Memory Interface
@@ -42,13 +44,15 @@ module friscv_mmu (
     input  data_t       i_mem_rdata,
     output rw_cmd_e     o_mem_rw,
     input  logic        i_mem_wait,
+    input  logic        i_mem_err,
     output amo_op_e     o_amo_op,
 
     // Protection and Translation Control
     input  satp_t       i_satp,
     input  logic        i_sum,
     input  logic        i_mxr,
-    input  mode_e       i_mode,
+    input  mode_e       i_inst_mode,
+    input  mode_e       i_data_mode,
     input  logic        i_flush_tlb,
     input  vpn_t        i_flush_vpn,
     input  logic        i_flush_vpn_en,
@@ -178,6 +182,7 @@ friscv_l1_arbiter l1_arbiter (
     .o_inst_data  ( o_inst_data   ),
     .i_inst_en    ( i_inst_en     ),
     .o_inst_wait  ( o_inst_wait   ),
+    .o_inst_err   ( o_inst_err    ),
 
     .i_data_addr  ( i_data_addr   ),
     .i_data_size  ( i_data_size   ),
@@ -187,6 +192,7 @@ friscv_l1_arbiter l1_arbiter (
     .i_data_wr    ( i_data_wr     ),
     .o_data_wait  ( o_data_wait   ),
     .i_amo_op     ( i_amo_op      ),
+    .o_data_err   ( o_data_err    ),
 
     .o_mem_addr   ( w_grant_addr  ),
     .o_mem_size   ( w_grant_size  ),
@@ -194,6 +200,7 @@ friscv_l1_arbiter l1_arbiter (
     .i_mem_rdata  ( i_mem_rdata   ),
     .o_mem_rw     ( w_grant_rw    ),
     .i_mem_wait   ( w_stall       ),
+    .i_mem_err    ( i_mem_err     ),
     .o_amo_op     ( w_grant_amo   ),
     .o_grant_inst ( w_grant_inst  ),
     .o_grant_start( w_grant_start ),
@@ -216,7 +223,7 @@ assign w_grant_wr = (w_grant_rw == RW_WRITE);
 always_comb begin
     w_start_req_ctx.addr     = w_grant_start_inst ? i_inst_addr : i_data_addr;
     w_start_req_ctx.satp     = i_satp;
-    w_start_req_ctx.mode     = i_mode;
+    w_start_req_ctx.mode     = w_grant_start_inst ? i_inst_mode : i_data_mode;
     w_start_req_ctx.sum      = i_sum;
     w_start_req_ctx.mxr      = i_mxr;
     w_start_req_ctx.is_inst  = w_grant_start_inst;
@@ -226,7 +233,7 @@ end
 always_comb begin
     w_eff_req_ctx.addr     = w_grant_addr;
     w_eff_req_ctx.satp     = i_satp;
-    w_eff_req_ctx.mode     = i_mode;
+    w_eff_req_ctx.mode     = w_grant_inst ? i_inst_mode : i_data_mode;
     w_eff_req_ctx.sum      = i_sum;
     w_eff_req_ctx.mxr      = i_mxr;
     w_eff_req_ctx.is_inst  = w_grant_inst;
@@ -259,6 +266,7 @@ addr_t w_walk_addr;
 logic  w_walk_en;
 data_t w_walk_rdata;
 logic  w_walk_wait;
+logic  w_walk_err;
 logic  w_ptw_stall;
 
 // PTW intermediate fault wires
@@ -283,6 +291,7 @@ friscv_ptw ptw (
     .o_walk_en       ( w_walk_en         ),
     .i_walk_rdata    ( w_walk_rdata      ),
     .i_walk_wait     ( w_walk_wait       ),
+    .i_walk_err      ( w_walk_err        ),
 
     // Arbiter stall
     .o_stall         ( w_ptw_stall       ),
@@ -354,6 +363,7 @@ assign w_granted_ppn = w_eff_req_ctx.is_inst ? w_itlb_ppn : w_dtlb_ppn;
 // PTW walk signals routed directly to/from external memory
 assign w_walk_rdata = i_mem_rdata;
 assign w_walk_wait  = i_mem_wait;
+assign w_walk_err   = i_mem_err;
 
 // Stall arbiter while PTW is active or memory stalls
 assign w_stall = w_ptw_stall | i_mem_wait;

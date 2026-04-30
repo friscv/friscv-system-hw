@@ -82,6 +82,7 @@ rw_cmd_e     r_rw;
 logic        r_burst_en;
 logic [31:0] r_addr;
 data_t       r_wdata, r_rdata;
+logic        r_err;
 
 // Write-back FIFO
 // Cache fills from cycle 0 at 1 word/cycle
@@ -123,8 +124,12 @@ always_comb begin
     endcase
 end
 
+logic w_read_completing, w_write_completing;
+assign w_read_completing  = m_axi_rvalid && m_axi_rready;
+assign w_write_completing = m_axi_bvalid && m_axi_bready;
+
 // Constant assignments
-assign mem_if.rdata  = (m_axi_rvalid && m_axi_rready) ? m_axi_rdata : r_rdata;
+assign mem_if.rdata  = w_read_completing ? m_axi_rdata : r_rdata;
 assign m_axi_awaddr  = r_addr;
 assign m_axi_awsize  = r_size;
 assign m_axi_awcache = 4'b0011;
@@ -148,7 +153,8 @@ assign m_axi_arqos   = 4'h0;
 
 assign mem_if.wait_req   = w_next_state != S_IDLE;
 assign mem_if.beat_valid = r_burst_en && (r_state == S_R_DATA) && m_axi_rvalid && m_axi_rready;
-assign mem_if.err        = 1'b0;
+assign mem_if.err        = w_read_completing  ? |m_axi_rresp :
+                           w_write_completing ? |m_axi_bresp : 1'b0;
 
 // Clocked logic
 always_ff @(posedge i_clk) begin
@@ -160,6 +166,7 @@ always_ff @(posedge i_clk) begin
         r_fifo_wptr  <= '0;
         r_fifo_rptr  <= '0;
         r_fifo_count <= '0;
+        r_err        <= 1'b0;
         {r_addr, r_wdata, r_rdata, r_size} <= '0;
     end else begin
         r_state <= w_next_state;
@@ -170,10 +177,16 @@ always_ff @(posedge i_clk) begin
             r_wdata    <= mem_if.wdata;
             r_size     <= mem_if.size;
             r_burst_en <= mem_if.burst_en;
+            r_err      <= 1'b0;
         end
 
-        if (m_axi_rready && m_axi_rvalid) begin
+        if (w_read_completing) begin
             r_rdata <= m_axi_rdata;
+            r_err   <= |m_axi_rresp;
+        end
+
+        if (w_write_completing) begin
+            r_err <= |m_axi_bresp;
         end
 
         if (fifo_wen) begin

@@ -33,6 +33,7 @@ module friscv_ptw (
     output logic       o_walk_en,
     input  data_t      i_walk_rdata,
     input  logic       i_walk_wait,
+    input  logic       i_walk_err,
 
     // Arbiter stall
     output logic       o_stall,
@@ -265,25 +266,36 @@ always_comb begin : transition_logic
 
         S_READ: begin
             o_walk_en = 1'b1;
-            if (!i_walk_wait) begin
+            if (!i_walk_wait && i_walk_err) begin
+                o_stall      = 1'b0;
+                w_next_state = S_IDLE;
+            end else if (!i_walk_wait) begin
                 w_next_state = S_DECODE;
             end
         end
 
         S_DECODE: begin
-            if (!r_pte.perm.v) begin
+            if (!r_pte.perm.v || (r_pte.perm.w && !r_pte.perm.r)) begin
+                // Invalid PTE
                 w_next_state = S_FAULT;
             end else if (r_pte.perm.r || r_pte.perm.x) begin
                 // Leaf PTE, fill TLB and let requester retry
-                w_next_state = S_FILL;
-            end else if (r_level == '0) begin
-                // Non-leaf at last level, walk exhausted
-                w_next_state = S_FAULT;
+                // Fault if misaligned superpage
+                w_next_state = (r_level != '0 && r_pte.ppn[9:0] != 10'b0) ? S_FAULT : S_FILL;
             end else begin
-                // Non-leaf, descend, assert walk_en now with the next-level address
-                w_descend    = 1'b1;
-                o_walk_en    = 1'b1;
-                w_next_state = S_READ;
+                // Non-leaf PTE
+                if (r_pte.perm.d || r_pte.perm.a || r_pte.perm.u) begin
+                    // Non-leaf with D/A/U set
+                    w_next_state = S_FAULT;
+                end else if (r_level == '0) begin
+                    // Non-leaf at last level, walk exhausted
+                    w_next_state = S_FAULT;
+                end else begin
+                    // Non-leaf, descend, assert walk_en now with the next-level address
+                    w_descend    = 1'b1;
+                    o_walk_en    = 1'b1;
+                    w_next_state = S_READ;
+                end
             end
         end
 

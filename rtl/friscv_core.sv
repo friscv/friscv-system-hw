@@ -40,6 +40,7 @@ module friscv_core #(
     input  data_t      i_mem_data_in,
     output logic       i_mem_en_out,
     input  logic       i_mem_wait_in,
+    input  logic       i_mem_err_in,
 
     // Data memory interface 
     output addr_t      d_mem_addr_out,
@@ -49,6 +50,7 @@ module friscv_core #(
     output logic       d_mem_wr_out,
     output mem_width_e d_mem_size_out,
     input  logic       d_mem_wait_in,
+    input  logic       d_mem_err_in,
     output amo_op_e    d_mem_amo_op_out,
 
     // Memory management outputs
@@ -56,6 +58,7 @@ module friscv_core #(
     output logic       sum_out,
     output logic       mxr_out,
     output mode_e      mode_out,
+    output mode_e      data_mode_out,
     output logic       flush_tlb_out,
     output vpn_t       flush_vpn_out,
     output logic       flush_vpn_en_out,
@@ -134,9 +137,7 @@ addr_t id_tvec_out, id_epc_out;
 logic  id_trap_out, id_trap_pending, id_ret_out , id_effective_ret;
 logic  data_addr_virtual;
 
-assign data_addr_virtual = ENABLE_MMU &&
-                           (mode_out != M_MODE) &&
-                           (satp_mode_e'(satp_out.mode) != SATP_BARE);
+assign data_addr_virtual = ENABLE_MMU && (data_mode_out != M_MODE) && (|satp_out.mode);
 
 friscv_pipeline_control control_unit (
     // Control signals
@@ -311,7 +312,8 @@ friscv_id_stage #(
     .satp_out         ( satp_out         ),
     .sum_out          ( sum_out          ),
     .mxr_out          ( mxr_out          ),
-    .mode_out         ( mode_out         )
+    .mode_out         ( mode_out         ),
+    .data_mode_out    ( data_mode_out    )
 );
 
 friscv_ex_stage ex_stage (

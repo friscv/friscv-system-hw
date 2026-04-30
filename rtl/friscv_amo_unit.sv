@@ -29,6 +29,7 @@ module friscv_amo_unit (
 
     // External interface
     input  logic    i_mem_wait,
+    input  logic    i_mem_err,
     output rw_cmd_e o_mem_rw,
     input  data_t   i_mem_load_data,
     output data_t   o_mem_store_data
@@ -56,8 +57,8 @@ assign o_core_load_data = w_load_data;
 //  1) On the initiating cycle when AMO is idle
 //  2) During a load
 //  3) During a stall, except when downstream is not waiting, that is the last cycle
-assign o_core_wait = ((r_state == S_IDLE) && (i_amo_op != AMO_NONE)) ||
-                     (r_state == S_LOAD) ||
+assign o_core_wait = ((r_state == S_IDLE)  && (i_amo_op != AMO_NONE)) ||
+                     ((r_state == S_LOAD)  && !i_mem_err) ||
                      ((r_state == S_STORE) && i_mem_wait);
 
 always_ff @(posedge i_clk) begin
@@ -104,21 +105,21 @@ end
 
 // State transition logic
 always_comb begin
-    w_next_state = r_state;
-    
     case (r_state)
         S_IDLE: begin
-            if (i_amo_op != AMO_NONE) begin
-                w_next_state = S_LOAD;
-            end
+            w_next_state = (i_amo_op != AMO_NONE) ? S_LOAD : S_IDLE;
         end
         S_LOAD: begin
-            w_next_state = (i_mem_wait) ? S_LOAD : S_STORE;
+            w_next_state = i_mem_wait ? S_LOAD :
+                           i_mem_err  ? S_IDLE :
+                                        S_STORE;
         end
         S_STORE: begin
-            w_next_state = (i_mem_wait) ? S_STORE : S_IDLE;
+            w_next_state = i_mem_wait ? S_STORE : S_IDLE;
         end
-        default: ;
+        default: begin
+            w_next_state = r_state;
+        end
     endcase
 end
 

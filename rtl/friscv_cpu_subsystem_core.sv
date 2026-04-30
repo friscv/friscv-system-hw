@@ -47,9 +47,8 @@ logic       w_wait;
 logic       w_burst_en;
 logic       w_beat_valid;
 
-// The error line is part of the protocol, but it is intentionally ignored for now
-logic w_unused_mem_err;
-assign w_unused_mem_err = mem_if.err;
+logic w_mem_err;
+assign w_mem_err = mem_if.err;
 
 // Address space remapping
 if (ENABLE_REMAP) begin
@@ -77,6 +76,7 @@ friscv_core_complex #(
     .i_mem_rdata  ( w_rdata      ),
     .o_mem_rw     ( w_rw         ),
     .i_mem_wait   ( w_wait       ),
+    .i_mem_err    ( w_mem_err    ),
     .o_burst_en   ( w_burst_en   ),
     .i_beat_valid ( w_beat_valid )
 );

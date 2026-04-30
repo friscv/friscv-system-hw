@@ -18,6 +18,7 @@ Version info is listed in friscv_pkg.sv
 interface friscv_l2_if;
     logic       valid;
     logic       stall;
+    logic       err;
     addr_t      addr;
     mem_width_e size;
     data_t      wdata;
@@ -27,11 +28,11 @@ interface friscv_l2_if;
 
     modport requester (
         output valid, addr, size, wdata, rw, amo_op,
-        input  stall, rdata
+        input  stall, err, rdata
     );
 
     modport responder (
         input  valid, addr, size, wdata, rw, amo_op,
-        output stall, rdata
+        output stall, err, rdata
     );
 endinterface

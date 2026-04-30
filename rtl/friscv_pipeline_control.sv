@@ -82,6 +82,10 @@ begin
     case (csr_sel)
         // satp changes the address translation context globally, so younger
         // instructions must wait for the committed update.
+        CSR_MSTATUS,
+        CSR_SSTATUS,
+        CSR_MEDELEG,
+        CSR_MIDELEG,
         CSR_SATP: is_serializing_csr = 1'b1;
         default:  is_serializing_csr = 1'b0;
     endcase

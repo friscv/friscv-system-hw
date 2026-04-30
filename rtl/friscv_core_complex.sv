@@ -32,6 +32,7 @@ module friscv_core_complex #(
     input  data_t      i_mem_rdata,
     output rw_cmd_e    o_mem_rw,
     input  logic       i_mem_wait,
+    input  logic       i_mem_err,
     output logic       o_burst_en,
     input  logic       i_beat_valid
 );
@@ -45,6 +46,7 @@ addr_t      w_inst_addr;
 data_t      w_inst_data;
 logic       w_inst_en;
 logic       w_inst_wait;
+logic       w_inst_err;
 logic       w_stall_if;
 inst_t      w_zsbl_data;
 
@@ -56,21 +58,23 @@ logic       w_data_en;
 logic       w_data_wr;
 mem_width_e w_data_size;
 logic       w_data_wait;
+logic       w_data_err;
 amo_op_e    w_amo_op;
 
 // ============================================================
 // Protection and Translation signals
 // ============================================================
 
-satp_t       w_satp;
-logic        w_sum;
-logic        w_mxr;
-mode_e       w_mode;
-logic        w_flush_tlb;
-logic [19:0] w_flush_vpn;
-logic        w_flush_vpn_en;
-logic [8:0]  w_flush_asid;
-logic        w_flush_asid_en;
+satp_t w_satp;
+logic  w_sum;
+logic  w_mxr;
+mode_e w_mode;
+mode_e w_data_mode;
+logic  w_flush_tlb;
+vpn_t  w_flush_vpn;
+logic  w_flush_vpn_en;
+asid_t w_flush_asid;
+logic  w_flush_asid_en;
 
 // ============================================================
 // Level 2 bus and L1-L2 arbitration
@@ -82,6 +86,7 @@ data_t      w_l2_req_wdata;
 rw_cmd_e    w_l2_req_rw;
 data_t      w_l2_req_rdata;
 logic       w_l2_req_wait;
+logic       w_l2_req_err;
 amo_op_e    w_l2_req_amo_op;
 
 addr_t      w_l2_addr;
@@ -90,6 +95,7 @@ data_t      w_l2_wdata;
 rw_cmd_e    w_l2_rw;
 data_t      w_l2_backend_rdata;
 logic       w_l2_backend_wait;
+logic       w_l2_backend_err;
 amo_op_e    w_l2_amo_op;
 
 friscv_l2_if l2_upstream_if();
@@ -147,6 +153,7 @@ if (ENABLE_MMU) begin
         .o_inst_data     ( w_inst_data     ),
         .i_inst_en       ( w_inst_en       ),
         .o_inst_wait     ( w_inst_wait     ),
+        .o_inst_err      ( w_inst_err      ),
 
         // Data Memory Interface
         .i_data_addr     ( w_data_addr     ),
@@ -156,6 +163,7 @@ if (ENABLE_MMU) begin
         .i_data_en       ( w_data_en       ),
         .i_data_wr       ( w_data_wr       ),
         .o_data_wait     ( w_data_wait     ),
+        .o_data_err      ( w_data_err      ),
         .i_amo_op        ( w_amo_op        ),
 
         // External Memory Interface
@@ -165,13 +173,15 @@ if (ENABLE_MMU) begin
         .i_mem_rdata     ( w_l2_req_rdata  ),
         .o_mem_rw        ( w_l2_req_rw     ),
         .i_mem_wait      ( w_l2_req_wait   ),
+        .i_mem_err       ( w_l2_req_err    ),
         .o_amo_op        ( w_l2_req_amo_op ),
 
         // Protection and Translation Control
         .i_satp          ( w_satp          ),
         .i_sum           ( w_sum           ),
         .i_mxr           ( w_mxr           ),
-        .i_mode          ( w_mode          ),
+        .i_inst_mode     ( w_mode          ),
+        .i_data_mode     ( w_data_mode     ),
         .i_flush_tlb     ( w_flush_tlb     ),
         .i_flush_vpn     ( w_flush_vpn     ),
         .i_flush_vpn_en  ( w_flush_vpn_en  ),
@@ -193,6 +203,7 @@ end else begin
         .o_inst_data  ( w_inst_data     ),
         .i_inst_en    ( w_inst_en       ),
         .o_inst_wait  ( w_inst_wait     ),
+        .o_inst_err   ( w_inst_err      ),
 
         .i_data_addr  ( w_data_addr     ),
         .i_data_size  ( w_data_size     ),
@@ -201,6 +212,7 @@ end else begin
         .i_data_en    ( w_data_en       ),
         .i_data_wr    ( w_data_wr       ),
         .o_data_wait  ( w_data_wait     ),
+        .o_data_err   ( w_data_err      ),
         .i_amo_op     ( w_amo_op        ),
 
         .o_mem_addr   ( w_l2_req_addr   ),
@@ -209,6 +221,7 @@ end else begin
         .i_mem_rdata  ( w_l2_req_rdata  ),
         .o_mem_rw     ( w_l2_req_rw     ),
         .i_mem_wait   ( w_l2_req_wait   ),
+        .i_mem_err    ( w_l2_req_err    ),
         .o_amo_op     ( w_l2_req_amo_op ),
         .o_grant_inst (                 ),
         .o_grant_start(                 ),
@@ -229,6 +242,7 @@ assign l2_upstream_if.rw     = w_l2_req_rw;
 assign l2_upstream_if.amo_op = w_l2_req_amo_op;
 
 assign w_l2_req_wait  = l2_upstream_if.stall;
+assign w_l2_req_err   = l2_upstream_if.err;
 assign w_l2_req_rdata = l2_upstream_if.rdata;
 
 // ============================================================
@@ -244,6 +258,7 @@ if (ENABLE_L2_BUFFER) begin
     );
 end else begin
     assign l2_upstream_if.stall = l2_downstream_if.stall;
+    assign l2_upstream_if.err   = l2_downstream_if.err;
     assign l2_upstream_if.rdata = l2_downstream_if.rdata;
 
     assign l2_downstream_if.valid  = l2_upstream_if.valid;
@@ -255,6 +270,7 @@ end else begin
 end
 
 assign l2_downstream_if.stall = w_l2_backend_wait;
+assign l2_downstream_if.err   = w_l2_backend_err;
 assign l2_downstream_if.rdata = w_l2_backend_rdata;
 
 assign w_l2_addr   = l2_downstream_if.addr;
@@ -309,6 +325,7 @@ friscv_core #(
     .i_mem_data_in    ( w_inst_data     ),
     .i_mem_en_out     ( w_inst_en       ),
     .i_mem_wait_in    ( w_stall_if      ),
+    .i_mem_err_in     ( w_inst_err      ),
 
     // Data memory interface
     .d_mem_addr_out   ( w_data_addr     ),
@@ -318,6 +335,7 @@ friscv_core #(
     .d_mem_wr_out     ( w_data_wr       ),
     .d_mem_size_out   ( w_data_size     ),
     .d_mem_wait_in    ( w_data_wait     ),
+    .d_mem_err_in     ( w_data_err      ),
     .d_mem_amo_op_out ( w_amo_op        ),
 
     // Memory management outputs
@@ -325,6 +343,7 @@ friscv_core #(
     .sum_out          ( w_sum           ),
     .mxr_out          ( w_mxr           ),
     .mode_out         ( w_mode          ),
+    .data_mode_out    ( w_data_mode     ),
     .flush_tlb_out    ( w_flush_tlb     ),
     .flush_vpn_out    ( w_flush_vpn     ),
     .flush_vpn_en_out ( w_flush_vpn_en  ),
@@ -336,15 +355,19 @@ friscv_core #(
 // Atomic memory operations
 // ============================================================
 
+amo_op_e w_eff_amo;
+assign w_eff_amo = r_amo_addr_valid ? w_l2_amo_op : AMO_NONE;
+
 if (ENABLE_EXTENSION_A) begin
     friscv_amo_unit amo_unit (
         .i_clk            ( i_clk            ),
         .i_rstn           ( i_rstn           ),
-        .i_amo_op         ( r_amo_addr_valid ? w_l2_amo_op : AMO_NONE ),
+        .i_amo_op         ( w_eff_amo        ),
         .i_rs2_val        ( w_l2_wdata       ),
         .o_core_load_data ( w_amo_load_data  ),
         .o_core_wait      ( w_amo_core_wait  ),
         .i_mem_wait       ( i_mem_wait       ),
+        .i_mem_err        ( i_mem_err        ),
         .o_mem_rw         ( w_amo_rw         ),
         .i_mem_load_data  ( i_mem_rdata      ),
         .o_mem_store_data ( w_amo_store_data )
@@ -399,6 +422,8 @@ if (ZSBL_ROM_SIZE_BYTES > 0) begin
                                w_amo_bootstrap ? 1'b1 :
                                w_amo_active ? w_amo_core_wait :
                                i_mem_wait;
+
+    assign w_l2_backend_err = w_l2_is_rom ? 1'b0 : i_mem_err;
 
     assign o_mem_rw   = w_l2_is_rom ? RW_IDLE :
                         w_amo_bootstrap ? RW_IDLE :

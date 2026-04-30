@@ -24,6 +24,7 @@ module friscv_l1_arbiter (
     output data_t      o_inst_data,
     input  logic       i_inst_en,
     output logic       o_inst_wait,
+    output logic       o_inst_err,
 
     // Data Memory Interface
     input  addr_t      i_data_addr,
@@ -34,6 +35,7 @@ module friscv_l1_arbiter (
     input  logic       i_data_wr,
     output logic       o_data_wait,
     input  amo_op_e    i_amo_op,
+    output logic       o_data_err,
 
     // External Interface
     output addr_t      o_mem_addr,
@@ -42,6 +44,7 @@ module friscv_l1_arbiter (
     input  data_t      i_mem_rdata,
     output rw_cmd_e    o_mem_rw,
     input  logic       i_mem_wait,
+    input  logic       i_mem_err,
     output amo_op_e    o_amo_op,
     output logic       o_grant_inst,
     output logic       o_grant_start,
@@ -131,6 +134,8 @@ always_comb begin
     o_mem_rw    = RW_IDLE;
     o_inst_wait = 1'b0;
     o_data_wait = 1'b0;
+    o_inst_err  = 1'b0;
+    o_data_err  = 1'b0;
     o_amo_op    = AMO_NONE;
 
     case (r_state)
@@ -144,6 +149,7 @@ always_comb begin
             o_mem_size  = WIDTH_I32;
             o_mem_rw    = RW_READ;
             o_inst_wait = i_mem_wait;
+            o_inst_err  = i_mem_err;
             if (i_data_en) o_data_wait = 1'b1;
         end
         S_GRANT_DATA: begin
@@ -153,6 +159,7 @@ always_comb begin
             o_mem_rw    = r_data_wr ? RW_WRITE : RW_READ;
             o_data_wait = i_mem_wait;
             o_amo_op    = r_data_amo;
+            o_data_err  = i_mem_err;
             if (i_inst_en) o_inst_wait = 1'b1;
         end
         default: ;
