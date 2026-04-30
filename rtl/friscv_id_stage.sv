@@ -1179,6 +1179,9 @@ always_comb begin
 
                 illegal_inst = (decode_csr_ro && is_csr_write) ||
                                (r_current_mode < decode_csr_mode) ||
+                               ((r_current_mode == S_MODE) &&
+                                csr.mstatus.tvm &&
+                                (selected_csr == CSR_SATP)) ||
                                csr_not_implemented ||
                                ctr_access_illegal;
 
