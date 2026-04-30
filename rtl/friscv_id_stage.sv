@@ -40,11 +40,13 @@ module friscv_id_stage #(
     input  mem_trap_e mem_trap_in,
     input  addr_t     mem_trap_pc_in,
     input  addr_t     mem_trap_va_in,
+    input  mode_e     mem_trap_mode_in,
     output logic      mem_trap_commit_out,
 
     // EX stage trap
     input  ex_trap_e  ex_trap_in,
     input  addr_t     ex_trap_pc_in,
+    input  mode_e     ex_trap_mode_in,
     output logic      ex_trap_commit_out,
 
     // Stage control signals
@@ -128,6 +130,8 @@ imm_e      imm_sel;
 logic      inst_fault_buff;
 addr_t     fault_addr_buff;
 logic      inst_err_buff;
+mode_e     pc_mode_buff;
+logic      if_trap_inhibit;
 
 assign rs1_out = regfile[rs1_sel_out];
 assign rs2_out = regfile[rs2_sel_out];
@@ -148,6 +152,7 @@ always_ff @(posedge clk_in) begin
         inst_fault_buff  <= 1'b0;
         fault_addr_buff  <= '0;
         inst_err_buff    <= 1'b0;
+        pc_mode_buff     <= M_MODE;
 
         for (int i = 0; i < REGISTER_NUM; i++) begin
             regfile[i] = '0;
@@ -165,6 +170,7 @@ always_ff @(posedge clk_in) begin
             inst_fault_buff  <= 1'b0;
             fault_addr_buff  <= '0;
             inst_err_buff    <= 1'b0;
+            pc_mode_buff     <= M_MODE;
 
         end else if (!stage_stall_in) begin
             ir_buff          <= ir_in;
@@ -174,6 +180,7 @@ always_ff @(posedge clk_in) begin
             inst_fault_buff  <= inst_fault_in;
             fault_addr_buff  <= fault_addr_in;
             inst_err_buff    <= inst_err_in;
+            pc_mode_buff     <= r_current_mode;
 
         end
     end
@@ -365,7 +372,7 @@ assign if_trap = inst_fault_buff ? IF_TRAP_FAULT  :
                                    IF_TRAP_NONE;
 
 logic is_if_trap;
-assign is_if_trap = (if_trap != IF_TRAP_NONE) && !branch_ok_in;
+assign is_if_trap = (if_trap != IF_TRAP_NONE) && !if_trap_inhibit && !branch_ok_in;
 
 logic is_id_trap;
 assign is_id_trap = exception_safe &&
@@ -487,7 +494,19 @@ end
 //   - s_interrupt_active (already checks mideleg bits), or
 //   - exception cause bit is set in medeleg
 logic is_delegated;
-assign is_delegated = (r_current_mode != M_MODE) &&
+
+mode_e trap_mode;
+always_comb begin
+    case (trap_src)
+        TRAP_SRC_IF:  trap_mode = pc_mode_buff;
+        TRAP_SRC_ID:  trap_mode = r_current_mode;
+        TRAP_SRC_EX:  trap_mode = ex_trap_mode_in;
+        TRAP_SRC_MEM: trap_mode = mem_trap_mode_in;
+        default:      trap_mode = r_current_mode;
+    endcase
+end
+
+assign is_delegated = (trap_mode != M_MODE) &&
                       !m_interrupt_active &&
                       (s_interrupt_active || (exception_active && csr.medeleg[exception_cause_code]));
 
@@ -569,12 +588,18 @@ always_ff @(posedge clk_in) begin
         r_mret_inhibit <= 1'b0;
         r_current_mode <= M_MODE;
         trap_seen      <= 1'b0;
+        if_trap_inhibit <= 1'b0;
     end else begin
         if (!trap_raw)
             trap_seen <= 1'b0;
 
         if (r_mret_inhibit && !stage_stall_in)
             r_mret_inhibit <= 1'b0;
+
+        if (trap_out)
+            if_trap_inhibit <= 1'b1;
+        else if (!stage_stall_in && !(inst_fault_in || inst_err_in))
+            if_trap_inhibit <= 1'b0;
 
         if (trap_out) begin
             trap_seen <= 1'b1;
@@ -585,7 +610,7 @@ always_ff @(posedge clk_in) begin
                 csr.sepc         <= trap_epc;
                 csr.mstatus.spie <= csr.mstatus.sie;
                 csr.mstatus.sie  <= 1'b0;
-                csr.mstatus.spp  <= (r_current_mode == S_MODE) ? 1'b1 : 1'b0;
+                csr.mstatus.spp  <= (trap_mode == S_MODE) ? 1'b1 : 1'b0;
                 csr.stval        <= trap_tval;
 
                 if      (csr.seip && csr.mie[9] && csr.mideleg[9]) csr.scause <= {1'b1, 31'd9};
@@ -599,7 +624,7 @@ always_ff @(posedge clk_in) begin
                 csr.mepc            <= trap_epc;
                 csr.mstatus.mpie    <= csr.mstatus.mie;
                 csr.mstatus.mie     <= 1'b0;
-                csr.mstatus.mpp     <= r_current_mode;
+                csr.mstatus.mpp     <= trap_mode;
                 csr.mtval           <= trap_tval;
 
                 if      (meip_in && csr.mie[11])         csr.mcause <= {1'b1, 31'd11};

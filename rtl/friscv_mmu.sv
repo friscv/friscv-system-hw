@@ -78,6 +78,8 @@ logic         w_grant_start;
 logic         w_grant_start_inst;
 logic         w_grant_wr;
 logic         w_grant_active;
+logic         w_l1_inst_err;
+logic         w_l1_data_err;
 mmu_req_ctx_t r_req_ctx;
 logic         r_req_ctx_valid;
 mmu_req_ctx_t w_eff_req_ctx;
@@ -182,7 +184,7 @@ friscv_l1_arbiter l1_arbiter (
     .o_inst_data  ( o_inst_data   ),
     .i_inst_en    ( i_inst_en     ),
     .o_inst_wait  ( o_inst_wait   ),
-    .o_inst_err   ( o_inst_err    ),
+    .o_inst_err   ( w_l1_inst_err ),
 
     .i_data_addr  ( i_data_addr   ),
     .i_data_size  ( i_data_size   ),
@@ -192,7 +194,7 @@ friscv_l1_arbiter l1_arbiter (
     .i_data_wr    ( i_data_wr     ),
     .o_data_wait  ( o_data_wait   ),
     .i_amo_op     ( i_amo_op      ),
-    .o_data_err   ( o_data_err    ),
+    .o_data_err   ( w_l1_data_err ),
 
     .o_mem_addr   ( w_grant_addr  ),
     .o_mem_size   ( w_grant_size  ),
@@ -360,6 +362,12 @@ assign o_fault_addr  = (w_ptw_inst_fault | w_ptw_load_fault | w_ptw_store_fault)
 ppn_t w_granted_ppn;
 assign w_granted_ppn = w_eff_req_ctx.is_inst ? w_itlb_ppn : w_dtlb_ppn;
 
+addr_t w_granted_pa;
+assign w_granted_pa = w_paging_en ? {w_granted_ppn, w_eff_req_ctx.addr[11:0]} : w_eff_req_ctx.addr;
+
+assign o_inst_err = w_l1_inst_err;
+assign o_data_err = w_l1_data_err;
+
 // PTW walk signals routed directly to/from external memory
 assign w_walk_rdata = i_mem_rdata;
 assign w_walk_wait  = i_mem_wait;
@@ -369,13 +377,11 @@ assign w_walk_err   = i_mem_err;
 assign w_stall = w_ptw_stall | i_mem_wait;
 
 // Suppress physical memory access on TLB miss (PTW takes over) or perm fault
-assign o_mem_rw    = w_walk_en                    ? RW_READ   :
-                     (w_tlb_miss | w_perm_fault)  ? RW_IDLE   :
+assign o_mem_rw    = w_walk_en ? RW_READ :
+                     (w_tlb_miss | w_perm_fault) ? RW_IDLE :
                      w_grant_rw;
 
-assign o_mem_addr  = w_walk_en   ? w_walk_addr                           :
-                     w_paging_en ? {w_granted_ppn, w_eff_req_ctx.addr[11:0]}   :
-                     w_eff_req_ctx.addr;
+assign o_mem_addr  = w_walk_en ? w_walk_addr : w_granted_pa;
 
 assign o_mem_size  = w_walk_en ? WIDTH_I32 : w_grant_size;
 assign o_mem_wdata = w_walk_en ? '0        : w_grant_wdata;

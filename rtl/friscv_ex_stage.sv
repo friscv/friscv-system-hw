@@ -33,6 +33,7 @@ module friscv_ex_stage (
     input  reg_addr_t      rd_sel_in,
     input  reg_addr_t      rs1_sel_in,
     input  reg_addr_t      rs2_sel_in,
+    input  mode_e          mode_in,
     input  instr_ex_t      instr_ex_in,
 
     // Outputs to MEM stage
@@ -51,6 +52,7 @@ module friscv_ex_stage (
     output data_t          csr_readback_out,
     output logic           csr_en_out,
     output logic           instr_valid_out,
+    output mode_e          mode_out,
 
     // Outputs to control logic
     output logic           branch_ok_out,
@@ -75,6 +77,7 @@ data_t rs1_buff;
 data_t rs2_buff;
 data_t imm32_buff;
 data_t csr_buff;
+mode_e mode_buff;
 
 reg_addr_t rd_sel_buff;
 reg_addr_t rs1_sel_buff;
@@ -122,6 +125,7 @@ always_ff @(posedge clk_in) begin
         rd_sel_buff  <= 5'b0;
         rs1_sel_buff <= 5'b0;
         rs2_sel_buff <= 5'b0;
+        mode_buff    <= M_MODE;
         instr_buff   <= NOP_CTRL;
         branch_ok_prev <= 1'b0;
         sfence_vma_prev <= 1'b0;
@@ -157,6 +161,7 @@ always_ff @(posedge clk_in) begin
                 if (stage_flush_in || branch_ok_out) begin
                     pc_buff     <= 32'h0;
                     rd_sel_buff <= 5'b0;
+                    mode_buff   <= M_MODE;
                     instr_buff  <= NOP_CTRL;
                 end else begin
                     pc_plus_4_buff <= pc_plus_4_in;
@@ -168,6 +173,7 @@ always_ff @(posedge clk_in) begin
                     rd_sel_buff    <= rd_sel_in;
                     rs1_sel_buff   <= rs1_sel_in;
                     rs2_sel_buff   <= rs2_sel_in;
+                    mode_buff      <= mode_in;
                     instr_buff     <= instr_ex_in;
                 end
 
@@ -201,6 +207,7 @@ assign csr_sel_out          = instr_buff.csr_addr;
 assign csr_readback_out     = csr_buff;
 assign csr_en_out           = instr_buff.csr_op;
 assign instr_valid_out      = instr_buff.instr_valid;
+assign mode_out             = mode_buff;
 assign branch_ok_out        = branch_ok_raw && !branch_ok_prev && !misaligned_branch_raw;
 assign flush_tlb_out        = instr_buff.sfence_vma && !sfence_vma_prev;
 assign flush_vpn_out        = vpn_t'(rs1_buff[31:12]);

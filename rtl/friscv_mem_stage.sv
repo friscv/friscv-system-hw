@@ -37,6 +37,7 @@ module friscv_mem_stage (
     input  data_t          csr_readback_in,
     input  logic           csr_en_in,
     input  logic           instr_valid_in,
+    input  mode_e          mode_in,
 
     // AMO control
     input  logic           reserve_in,
@@ -66,6 +67,7 @@ module friscv_mem_stage (
     output mem_trap_e      mem_trap_out,
     output addr_t          mem_trap_pc_out,
     output addr_t          mem_trap_va_out,
+    output mode_e          mem_trap_mode_out,
 
     // Data memory interface
     output addr_t          d_mem_addr_out,
@@ -97,6 +99,7 @@ typedef struct packed {
     data_t          csr_readback;
     logic           csr_en;
     logic           instr_valid;
+    mode_e          mode;
 } mem_pipe_t;
 
 localparam mem_pipe_t MEM_PIPE_BUBBLE = '{
@@ -115,7 +118,8 @@ localparam mem_pipe_t MEM_PIPE_BUBBLE = '{
     csr_sel: CSR_ZERO,
     csr_readback: '0,
     csr_en: 1'b0,
-    instr_valid: 1'b0
+    instr_valid: 1'b0,
+    mode: M_MODE
 };
 
 mem_pipe_t pipe_buff;
@@ -125,16 +129,24 @@ mem_pipe_t pipe_buff;
 mem_trap_e r_mem_fault;
 addr_t     r_mem_fault_pc;
 addr_t     r_mem_fault_va;
+mode_e     r_mem_fault_mode;
 
 assign mem_trap_out    = r_mem_fault;
 assign mem_trap_pc_out = r_mem_fault_pc;
 assign mem_trap_va_out = r_mem_fault_va;
+assign mem_trap_mode_out = r_mem_fault_mode;
+
+logic w_mem_completion_fault;
+assign w_mem_completion_fault = r_mem_active &&
+                                !d_mem_wait_in &&
+                                (load_fault_in || store_fault_in ||
+                                 d_mem_err_in || pipe_buff.misaligned);
 
 // CSR passthrough
 assign csr_sel_out      = pipe_buff.csr_sel;
 assign csr_data_out     = pipe_buff.alu_data;
 assign csr_readback_out = pipe_buff.csr_readback;
-assign csr_en_out       = pipe_buff.csr_en;
+assign csr_en_out       = pipe_buff.csr_en && !w_mem_completion_fault;
 
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
@@ -151,6 +163,18 @@ assign w_mem_store_like = (mem_instr_sel_in == MEM_INSTR_STORE) || (amo_op_in !=
 logic r_mem_store_like;
 assign r_mem_store_like = (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) || (pipe_buff.amo_op != AMO_NONE);
 
+logic w_mem_atomic_like;
+assign w_mem_atomic_like = reserve_in || conditional_in || (amo_op_in != AMO_NONE);
+
+logic r_mem_atomic_like;
+assign r_mem_atomic_like = pipe_buff.clear_reserve || pipe_buff.conditional || (pipe_buff.amo_op != AMO_NONE);
+
+logic w_misaligned_access_fault;
+assign w_misaligned_access_fault = addr_virtual_in && w_mem_atomic_like;
+
+logic r_misaligned_access_fault;
+assign r_misaligned_access_fault = r_mem_atomic_like;
+
 logic w_mem_misaligned;
 always_comb begin
     case (load_store_width_in)
@@ -165,8 +189,8 @@ assign w_mem_access_fault = ENABLE_ADDRESS_SPACE_CHECK &&
                             !addr_virtual_in &&
                             (alu_data_in < ZSBL_BASE);
 
-// Pass valid flag to WB; WB gates it with stall to produce inst_ret
-assign instr_valid_out = pipe_buff.instr_valid;
+// Pass valid flag to WB; suppress same-cycle writeback when a memory op faults.
+assign instr_valid_out = pipe_buff.instr_valid && !w_mem_completion_fault;
 
 // Reservation register for AMO LR/SC
 logic  reserve_valid;
@@ -204,6 +228,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         r_mem_fault       <= MEM_TRAP_NONE;
         r_mem_fault_pc    <= '0;
         r_mem_fault_va    <= '0;
+        r_mem_fault_mode  <= M_MODE;
     end
 
     else begin
@@ -240,6 +265,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= 1'b0;
                 r_mem_fault_pc    <= pipe_buff.pc;
+                r_mem_fault_mode  <= pipe_buff.mode;
                 if (load_fault_in || store_fault_in) begin
                     r_mem_fault    <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
                     r_mem_fault_va <= fault_addr_in;
@@ -247,19 +273,24 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                     r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
                     r_mem_fault_va <= pipe_buff.alu_data;
                 end else begin
-                    r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                    r_mem_fault    <= r_misaligned_access_fault
+                                      ? (r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS)
+                                      : (r_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED);
                     r_mem_fault_va <= pipe_buff.alu_data;
                 end
-            end else if (instr_valid_in && w_is_mem_instr && w_mem_misaligned && !addr_virtual_in) begin
+            end else if (instr_valid_in && w_is_mem_instr && w_mem_misaligned) begin
                 // Load/store to misaligned address
                 pipe_buff         <= MEM_PIPE_BUBBLE;
                 r_mem_active      <= 1'b0;
                 r_load_data_valid <= 1'b0;
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= 1'b0;
-                r_mem_fault       <= w_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                r_mem_fault       <= w_misaligned_access_fault
+                                     ? (w_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS)
+                                     : (w_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED);
                 r_mem_fault_pc    <= pc_in;
                 r_mem_fault_va    <= alu_data_in;
+                r_mem_fault_mode  <= mode_in;
             end else if (instr_valid_in && w_is_mem_instr && w_mem_access_fault) begin
                 // Access to unmapped region
                 pipe_buff         <= MEM_PIPE_BUBBLE;
@@ -270,6 +301,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_mem_fault       <= w_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
                 r_mem_fault_pc    <= pc_in;
                 r_mem_fault_va    <= alu_data_in;
+                r_mem_fault_mode  <= mode_in;
             end else begin
                 // If no faults, capture the new instruction.
                 pipe_buff <= '{
@@ -288,9 +320,10 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                     csr_sel: csr_sel_in,
                     csr_readback: csr_readback_in,
                     csr_en: csr_en_in,
-                    instr_valid: instr_valid_in
+                    instr_valid: instr_valid_in,
+                    mode: mode_in
                 };
-                r_mem_active      <= w_is_mem_instr && cond_valid;
+                r_mem_active      <= w_is_mem_instr && (cond_valid || (conditional_in && addr_virtual_in));
                 r_load_data_valid <= 1'b0;  // Clear on new instruction
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= cond_valid;
@@ -317,6 +350,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_mem_fault      <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
                 r_mem_fault_pc   <= pipe_buff.pc;
                 r_mem_fault_va   <= fault_addr_in;
+                r_mem_fault_mode <= pipe_buff.mode;
                 pipe_buff.rd_sel <= 5'b0;  // Suppress WB writeback for faulting instruction
                 pipe_buff.instr_valid <= 1'b0;
             end else if (d_mem_err_in) begin
@@ -324,12 +358,16 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
                 r_mem_fault_pc <= pipe_buff.pc;
                 r_mem_fault_va <= pipe_buff.alu_data;
+                r_mem_fault_mode <= pipe_buff.mode;
                 pipe_buff.rd_sel <= 5'b0;
                 pipe_buff.instr_valid <= 1'b0;
             end else if (pipe_buff.misaligned) begin
-                r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                r_mem_fault    <= r_misaligned_access_fault
+                                  ? (r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS)
+                                  : (r_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED);
                 r_mem_fault_pc <= pipe_buff.pc;
                 r_mem_fault_va <= pipe_buff.alu_data;
+                r_mem_fault_mode <= pipe_buff.mode;
                 pipe_buff.rd_sel <= 5'b0;
                 pipe_buff.instr_valid <= 1'b0;
             end
@@ -379,7 +417,7 @@ always_comb begin
 end
 
 assign d_mem_data_out  = pipe_buff.store_data;
-assign rd_sel_out      = pipe_buff.rd_sel;
+assign rd_sel_out      = w_mem_completion_fault ? 5'b0 : pipe_buff.rd_sel;
 assign pc_plus_4_out   = pipe_buff.pc_plus_4;
 assign alu_data_out    = pipe_buff.alu_data;
 assign wb_data_sel_out = pipe_buff.wb_data_sel;

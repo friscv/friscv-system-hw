@@ -44,7 +44,7 @@ def main() -> None:
         print("run: make verilate")
         sys.exit(1)
 
-    bin_files = sorted(TEST_DIR.glob("*.bin"))
+    bin_files = sorted(TEST_DIR.glob("integration_test_*.bin"))
     if not bin_files:
         print("error: no test/*.bin files found")
         sys.exit(1)

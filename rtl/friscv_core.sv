@@ -101,6 +101,7 @@ logic           ex_csr_en_out;
 logic           ex_instr_valid_out;
 ex_trap_e       ex_trap_out;
 addr_t          ex_trap_pc_out;
+mode_e          ex_trap_mode_out;
 logic           ex_commit;
 
 logic ex_instr_is_mem;
@@ -110,6 +111,7 @@ assign ex_instr_is_mem = ex_mem_instr_sel_out != MEM_INSTR_NONE;
 mem_trap_e      mem_trap_out;
 addr_t          mem_trap_pc_out;
 addr_t          mem_trap_va_out;
+mode_e          mem_trap_mode_out;
 addr_t          mem_pc_plus_4_out;
 data_t          mem_alu_data_out;
 data_t          mem_load_data_out;
@@ -249,11 +251,13 @@ friscv_id_stage #(
     .mem_trap_in      ( mem_trap_out     ),
     .mem_trap_pc_in   ( mem_trap_pc_out  ),
     .mem_trap_va_in   ( mem_trap_va_out  ),
+    .mem_trap_mode_in ( mem_trap_mode_out),
     .mem_trap_commit_out ( mem_commit    ),
 
     // EX stage trap
     .ex_trap_in       ( ex_trap_out      ),
     .ex_trap_pc_in    ( ex_trap_pc_out   ),
+    .ex_trap_mode_in  ( ex_trap_mode_out ),
     .ex_trap_commit_out ( ex_commit      ),
 
     // Stage control signals
@@ -335,6 +339,7 @@ friscv_ex_stage ex_stage (
     .rs1_sel_in           ( id_rs1_sel_out          ),
     .rs2_sel_in           ( id_rs2_sel_out          ),
     .rd_sel_in            ( id_rd_sel_out           ),
+    .mode_in              ( mode_out                ),
     .instr_ex_in          ( id_uinstr               ),
 
     // Outputs to MEM stage
@@ -353,6 +358,7 @@ friscv_ex_stage ex_stage (
     .csr_readback_out     ( ex_csr_readback_out     ),
     .csr_en_out           ( ex_csr_en_out           ),
     .instr_valid_out      ( ex_instr_valid_out      ),
+    .mode_out             ( ex_trap_mode_out        ),
 
     // Outputs to control logic
     .branch_ok_out        ( branch_ok               ),
@@ -390,6 +396,7 @@ friscv_mem_stage mem_stage (
     .csr_readback_in     ( ex_csr_readback_out     ),
     .csr_en_in           ( ex_csr_en_out           ),
     .instr_valid_in      ( ex_instr_valid_out      ),
+    .mode_in             ( ex_trap_mode_out        ),
 
     // Page fault inputs from MMU
     .load_fault_in       ( i_load_fault            ),
@@ -400,6 +407,7 @@ friscv_mem_stage mem_stage (
     .mem_trap_out        ( mem_trap_out            ),
     .mem_trap_pc_out     ( mem_trap_pc_out         ),
     .mem_trap_va_out     ( mem_trap_va_out         ),
+    .mem_trap_mode_out   ( mem_trap_mode_out       ),
 
     // AMO control
     .reserve_in          ( ex_reserve_out          ),
