@@ -276,7 +276,9 @@ always_ff @(posedge clk or negedge rstn) begin
         // Write Response
         if (write_addr_received && m_axi_wvalid && !wr_to_timer && mem_wready) begin
             mem_bvalid <= 1;
-            mem_bresp  <= 2'b00;
+            mem_bresp  <= ((write_addr >= GPIO_ADDR && write_addr < (GPIO_ADDR + 32'h20)) ||
+                           (write_addr >= UART_ADDR && write_addr < (UART_ADDR + 32'h20)) ||
+                           (write_addr >= DRAM_BASE && write_addr < (DRAM_BASE + MEM_SIZE))) ? 2'b00 : 2'b10;
             write_addr_received <= 0;
         end else if (mem_bvalid && m_axi_bready) begin
             mem_bvalid <= 0;
@@ -299,11 +301,12 @@ always_ff @(posedge clk or negedge rstn) begin
         if (read_addr_received && !mem_rvalid) begin
             mem_rvalid <= 1;
             mem_rlast  <= 1;
-            mem_rresp  <= 2'b00;
 
             if (read_addr >= GPIO_ADDR && read_addr < (GPIO_ADDR + 32'h20)) begin
+                mem_rresp <= 2'b00;
                 mem_rdata <= 32'h0;  // Boot mode 0: DRAM direct jump
             end else if (read_addr >= UART_ADDR && read_addr < (UART_ADDR + 32'h20)) begin
+                mem_rresp <= 2'b00;
                 // UART 16550 register reads
                 case (read_addr - UART_ADDR)
                     32'h08: mem_rdata <= 32'h01;  // IIR: no interrupt pending
@@ -311,9 +314,11 @@ always_ff @(posedge clk or negedge rstn) begin
                     default: mem_rdata <= 32'h0;
                 endcase
             end else if (read_addr >= DRAM_BASE && read_addr < DRAM_BASE + MEM_SIZE) begin
-                automatic logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
+                logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
+                mem_rresp <= 2'b00;
                 mem_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};
             end else begin
+                mem_rresp <= 2'b10;
                 mem_rdata <= 32'hDEADC0DE;
             end
             mem_read_count <= mem_read_count + 1;

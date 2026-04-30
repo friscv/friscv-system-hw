@@ -243,6 +243,7 @@ friscv_id_stage #(
     // Page fault signals, from MMU
     .inst_fault_in    ( i_inst_fault     ),
     .fault_addr_in    ( i_fault_addr     ),
+    .inst_err_in      ( i_mem_err_in     ),
 
     // Page fault signals, from MEM stage
     .mem_trap_in      ( mem_trap_out     ),
@@ -427,6 +428,7 @@ friscv_mem_stage mem_stage (
     .d_mem_wr_out        ( d_mem_wr_out            ),
     .d_mem_size_out      ( d_mem_size_out          ),
     .d_mem_wait_in       ( d_mem_wait_in           ),
+    .d_mem_err_in        ( d_mem_err_in            ),
     .d_mem_amo_op_out    ( d_mem_amo_op_out        )
 );
 

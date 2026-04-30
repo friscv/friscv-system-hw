@@ -75,6 +75,7 @@ module friscv_mem_stage (
     output logic           d_mem_wr_out,
     output mem_width_e     d_mem_size_out,
     input  logic           d_mem_wait_in,
+    input  logic           d_mem_err_in,
     output amo_op_e        d_mem_amo_op_out
 );
 
@@ -90,6 +91,7 @@ typedef struct packed {
     wb_data_sel_e   wb_data_sel;
     logic           conditional;
     logic           clear_reserve;
+    logic           misaligned;
     amo_op_e        amo_op;
     csr_addr_e      csr_sel;
     data_t          csr_readback;
@@ -108,6 +110,7 @@ localparam mem_pipe_t MEM_PIPE_BUBBLE = '{
     wb_data_sel: WB_DATA_SEL_ALU,
     conditional: 1'b0,
     clear_reserve: 1'b0,
+    misaligned: 1'b0,
     amo_op: AMO_NONE,
     csr_sel: CSR_ZERO,
     csr_readback: '0,
@@ -141,6 +144,12 @@ logic r_load_data_valid;  // Flag indicating load data has been captured
 
 logic w_is_mem_instr;
 assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
+
+logic w_mem_store_like;
+assign w_mem_store_like = (mem_instr_sel_in == MEM_INSTR_STORE) || (amo_op_in != AMO_NONE);
+
+logic r_mem_store_like;
+assign r_mem_store_like = (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) || (pipe_buff.amo_op != AMO_NONE);
 
 logic w_mem_misaligned;
 always_comb begin
@@ -222,23 +231,33 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             // When an older memory op faults on the same cycle the pipeline
             // would otherwise advance, the younger EX instruction must be
             // ignored completely.
-            if (r_mem_active && (load_fault_in || store_fault_in)) begin
+            if (r_mem_active &&
+                ((load_fault_in || store_fault_in) ||
+                 (!d_mem_wait_in && (d_mem_err_in || pipe_buff.misaligned)))) begin
                 pipe_buff         <= MEM_PIPE_BUBBLE;
                 r_mem_active      <= 1'b0;
                 r_load_data_valid <= 1'b0;
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= 1'b0;
-                r_mem_fault       <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
                 r_mem_fault_pc    <= pipe_buff.pc;
-                r_mem_fault_va    <= fault_addr_in;
-            end else if (instr_valid_in && w_is_mem_instr && w_mem_misaligned) begin
+                if (load_fault_in || store_fault_in) begin
+                    r_mem_fault    <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
+                    r_mem_fault_va <= fault_addr_in;
+                end else if (d_mem_err_in) begin
+                    r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
+                    r_mem_fault_va <= pipe_buff.alu_data;
+                end else begin
+                    r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                    r_mem_fault_va <= pipe_buff.alu_data;
+                end
+            end else if (instr_valid_in && w_is_mem_instr && w_mem_misaligned && !addr_virtual_in) begin
                 // Load/store to misaligned address
                 pipe_buff         <= MEM_PIPE_BUBBLE;
                 r_mem_active      <= 1'b0;
                 r_load_data_valid <= 1'b0;
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= 1'b0;
-                r_mem_fault       <= (mem_instr_sel_in == MEM_INSTR_STORE) ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                r_mem_fault       <= w_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
                 r_mem_fault_pc    <= pc_in;
                 r_mem_fault_va    <= alu_data_in;
             end else if (instr_valid_in && w_is_mem_instr && w_mem_access_fault) begin
@@ -248,7 +267,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_load_data_valid <= 1'b0;
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= 1'b0;
-                r_mem_fault       <= (mem_instr_sel_in == MEM_INSTR_STORE) ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
+                r_mem_fault       <= w_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
                 r_mem_fault_pc    <= pc_in;
                 r_mem_fault_va    <= alu_data_in;
             end else begin
@@ -264,6 +283,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                     wb_data_sel: wb_data_sel_in,
                     conditional: conditional_in,
                     clear_reserve: clear_reserve_in,
+                    misaligned: w_mem_misaligned,
                     amo_op: amo_op_in,
                     csr_sel: csr_sel_in,
                     csr_readback: csr_readback_in,
@@ -298,10 +318,24 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_mem_fault_pc   <= pipe_buff.pc;
                 r_mem_fault_va   <= fault_addr_in;
                 pipe_buff.rd_sel <= 5'b0;  // Suppress WB writeback for faulting instruction
+                pipe_buff.instr_valid <= 1'b0;
+            end else if (d_mem_err_in) begin
+                // Capture access fault
+                r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
+                r_mem_fault_pc <= pipe_buff.pc;
+                r_mem_fault_va <= pipe_buff.alu_data;
+                pipe_buff.rd_sel <= 5'b0;
+                pipe_buff.instr_valid <= 1'b0;
+            end else if (pipe_buff.misaligned) begin
+                r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_MISALIGNED : MEM_TRAP_LOAD_MISALIGNED;
+                r_mem_fault_pc <= pipe_buff.pc;
+                r_mem_fault_va <= pipe_buff.alu_data;
+                pipe_buff.rd_sel <= 5'b0;
+                pipe_buff.instr_valid <= 1'b0;
             end
 
             // Clear reservation after SC completes
-            if (pipe_buff.conditional) begin
+            if (pipe_buff.conditional && !(load_fault_in || store_fault_in || d_mem_err_in || pipe_buff.misaligned)) begin
                 reserve_valid <= 1'b0;
                 r_sc_res <= !cond_valid_r;
                 r_sc_res_valid <= 1'b1;
@@ -309,7 +343,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 
             // Capture load data when load completes
             // Skip on fault
-            if (pipe_buff.mem_instr_sel == MEM_INSTR_LOAD && !load_fault_in) begin
+            if (pipe_buff.mem_instr_sel == MEM_INSTR_LOAD &&
+                !(load_fault_in || store_fault_in || d_mem_err_in || pipe_buff.misaligned)) begin
                 load_data_buff <= load_data;
                 r_load_data_valid <= 1'b1;
             end

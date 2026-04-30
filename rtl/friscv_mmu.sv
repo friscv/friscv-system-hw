@@ -227,7 +227,7 @@ always_comb begin
     w_start_req_ctx.sum      = i_sum;
     w_start_req_ctx.mxr      = i_mxr;
     w_start_req_ctx.is_inst  = w_grant_start_inst;
-    w_start_req_ctx.is_write = !w_grant_start_inst && i_data_wr;
+    w_start_req_ctx.is_write = !w_grant_start_inst && (i_data_wr || (i_amo_op != AMO_NONE));
 end
 
 always_comb begin
@@ -237,7 +237,7 @@ always_comb begin
     w_eff_req_ctx.sum      = i_sum;
     w_eff_req_ctx.mxr      = i_mxr;
     w_eff_req_ctx.is_inst  = w_grant_inst;
-    w_eff_req_ctx.is_write = w_grant_wr;
+    w_eff_req_ctx.is_write = w_grant_wr || (w_grant_amo != AMO_NONE);
     if (w_grant_active && r_req_ctx_valid) begin
         w_eff_req_ctx = r_req_ctx;
     end

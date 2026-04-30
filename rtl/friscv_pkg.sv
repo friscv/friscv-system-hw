@@ -226,26 +226,32 @@ package friscv_pkg;
     } satp_mode_e;
 
     typedef enum logic [2:0] {
-        TRAP_SRC_NONE = 0,
-        TRAP_SRC_MEM  = 1,
-        TRAP_SRC_EX   = 2,
-        TRAP_SRC_ID   = 3,
-        TRAP_SRC_IF   = 4
+        TRAP_SRC_NONE,
+        TRAP_SRC_MEM,
+        TRAP_SRC_EX,
+        TRAP_SRC_ID,
+        TRAP_SRC_IF
     } trap_src_e;
 
+    typedef enum logic [1:0] {
+        IF_TRAP_NONE,
+        IF_TRAP_FAULT,
+        IF_TRAP_ACCESS
+    } if_trap_e;
+
     typedef enum logic {
-        EX_TRAP_NONE       = 0,
-        EX_TRAP_MISALIGNED = 1
+        EX_TRAP_NONE,
+        EX_TRAP_MISALIGNED
     } ex_trap_e;
 
     typedef enum logic [2:0] {
-        MEM_TRAP_NONE             = 0,
-        MEM_TRAP_LOAD             = 1,
-        MEM_TRAP_STORE            = 2,
-        MEM_TRAP_LOAD_MISALIGNED  = 3,
-        MEM_TRAP_STORE_MISALIGNED = 4,
-        MEM_TRAP_LOAD_ACCESS      = 5,
-        MEM_TRAP_STORE_ACCESS     = 6
+        MEM_TRAP_NONE,
+        MEM_TRAP_LOAD,
+        MEM_TRAP_STORE,
+        MEM_TRAP_LOAD_MISALIGNED,
+        MEM_TRAP_STORE_MISALIGNED,
+        MEM_TRAP_LOAD_ACCESS,
+        MEM_TRAP_STORE_ACCESS
     } mem_trap_e;
 
     typedef struct packed {
@@ -277,14 +283,14 @@ package friscv_pkg;
     } perm_t;
 
     typedef enum logic [2:0] {
-        I_TYPE  = 3'b000,
-        I2_TYPE = 3'b001,
-        S_TYPE  = 3'b010,
-        B_TYPE  = 3'b011,
-        U_TYPE  = 3'b100,
-        J_TYPE  = 3'b101,
-        ZERO    = 3'b110,  // Always produces 32'h0
-        NEXT_PC = 3'b111   // Used to jump to incremented PC to refetch on FENCE.I
+        I_TYPE,
+        I2_TYPE,
+        S_TYPE,
+        B_TYPE,
+        U_TYPE,
+        J_TYPE,
+        ZERO,    // Always produces 32'h0
+        NEXT_PC  // Used to jump to incremented PC to refetch on FENCE.I
     } imm_e;
 
     // Load/Store instruction funct3
@@ -338,9 +344,9 @@ package friscv_pkg;
     } instr_op_t;
 
     typedef enum logic [1:0] {
-        BRANCH_JAL_NONE = 0,
-        BRANCH_INSTR    = 1,
-        JAL_INSTR       = 2
+        BRANCH_JAL_NONE,
+        BRANCH_INSTR,
+        JAL_INSTR
     } jump_sel_e;
 
     typedef enum logic [2:0] {
@@ -354,16 +360,11 @@ package friscv_pkg;
     } branch_cond_e;
 
     typedef enum logic [1:0] {
-        RS1     = 0,
-        ZERO_A  = 1,
-        PC      = 2,
-        RS1_SEL = 3
+        RS1, ZERO_A, PC, RS1_SEL
     } a_bus_sel_e;
 
     typedef enum logic [1:0] {
-        RS2 = 0,
-        IMM = 1,
-        CSR = 2
+        RS2, IMM, CSR
     } b_bus_sel_e;
 
     typedef enum logic [3:0] {
@@ -399,11 +400,11 @@ package friscv_pkg;
     } mem_instr_sel_e;
 
     typedef enum logic [2:0] {
-        WB_DATA_SEL_PC_PLUS_4 = 0,
-        WB_DATA_SEL_ALU       = 1,
-        WB_DATA_SEL_MEM       = 2,
-        WB_DATA_SEL_SC_RES    = 3,
-        WB_DATA_SEL_CSR       = 4
+        WB_DATA_SEL_PC_PLUS_4,
+        WB_DATA_SEL_ALU,
+        WB_DATA_SEL_MEM,
+        WB_DATA_SEL_SC_RES,
+        WB_DATA_SEL_CSR
     } wb_data_sel_e;
 
     typedef struct packed {

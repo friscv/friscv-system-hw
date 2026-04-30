@@ -34,6 +34,7 @@ module friscv_id_stage #(
     // Instruction fetch page fault
     input  logic      inst_fault_in,
     input  addr_t     fault_addr_in,
+    input  logic      inst_err_in,
 
     // Data memory page fault
     input  mem_trap_e mem_trap_in,
@@ -126,6 +127,7 @@ logic      instr_valid_buff;
 imm_e      imm_sel;
 logic      inst_fault_buff;
 addr_t     fault_addr_buff;
+logic      inst_err_buff;
 
 assign rs1_out = regfile[rs1_sel_out];
 assign rs2_out = regfile[rs2_sel_out];
@@ -145,6 +147,7 @@ always_ff @(posedge clk_in) begin
         instr_valid_buff <= 1'b0;
         inst_fault_buff  <= 1'b0;
         fault_addr_buff  <= '0;
+        inst_err_buff    <= 1'b0;
 
         for (int i = 0; i < REGISTER_NUM; i++) begin
             regfile[i] = '0;
@@ -161,6 +164,7 @@ always_ff @(posedge clk_in) begin
             instr_valid_buff <= 1'b0;
             inst_fault_buff  <= 1'b0;
             fault_addr_buff  <= '0;
+            inst_err_buff    <= 1'b0;
 
         end else if (!stage_stall_in) begin
             ir_buff          <= ir_in;
@@ -169,6 +173,7 @@ always_ff @(posedge clk_in) begin
             instr_valid_buff <= 1'b1;
             inst_fault_buff  <= inst_fault_in;
             fault_addr_buff  <= fault_addr_in;
+            inst_err_buff    <= inst_err_in;
 
         end
     end
@@ -354,41 +359,37 @@ assign inst_addr_virtual = ENABLE_MMU &&
                            (r_current_mode != M_MODE) &&
                            (satp_mode_e'(csr.satp.mode) != SATP_BARE);
 
-logic inst_access_fault;
-assign inst_access_fault = instr_valid_buff &&
-                           !inst_addr_virtual &&
-                           !((pc_in_buff >= DRAM_BASE) ||
-                             ((ZSBL_ROM_SIZE_BYTES > 0) &&
-                              (pc_in_buff >= RESET_VEC) &&
-                              (pc_in_buff < (RESET_VEC + ZSBL_ROM_SIZE_BYTES))));
+if_trap_e if_trap;
+assign if_trap = inst_fault_buff ? IF_TRAP_FAULT  :
+                 inst_err_buff   ? IF_TRAP_ACCESS :
+                                   IF_TRAP_NONE;
 
-logic if_trap;
-assign if_trap = inst_fault_buff && !branch_ok_in;
+logic is_if_trap;
+assign is_if_trap = (if_trap != IF_TRAP_NONE) && !branch_ok_in;
 
-logic id_trap;
-assign id_trap = exception_safe &&
-                 (inst_access_fault ||
-                  ecall_active ||
-                  ebreak_active ||
-                  illegal_inst ||
-                  (ENABLE_EARLY_JAL_JALR && target_misaligned));
+logic is_id_trap;
+assign is_id_trap = exception_safe &&
+                    (ecall_active  ||
+                     ebreak_active ||
+                     illegal_inst  ||
+                     (ENABLE_EARLY_JAL_JALR && target_misaligned));
 
-logic mem_trap;
-assign mem_trap = mem_trap_in != MEM_TRAP_NONE;
+logic is_mem_trap;
+assign is_mem_trap = mem_trap_in != MEM_TRAP_NONE;
 
-logic ex_trap;
-assign ex_trap = ex_trap_in != EX_TRAP_NONE;
+logic is_ex_trap;
+assign is_ex_trap = ex_trap_in != EX_TRAP_NONE;
 
 trap_src_e trap_src;
 assign trap_src =
-    mem_trap ? TRAP_SRC_MEM :
-    ex_trap  ? TRAP_SRC_EX  :
-    if_trap  ? TRAP_SRC_IF  :
-    id_trap  ? TRAP_SRC_ID  :
-               TRAP_SRC_NONE;
+    is_mem_trap ? TRAP_SRC_MEM :
+    is_ex_trap  ? TRAP_SRC_EX  :
+    is_if_trap  ? TRAP_SRC_IF  :
+    is_id_trap  ? TRAP_SRC_ID  :
+                  TRAP_SRC_NONE;
 
 logic ecall_active, ebreak_active;
-assign exception_active = if_trap || id_trap || ex_trap || mem_trap;
+assign exception_active = is_if_trap || is_id_trap || is_ex_trap || is_mem_trap;
 
 // Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
 // trap fires. Suppress the effective trap (flush + CSR state write) until the pipeline
@@ -432,13 +433,15 @@ always_comb begin
 
     case (trap_src)
         TRAP_SRC_IF: begin
-            exception_cause_code = 5'd12;  // Instruction page fault
+            case (if_trap)
+                IF_TRAP_FAULT:  exception_cause_code = 5'd12;  // Instruction page fault
+                IF_TRAP_ACCESS: exception_cause_code = 5'd1;   // Instruction access fault
+                default:        exception_cause_code = 5'd0;
+            endcase
         end
 
         TRAP_SRC_ID: begin
-            if (inst_access_fault) begin
-                exception_cause_code = 5'd1;  // Instruction access fault
-            end else if (ecall_active) begin
+            if (ecall_active) begin
                 case (r_current_mode)
                     U_MODE:  exception_cause_code = 5'd8;   // Environment call from U-mode
                     S_MODE:  exception_cause_code = 5'd9;   // Environment call from S-mode
@@ -463,12 +466,12 @@ always_comb begin
         TRAP_SRC_MEM: begin
             case (mem_trap_in)
                 MEM_TRAP_LOAD_MISALIGNED:  exception_cause_code = 5'd4;   // Load address misaligned
-                MEM_TRAP_LOAD_ACCESS:       exception_cause_code = 5'd5;   // Load access fault
+                MEM_TRAP_LOAD_ACCESS:      exception_cause_code = 5'd5;   // Load access fault
                 MEM_TRAP_STORE_MISALIGNED: exception_cause_code = 5'd6;   // Store/AMO address misaligned
-                MEM_TRAP_STORE_ACCESS:      exception_cause_code = 5'd7;   // Store/AMO access fault
-                MEM_TRAP_LOAD:              exception_cause_code = 5'd13;  // Load page fault
-                MEM_TRAP_STORE:             exception_cause_code = 5'd15;  // Store/AMO page fault
-                default:                    exception_cause_code = 5'd0;
+                MEM_TRAP_STORE_ACCESS:     exception_cause_code = 5'd7;   // Store/AMO access fault
+                MEM_TRAP_LOAD:             exception_cause_code = 5'd13;  // Load page fault
+                MEM_TRAP_STORE:            exception_cause_code = 5'd15;  // Store/AMO page fault
+                default:                   exception_cause_code = 5'd0;
             endcase
         end
 
@@ -529,7 +532,7 @@ assign tvec_out = trap_to_s_mode
 addr_t trap_epc;
 always_comb begin
     case (trap_src)
-        TRAP_SRC_IF:  trap_epc = pc_in;
+        TRAP_SRC_IF:  trap_epc = pc_in_buff;
         TRAP_SRC_ID:  trap_epc = pc_in_buff;
         TRAP_SRC_EX:  trap_epc = ex_trap_pc_in;
         TRAP_SRC_MEM: trap_epc = mem_trap_pc_in;
@@ -540,9 +543,8 @@ end
 addr_t trap_tval;
 always_comb begin
     case (trap_src)
-        TRAP_SRC_IF:  trap_tval = fault_addr_buff;
-        TRAP_SRC_ID:  trap_tval = inst_access_fault ? pc_in_buff :
-                                  illegal_inst      ? ir_buff.b  : '0;
+        TRAP_SRC_IF:  trap_tval = (if_trap == IF_TRAP_ACCESS) ? '0 : fault_addr_buff;
+        TRAP_SRC_ID:  trap_tval = illegal_inst ? ir_buff.b  : '0;
         TRAP_SRC_EX:  trap_tval = '0;
         TRAP_SRC_MEM: begin
             case (mem_trap_in)
@@ -553,7 +555,7 @@ always_comb begin
                 default:                   trap_tval = mem_trap_va_in;
             endcase
         end
-        default:      trap_tval = '0;
+        default: trap_tval = '0;
     endcase
 end
 
