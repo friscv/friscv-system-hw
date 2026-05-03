@@ -63,3 +63,6 @@ software/*.dtb
 # Simulation caches
 sim/cache/
 sim/out/
+
+# Git patches
+*.patch
