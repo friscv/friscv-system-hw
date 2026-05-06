@@ -82,8 +82,7 @@ With the AXI clock of ~90.909 MHz, the divisor for 115200 baud is `49`.
 
 FRISC-V has first party support for the Embedded Artists LPCXpresso Base Board (I/O board).
 
-The I/O board features a USB-to-UART bridge connected to the primary power source interface on the right side of the board (`U22`, `X3`). Default jumper positions should be used. Consult the LPCXpresso Base Board 
-Rev B User’s Guide if needed.
+The I/O board features a USB-to-UART bridge connected to the primary power source interface on the right side of the board (`U22`, `X3`). Default jumper positions should be used. Consult the LPCXpresso Base Board Rev B User’s Guide if needed.
 
 ![I/O Board USB-to-UART Connector](assets/images/io-board-uart.png)
 

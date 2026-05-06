@@ -43,7 +43,7 @@ This is the simplest boot mode. A program needs to be loaded into main memory us
 
 Start with a programmed board in reset, then execute the following commands.
 
-```
+```bash
 python3 build.py load
 python3 build.py run
 ```
