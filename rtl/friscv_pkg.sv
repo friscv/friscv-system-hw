@@ -21,6 +21,7 @@ v 0.5.0		Mario Kovac, 2024_05, memory debug & update, system update
 v 0.9.0     Petra Kelkovic, Luka Kokic, 2024_06, cpu & system verification, external debug interface, PC & ARM SW, External IO board connections
 v 1.0.0     Mario Kovac, 2025_02, some signals renaming, if update, v1.0.0 official
 v 2.0.0     Emil Popovic, Franko Ciric, 2026_03, AXI interface, combinatorial control unit, automation scripts, A extension, external timer interrupt
+v 2.1.0     Emil Popovic, MMU, certification tests, boots os, modular interface
 
 */
 
@@ -32,7 +33,7 @@ package friscv_pkg;
     // --- Configurable parameter definitions start ---
 
     // Set this to 0 for debugging
-    localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
+    localparam int   ZSBL_ROM_SIZE_BYTES = 1024;
 
     // Performance optimizations
     // If enabled, execute JAL(R) in IF instead of EX
@@ -166,7 +167,7 @@ package friscv_pkg;
         CSR_INSTRETH  = 12'hC82
     } csr_addr_e;
 
-    typedef logic [63:0]              mtime_t;
+    typedef logic [63:0] mtime_t;
 
     typedef enum logic [1:0] {
         U_MODE = 2'b00,

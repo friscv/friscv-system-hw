@@ -22,7 +22,6 @@ module friscv_l2_buffer (
     friscv_l2_if.requester if_downstream
 );
 
-
 logic       r_valid;
 addr_t      r_addr;
 mem_width_e r_size;

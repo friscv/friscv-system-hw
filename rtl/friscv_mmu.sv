@@ -342,7 +342,7 @@ assign w_perm_store_ok = w_dtlb_perm.w &&
                           (w_eff_req_ctx.mode == S_MODE && (!w_dtlb_perm.u || w_eff_req_ctx.sum)));
 
 // Perm fault: paging on, arbiter granted, TLB hit, but permission denied
-assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_eff_req_ctx.is_inst                    && w_itlb_hit && !w_perm_inst_ok;
+assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_eff_req_ctx.is_inst                            && w_itlb_hit && !w_perm_inst_ok;
 assign w_perm_load_fault  = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst && !w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_load_ok;
 assign w_perm_store_fault = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst &&  w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_store_ok;
 assign w_perm_fault       = w_perm_inst_fault | w_perm_load_fault | w_perm_store_fault;
