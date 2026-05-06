@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -25,7 +25,7 @@ module friscv_if_stage (
     input  logic  i_mem_wait_in,
     input  logic  jump_ok_in,
     input  addr_t jump_target_in,
- 
+
     // Outputs to ID stage
     output addr_t pc_out,
     output addr_t pc_plus_4_out,
@@ -60,17 +60,17 @@ always_ff @(posedge clk_in) begin
     end else begin
         if (flush_in || jump_ok_in || trap_in || ret_in) begin
             if (ret_in) begin
-                pc_reg <= {epc_in[ADDR_WIDTH-1:2], 2'b00};
+                pc_reg <= epc_in;
             end else if (trap_in) begin
-                pc_reg <= {tvec_in[ADDR_WIDTH-1:2], 2'b00};
+                pc_reg <= tvec_in;
             end else if (jump_ok_in) begin
-                pc_reg <= {jump_target_in[ADDR_WIDTH-1:2], 2'b0};
+                pc_reg <= jump_target_in;
             end else begin
                 pc_reg <= RESET_VEC;
             end
             r_fetch_active  <= 1'b1;
             ir_buff         <= NOP;
-            r_flush_pending <= r_fetch_active;
+            r_flush_pending <= r_fetch_active && i_mem_wait_in;
         end else if (r_flush_pending && !i_mem_wait_in) begin
             // Stale AXI response arrived for the old address.
             // Discard it, hold pc_reg at the redirect target, restart fetch.
@@ -82,7 +82,7 @@ always_ff @(posedge clk_in) begin
         end else if (r_fetch_active && !i_mem_wait_in) begin
             r_fetch_active <= 1'b0;
             ir_buff        <= i_mem_data_in;
-        end 
+        end
     end
 end
 

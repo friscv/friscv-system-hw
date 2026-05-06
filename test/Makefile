@@ -1,14 +1,14 @@
 SHELL := /bin/bash
 
 # Toolchain
-PREFIX = riscv32-unknown-elf-
+PREFIX ?= riscv64-unknown-elf-
 AS = $(PREFIX)as
 LD = $(PREFIX)ld
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 
 ASFLAGS = -march=rv32i -mabi=ilp32
-LDFLAGS = -T linker.ld
+LDFLAGS = -m elf32lriscv -T linker.ld
 
 # Default target: build all integration tests into individual .bin files
 INTEGRATION_SRCS = $(wildcard integration_test_*.S)

@@ -21,7 +21,7 @@
 .equ DRAM_BASE, 0x80000000
 .equ GPIO0_BASE, 0x40000000
 .equ GPIO1_BASE, 0x40010000
-.equ UART_BASE, 0x40600000
+.equ UART_BASE, 0x10000000
 .equ HALT_ADDR, 0x50000000
 .equ DTB_BASE, 0x80200000
 
@@ -57,7 +57,7 @@
 .equ MODE_WAIT, 0x3
 
 _start:
-    li a0, 49                  # UART divisor = 90_909_088 / (16 * 115200) = 49
+    li a0, 30                  # UART divisor = 55_555_557 / (16 * 115200) = 30
     call uart_init
 
     la a0, ready_msg

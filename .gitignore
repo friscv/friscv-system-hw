@@ -27,6 +27,7 @@ bd/*/*
 *.mcs
 *.xsa
 *.elf
+*.bak
 
 # Do not ignore generated overlays
 !overlay/*.bit
@@ -54,6 +55,14 @@ test/*.o
 test/*.elf
 test/*.bin
 test/*.dis
+build/
 
 # Software build artifacts
 software/*.dtb
+
+# Simulation caches
+sim/cache/
+sim/out/
+
+# Git patches
+*.patch

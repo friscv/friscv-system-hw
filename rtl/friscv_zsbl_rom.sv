@@ -47,7 +47,7 @@ assign o_data = r_data;
 
 initial begin
     // Auto-generated program at RESET_VEC (0x1000)
-    mem[0] = 32'h0310_0513;  // addi	x10,x0,49
+    mem[0] = 32'h01e0_0513;  // addi	x10,x0,30
     mem[1] = 32'h0a80_00ef;  // jal	x1,10ac <uart_init>
     mem[2] = 32'h0000_0517;  // auipc	x10,0x0
     mem[3] = 32'h22c5_0513;  // addi	x10,x10,556 # 1234 <ready_msg>
@@ -90,8 +90,8 @@ initial begin
     mem[40] = 32'h8020_05b7;  // lui	x11,0x80200
     mem[41] = 32'h8000_02b7;  // lui	x5,0x80000
     mem[42] = 32'h0002_8067;  // jalr	x0,0(x5) # 80000000 <DRAM_BASE>
-    mem[43] = 32'h4060_0337;  // lui	x6,0x40600
-    mem[44] = 32'h0003_0223;  // sb	x0,4(x6) # 40600004 <UART_BASE+0x4>
+    mem[43] = 32'h1000_0337;  // lui	x6,0x10000
+    mem[44] = 32'h0003_0223;  // sb	x0,4(x6) # 10000004 <UART_BASE+0x4>
     mem[45] = 32'h0800_0293;  // addi	x5,x0,128
     mem[46] = 32'h0053_0623;  // sb	x5,12(x6)
     mem[47] = 32'h00a3_0023;  // sb	x10,0(x6)
@@ -103,24 +103,24 @@ initial begin
     mem[53] = 32'h0053_0423;  // sb	x5,8(x6)
     mem[54] = 32'h0003_0823;  // sb	x0,16(x6)
     mem[55] = 32'h0000_8067;  // jalr	x0,0(x1)
-    mem[56] = 32'h4060_0337;  // lui	x6,0x40600
-    mem[57] = 32'h0143_0283;  // lb	x5,20(x6) # 40600014 <UART_BASE+0x14>
+    mem[56] = 32'h1000_0337;  // lui	x6,0x10000
+    mem[57] = 32'h0143_0283;  // lb	x5,20(x6) # 10000014 <UART_BASE+0x14>
     mem[58] = 32'h0202_f293;  // andi	x5,x5,32
     mem[59] = 32'hfe02_8ce3;  // beq	x5,x0,10e4 <uart_putc+0x4>
     mem[60] = 32'h00a3_0023;  // sb	x10,0(x6)
     mem[61] = 32'h0000_8067;  // jalr	x0,0(x1)
-    mem[62] = 32'h4060_0337;  // lui	x6,0x40600
-    mem[63] = 32'h0143_0283;  // lb	x5,20(x6) # 40600014 <UART_BASE+0x14>
+    mem[62] = 32'h1000_0337;  // lui	x6,0x10000
+    mem[63] = 32'h0143_0283;  // lb	x5,20(x6) # 10000014 <UART_BASE+0x14>
     mem[64] = 32'h0012_f293;  // andi	x5,x5,1
     mem[65] = 32'hfe02_8ce3;  // beq	x5,x0,10fc <uart_getc+0x4>
     mem[66] = 32'h0003_4503;  // lbu	x10,0(x6)
     mem[67] = 32'h0000_8067;  // jalr	x0,0(x1)
     mem[68] = 32'h0000_8993;  // addi	x19,x1,0
     mem[69] = 32'h0005_0393;  // addi	x7,x10,0
-    mem[70] = 32'h4060_0e37;  // lui	x28,0x40600
+    mem[70] = 32'h1000_0e37;  // lui	x28,0x10000
     mem[71] = 32'h0003_c503;  // lbu	x10,0(x7)
     mem[72] = 32'h0005_0e63;  // beq	x10,x0,113c <uart_puts+0x2c>
-    mem[73] = 32'h014e_0283;  // lb	x5,20(x28) # 40600014 <UART_BASE+0x14>
+    mem[73] = 32'h014e_0283;  // lb	x5,20(x28) # 10000014 <UART_BASE+0x14>
     mem[74] = 32'h0202_f293;  // andi	x5,x5,32
     mem[75] = 32'hfe02_8ce3;  // beq	x5,x0,1124 <uart_puts+0x14>
     mem[76] = 32'h00ae_0023;  // sb	x10,0(x28)
@@ -131,8 +131,8 @@ initial begin
     mem[81] = 32'hfe02_8ce3;  // beq	x5,x0,113c <uart_puts+0x2c>
     mem[82] = 32'h0009_8093;  // addi	x1,x19,0
     mem[83] = 32'h0000_8067;  // jalr	x0,0(x1)
-    mem[84] = 32'h4060_0337;  // lui	x6,0x40600
-    mem[85] = 32'h0143_0283;  // lb	x5,20(x6) # 40600014 <UART_BASE+0x14>
+    mem[84] = 32'h1000_0337;  // lui	x6,0x10000
+    mem[85] = 32'h0143_0283;  // lb	x5,20(x6) # 10000014 <UART_BASE+0x14>
     mem[86] = 32'h0012_f293;  // andi	x5,x5,1
     mem[87] = 32'h0002_9a63;  // bne	x5,x0,1170 <uart_getc_timeout+0x20>
     mem[88] = 32'hfff5_8593;  // addi	x11,x11,-1 # 801fffff <DRAM_BASE+0x1fffff>
@@ -182,8 +182,8 @@ initial begin
     mem[132] = 32'hfb5f_f06f;  // jal	x0,11c4 <.next_packet>
     mem[133] = 32'h0060_0513;  // addi	x10,x0,6
     mem[134] = 32'hec9f_f0ef;  // jal	x1,10e0 <uart_putc>
-    mem[135] = 32'h4060_0337;  // lui	x6,0x40600
-    mem[136] = 32'h0143_0283;  // lb	x5,20(x6) # 40600014 <UART_BASE+0x14>
+    mem[135] = 32'h1000_0337;  // lui	x6,0x10000
+    mem[136] = 32'h0143_0283;  // lb	x5,20(x6) # 10000014 <UART_BASE+0x14>
     mem[137] = 32'h0402_f293;  // andi	x5,x5,64
     mem[138] = 32'hfe02_8ce3;  // beq	x5,x0,1220 <.transfer_done+0xc>
     mem[139] = 32'he71f_f06f;  // jal	x0,109c <execute_loaded>

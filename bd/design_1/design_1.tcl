@@ -299,7 +299,7 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.ENABLE_ADVANCED_OPTIONS {0} \
     CONFIG.NUM_MI {5} \
-    CONFIG.S00_HAS_DATA_FIFO {2} \
+    CONFIG.S00_HAS_DATA_FIFO {0} \
     CONFIG.STRATEGY {1} \
   ] $fv_interconnect
 
@@ -331,7 +331,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.096154} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {125.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {90.909088} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {55.555557} \
     CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
@@ -361,7 +361,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_CAN1_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_CAN_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_CAN_PERIPHERAL_VALID {0} \
-    CONFIG.PCW_CLK0_FREQ {90909088} \
+    CONFIG.PCW_CLK0_FREQ {55555557} \
     CONFIG.PCW_CLK1_FREQ {10000000} \
     CONFIG.PCW_CLK2_FREQ {10000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
@@ -461,7 +461,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_FCLK2_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_FCLK3_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_FCLK_CLK0_BUF {TRUE} \
-    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {90} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {55} \
     CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA2_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA3_PERIPHERAL_FREQMHZ {50} \
@@ -734,7 +734,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_SPI1_PERIPHERAL_ENABLE {0} \
     CONFIG.PCW_SPI_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_SPI_PERIPHERAL_VALID {0} \
-    CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
+    CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {32} \
     CONFIG.PCW_S_AXI_HP0_ID_WIDTH {6} \
     CONFIG.PCW_TPIU_PERIPHERAL_CLKSRC {External} \
     CONFIG.PCW_TRACE_INTERNAL_WIDTH {2} \
@@ -952,8 +952,12 @@ proc create_root_design { parentCell } {
   [get_bd_pins fv_gpio_1/gpio_io_i]
   connect_bd_net -net extract_extern_rst_Dout  [get_bd_pins extract_extern_rst/Dout] \
   [get_bd_pins rst_to_rstn/Op1]
-  connect_bd_net -net friscv_clint_0_mtip_out  [get_bd_pins friscv_clint/mtip_out] \
-  [get_bd_pins friscv_cpu_subsystem/i_mtip]
+  connect_bd_net -net friscv_clint_msip_out  [get_bd_pins friscv_clint/msip_out] \
+  [get_bd_pins friscv_cpu_subsystem/msip]
+  connect_bd_net -net friscv_clint_mtip_out  [get_bd_pins friscv_clint/mtip_out] \
+  [get_bd_pins friscv_cpu_subsystem/mtip]
+  connect_bd_net -net friscv_clint_time_out  [get_bd_pins friscv_clint/time_out] \
+  [get_bd_pins friscv_cpu_subsystem/mtime]
   connect_bd_net -net friscv_cpu_subsystem_0_done  [get_bd_pins friscv_cpu_subsystem/done] \
   [get_bd_ports done_out]
   connect_bd_net -net friscv_gpio_0_gpio_io_o  [get_bd_pins fv_gpio_0/gpio_io_o] \
@@ -979,9 +983,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins fv_interconnect/M03_ARESETN] \
   [get_bd_pins gpio_aresetn/s_axi_aresetn] \
   [get_bd_pins fv_interconnect/M04_ARESETN] \
-  [get_bd_pins friscv_clint/rstn_in] \
   [get_bd_pins debounce_rstn/rst_n] \
-  [get_bd_pins fv_uart16550/s_axi_aresetn]
+  [get_bd_pins fv_uart16550/s_axi_aresetn] \
+  [get_bd_pins friscv_clint/rstn_in]
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins debug_interconnect/ACLK] \
   [get_bd_pins debug_interconnect/S00_ACLK] \
@@ -999,10 +1003,10 @@ proc create_root_design { parentCell } {
   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
   [get_bd_pins fv_interconnect/M04_ACLK] \
-  [get_bd_pins friscv_cpu_subsystem/aclk] \
-  [get_bd_pins friscv_clint/clk_in] \
   [get_bd_pins debounce_rstn/clk] \
-  [get_bd_pins fv_uart16550/s_axi_aclk]
+  [get_bd_pins fv_uart16550/s_axi_aclk] \
+  [get_bd_pins friscv_cpu_subsystem/aclk] \
+  [get_bd_pins friscv_clint/clk_in]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins proc_sys_reset_0/ext_reset_in]
   connect_bd_net -net rst_to_rstn_Res  [get_bd_pins rst_to_rstn/Res] \
@@ -1012,8 +1016,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net util_vector_logic_0_Res  [get_bd_pins util_vector_logic_0/Res] \
   [get_bd_ports rst_out]
   connect_bd_net -net zero_dout  [get_bd_pins zero/dout] \
-  [get_bd_pins friscv_cpu_subsystem/i_msip] \
-  [get_bd_pins friscv_cpu_subsystem/i_meip]
+  [get_bd_pins friscv_cpu_subsystem/meip]
 
   # Create address segments
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs gpio_aresetn/S_AXI/Reg] -force

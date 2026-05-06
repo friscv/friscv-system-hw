@@ -12,17 +12,22 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="42.750001 us"></ZoomEndTime>
-      <Cursor1Time time="21.550000 us"></Cursor1Time>
+      <ZoomStartTime time="5,631.799 ns"></ZoomStartTime>
+      <ZoomEndTime time="6,676.607 ns"></ZoomEndTime>
+      <Cursor1Time time="6,080.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="297"></NameColumnWidth>
+      <NameColumnWidth column_width="290"></NameColumnWidth>
       <ValueColumnWidth column_width="103"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="22" />
+   <WVObjectSize size="38" />
    <wave_markers>
       <marker time="21550000" label="" />
+      <marker time="5560000" label="" />
+      <marker time="5670000" label="" />
+      <marker time="6070000" label="" />
+      <marker time="6440000" label="" />
+      <marker time="6300000" label="" />
    </wave_markers>
    <wvobject fp_name="/tb_cc/rstn" type="logic">
       <obj_property name="ElementShortName">rstn</obj_property>
@@ -109,13 +114,139 @@
          <obj_property name="CustomSignalColor">#00FFFF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject fp_name="/tb_cc/dut/l1_arbiter/state" type="array">
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/l1_arbiter/state" type="array">
          <obj_property name="ElementShortName">state[1:0]</obj_property>
          <obj_property name="ObjectShortName">state[1:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/tb_cc/dut/l1_arbiter/o_amo_op" type="array">
-         <obj_property name="ElementShortName">o_amo_op[3:0]</obj_property>
-         <obj_property name="ObjectShortName">o_amo_op[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider224">
+      <obj_property name="label">TLB</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/dtlb/i_match_vpn" type="array">
+      <obj_property name="ElementShortName">i_match_vpn[19:0]</obj_property>
+      <obj_property name="ObjectShortName">i_match_vpn[19:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/dtlb/o_hit" type="logic">
+      <obj_property name="ElementShortName">o_hit</obj_property>
+      <obj_property name="ObjectShortName">o_hit</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/dtlb/w_hit_idx" type="array">
+      <obj_property name="ElementShortName">w_hit_idx[1:0]</obj_property>
+      <obj_property name="ObjectShortName">w_hit_idx[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/dtlb/r_tlb" type="array">
+      <obj_property name="ElementShortName">r_tlb[0:3]</obj_property>
+      <obj_property name="ObjectShortName">r_tlb[0:3]</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider163">
+      <obj_property name="label">MMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">#00FFFF</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/i_clk" type="logic">
+      <obj_property name="ElementShortName">i_clk</obj_property>
+      <obj_property name="ObjectShortName">i_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="group191" type="group">
+      <obj_property name="label">TLB Miss</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/w_grant_active" type="logic">
+         <obj_property name="ElementShortName">w_grant_active</obj_property>
+         <obj_property name="ObjectShortName">w_grant_active</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/w_grant_inst" type="logic">
+         <obj_property name="ElementShortName">w_grant_inst</obj_property>
+         <obj_property name="ObjectShortName">w_grant_inst</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/w_itlb_hit" type="logic">
+         <obj_property name="ElementShortName">w_itlb_hit</obj_property>
+         <obj_property name="ObjectShortName">w_itlb_hit</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/w_dtlb_hit" type="logic">
+         <obj_property name="ElementShortName">w_dtlb_hit</obj_property>
+         <obj_property name="ObjectShortName">w_dtlb_hit</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/w_paging_en" type="logic">
+         <obj_property name="ElementShortName">w_paging_en</obj_property>
+         <obj_property name="ObjectShortName">w_paging_en</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/i_itlb_miss" type="logic">
+         <obj_property name="ElementShortName">i_itlb_miss</obj_property>
+         <obj_property name="ObjectShortName">i_itlb_miss</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/i_dtlb_miss" type="logic">
+         <obj_property name="ElementShortName">i_dtlb_miss</obj_property>
+         <obj_property name="ObjectShortName">i_dtlb_miss</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/i_req_va" type="array">
+      <obj_property name="ElementShortName">i_req_va[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i_req_va[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/r_pte" type="array">
+      <obj_property name="ElementShortName">r_pte</obj_property>
+      <obj_property name="ObjectShortName">r_pte</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/r_pte.ppn" type="array">
+         <obj_property name="ElementShortName">.ppn[19:0]</obj_property>
+         <obj_property name="ObjectShortName">.ppn[19:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/r_pte.reserved" type="array">
+         <obj_property name="ElementShortName">.reserved[1:0]</obj_property>
+         <obj_property name="ObjectShortName">.reserved[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/r_pte.perm" type="array">
+         <obj_property name="ElementShortName">.perm</obj_property>
+         <obj_property name="ObjectShortName">.perm</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/i_req_is_write" type="logic">
+      <obj_property name="ElementShortName">i_req_is_write</obj_property>
+      <obj_property name="ObjectShortName">i_req_is_write</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/r_level" type="array">
+      <obj_property name="ElementShortName">r_level[2:0]</obj_property>
+      <obj_property name="ObjectShortName">r_level[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/r_state" type="array">
+      <obj_property name="ElementShortName">r_state[2:0]</obj_property>
+      <obj_property name="ObjectShortName">r_state[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/o_walk_en" type="logic">
+      <obj_property name="ElementShortName">o_walk_en</obj_property>
+      <obj_property name="ObjectShortName">o_walk_en</obj_property>
+   </wvobject>
+   <wvobject fp_name="group190" type="group">
+      <obj_property name="label">Stall</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/i_walk_wait" type="logic">
+         <obj_property name="ElementShortName">i_walk_wait</obj_property>
+         <obj_property name="ObjectShortName">i_walk_wait</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/o_stall" type="logic">
+         <obj_property name="ElementShortName">o_stall</obj_property>
+         <obj_property name="ObjectShortName">o_stall</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group189" type="group">
+      <obj_property name="label">Fault</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/o_inst_fault" type="logic">
+         <obj_property name="ElementShortName">o_inst_fault</obj_property>
+         <obj_property name="ObjectShortName">o_inst_fault</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/o_load_fault" type="logic">
+         <obj_property name="ElementShortName">o_load_fault</obj_property>
+         <obj_property name="ObjectShortName">o_load_fault</obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/genblk1.mmu/ptw/o_store_fault" type="logic">
+         <obj_property name="ElementShortName">o_store_fault</obj_property>
+         <obj_property name="ObjectShortName">o_store_fault</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="divider" fp_name="divider124">
@@ -134,10 +265,6 @@
          <obj_property name="label">Hazard control</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/mret_in" type="logic">
-            <obj_property name="ElementShortName">mret_in</obj_property>
-            <obj_property name="ObjectShortName">mret_in</obj_property>
-         </wvobject>
          <wvobject fp_name="/tb_cc/dut/cpu_0/control_unit/id_csr_en_in" type="logic">
             <obj_property name="ElementShortName">id_csr_en_in</obj_property>
             <obj_property name="ObjectShortName">id_csr_en_in</obj_property>
@@ -399,15 +526,14 @@
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/r_current_privilege" type="array">
-         <obj_property name="ElementShortName">r_current_privilege[1:0]</obj_property>
-         <obj_property name="ObjectShortName">r_current_privilege[1:0]</obj_property>
-         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
       <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/csr" type="array">
          <obj_property name="ElementShortName">csr</obj_property>
          <obj_property name="ObjectShortName">csr</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/r_current_mode" type="array">
+         <obj_property name="ElementShortName">r_current_mode[1:0]</obj_property>
+         <obj_property name="ObjectShortName">r_current_mode[1:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/tb_cc/dut/cpu_0/id_stage/regfile" type="array">
          <obj_property name="ElementShortName">regfile[0:31][31:0]</obj_property>

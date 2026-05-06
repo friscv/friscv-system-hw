@@ -100,12 +100,12 @@ test1:
     sw   x6, 0(x5)             # mtimecmp[31:0]  = 64 (fire after 64 ticks)
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
+    li   x6, 4096              # spin limit
+
     li   x1, 0x80
     csrw mie, x1               # mie.MTIE = 1 (bit 7)
     li   x1, 8
     csrw mstatus, x1           # mstatus.MIE = 1
-
-    li   x6, 4096              # spin limit
 test1_spin:
     bnez x10, test1_done       # exit when handler has fired
     addi x6, x6, -1
@@ -162,13 +162,13 @@ test2:
     sw   x6, 0(x5)             # mtimecmp[31:0]  = 64
     sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
+    li   x6, 4096
+    li   x7, 0xBEEF
+
     li   x1, 0x80
     csrw mie, x1               # mie.MTIE = 1
     li   x1, 8
     csrw mstatus, x1           # MIE = 1
-
-    li   x6, 4096
-    li   x7, 0xBEEF
 test2_spin:
     beq  x12, x7, test2_done   # handler ran AND MRET brought us back
     addi x6, x6, -1

@@ -18,7 +18,7 @@ Pin No. | Board Port Label | ZYNQ Port Label | Function
 
 **Address Map:**
 
-The base address of hardware UART is `0x4060_0000`. Each NS16550 register occupies one 32-bit word (only the low 8 bits are used). The address space spans `0x4060_0000`–`0x4060_FFFF`.
+The base address of hardware UART is `0x1000_0000`. Each NS16550 register occupies one 32-bit word (only the low 8 bits are used). The address space spans `0x1000_0000`–`0x1000_FFFF`.
 
 Offset  | Register              | Description
 ------- | --------------------- | -----------
@@ -82,8 +82,7 @@ With the AXI clock of ~90.909 MHz, the divisor for 115200 baud is `49`.
 
 FRISC-V has first party support for the Embedded Artists LPCXpresso Base Board (I/O board).
 
-The I/O board features a USB-to-UART bridge connected to the primary power source interface on the right side of the board (`U22`, `X3`). Default jumper positions should be used. Consult the LPCXpresso Base Board 
-Rev B User’s Guide if needed.
+The I/O board features a USB-to-UART bridge connected to the primary power source interface on the right side of the board (`U22`, `X3`). Default jumper positions should be used. Consult the LPCXpresso Base Board Rev B User’s Guide if needed.
 
 ![I/O Board USB-to-UART Connector](assets/images/io-board-uart.png)
 
@@ -213,7 +212,7 @@ The constant values are defined as in [Pinouts and Addresses](#pinouts-and-addre
 
 // AXI UART 16550 register definitions
 // Each register occupies one 32-bit word, only the low 8 bits are used.
-#define UART_BASE  0x40600000
+#define UART_BASE  0x10000000
 
 #define UART_RBR  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Receive Buffer (read)
 #define UART_THR  (*(volatile uint8_t *)(UART_BASE + 0x00))  // Transmit Holding (write)
