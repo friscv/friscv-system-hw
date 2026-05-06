@@ -722,58 +722,22 @@ always_comb begin
                     case (ir_buff.r.funct7)
                         7'b0000000: instr_ex_out.alu_op = ADD_OP;
                         7'b0100000: instr_ex_out.alu_op = SUB_OP;
-                        7'b0000001: instr_ex_out.alu_op = MUL_OP;
                         default:    illegal_inst = 1'b1;
                     endcase
                 end
-                3'b001: 
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SLL_OP;
-                        7'b0000001: instr_ex_out.alu_op = MULH_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                3'b010: 
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SLT_OP;
-                        7'b0000001: instr_ex_out.alu_op = MULHSU_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                //instr_ex_out.alu_op = SLT_OP;
-                3'b011:
-                     case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SLTU_OP;
-                        7'b0000001: instr_ex_out.alu_op = MULHU_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                //instr_ex_out.alu_op = SLTU_OP;
-                3'b100: 
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = XOR_OP;
-                        7'b0000001: instr_ex_out.alu_op = DIV_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                //instr_ex_out.alu_op = XOR_OP;
+                3'b001: instr_ex_out.alu_op = SLL_OP;
+                3'b010: instr_ex_out.alu_op = SLT_OP;
+                3'b011: instr_ex_out.alu_op = SLTU_OP;
+                3'b100: instr_ex_out.alu_op = XOR_OP;
                 3'b101: begin
                     case (ir_buff.r.funct7)
                         7'b0000000: instr_ex_out.alu_op = SRL_OP;
                         7'b0100000: instr_ex_out.alu_op = SRA_OP;
-                        7'b0000001: instr_ex_out.alu_op = DIVU_OP;
                         default:    illegal_inst = 1'b1;
                     endcase
                 end
-                3'b110: 
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = OR_OP;
-                        7'b0000001: instr_ex_out.alu_op = REM_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                //instr_ex_out.alu_op = OR_OP;
-                3'b111: 
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = AND_OP;
-                        7'b0000001: instr_ex_out.alu_op = REMU_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
+                3'b110: instr_ex_out.alu_op = OR_OP;
+                3'b111: instr_ex_out.alu_op = AND_OP;
             endcase
 
             // Check if funct7 of SLL/SLT/SLTU/XOR/OR/AND is legal
@@ -782,7 +746,7 @@ always_comb begin
                  ir_buff.r.funct3 == 3'b011 ||
                  ir_buff.r.funct3 == 3'b100 ||
                  ir_buff.r.funct3 == 3'b110 ||
-                 ir_buff.r.funct3 == 3'b111) && (ir_buff.r.funct7 != 7'b0 && ir_buff.r.funct7 != 7'b0000001))
+                 ir_buff.r.funct3 == 3'b111) && ir_buff.r.funct7 != 7'b0)
                 illegal_inst = 1'b1;
         end
 
