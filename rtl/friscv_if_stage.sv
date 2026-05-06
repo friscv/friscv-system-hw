@@ -70,7 +70,7 @@ always_ff @(posedge clk_in) begin
             end
             r_fetch_active  <= 1'b1;
             ir_buff         <= NOP;
-            r_flush_pending <= r_fetch_active;
+            r_flush_pending <= r_fetch_active && i_mem_wait_in;
         end else if (r_flush_pending && !i_mem_wait_in) begin
             // Stale AXI response arrived for the old address.
             // Discard it, hold pc_reg at the redirect target, restart fetch.

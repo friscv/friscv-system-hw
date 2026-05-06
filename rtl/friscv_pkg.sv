@@ -34,9 +34,6 @@ package friscv_pkg;
     // Set this to 0 for debugging
     localparam int unsigned ZSBL_ROM_SIZE_BYTES = 1024;
 
-    // Check if the address being accessed is valid
-    localparam logic ENABLE_ADDRESS_SPACE_CHECK = 1;
-
     // Performance optimizations
     // If enabled, execute JAL(R) in IF instead of EX
     localparam logic ENABLE_EARLY_JAL_JALR = 1;

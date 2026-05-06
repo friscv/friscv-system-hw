@@ -109,7 +109,10 @@ assign m_axi_rresp   = rd_to_timer ? tmr_rresp   : mem_rresp;
 assign m_axi_rlast   = rd_to_timer ? tmr_rvalid  : mem_rlast;
 
 // Timer hardware
-friscv_clint clint_inst (
+friscv_clint #(
+    .CLK_FREQ_HZ   ( 1 ),
+    .MTIME_FREQ_HZ ( 1 )
+) clint_inst (
     .clk_in         ( clk                         ),
     .rstn_in        ( rstn                        ),
     .time_out       ( w_mtime                     ),

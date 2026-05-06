@@ -185,9 +185,7 @@ always_comb begin
 end
 
 logic w_mem_access_fault;
-assign w_mem_access_fault = ENABLE_ADDRESS_SPACE_CHECK &&
-                            !addr_virtual_in &&
-                            (alu_data_in < ZSBL_BASE);
+assign w_mem_access_fault = !addr_virtual_in && (alu_data_in < ZSBL_BASE);
 
 // Pass valid flag to WB; suppress same-cycle writeback when a memory op faults.
 assign instr_valid_out = pipe_buff.instr_valid && !w_mem_completion_fault;

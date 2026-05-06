@@ -14,7 +14,7 @@
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
-        timebase-frequency = <55555557>;
+        timebase-frequency = <10000000>;
 
         CPU0: cpu@0 {
             device_type = "cpu";

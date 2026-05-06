@@ -20,7 +20,10 @@ Version info is listed in friscv_pkg.sv
 //   0xBFF8        : mtime[31:0]    (R/W)
 //   0xBFFC        : mtime[63:32]   (R/W)
 
-module friscv_clint (
+module friscv_clint #(
+    parameter [63:0] CLK_FREQ_HZ   = 55_555_557,
+    parameter [63:0] MTIME_FREQ_HZ = 10_000_000
+) (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk_in CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF s_axi, ASSOCIATED_RESET rstn_in" *)
     input  wire        clk_in,
@@ -47,7 +50,7 @@ module friscv_clint (
     input  wire        s_axi_arvalid,
     output reg         s_axi_arready,
 
-    output reg [31:0]  s_axi_rdata,
+    output reg  [31:0] s_axi_rdata,
     output wire [1:0]  s_axi_rresp,
     output reg         s_axi_rvalid,
     input  wire        s_axi_rready,
@@ -59,6 +62,7 @@ module friscv_clint (
 reg [63:0] mtime    = 0;
 reg [63:0] mtimecmp = 64'hFFFFFFFFFFFFFFFF;
 reg        msip     = 0;
+reg [63:0] mtime_frac = 64'b0;
 
 reg [31:0] waddr = 32'b0;
 reg [31:0] wdata = 32'b0;
@@ -70,18 +74,26 @@ assign time_out = mtime;
 // Write channel
 always @(posedge clk_in) begin
     if (!rstn_in) begin
-        mtime     <= 64'b0;
-        mtimecmp  <= 64'hFFFFFFFFFFFFFFFF;
-        msip      <= 1'b0;
-        waddr     <= 32'b0;
-        wdata     <= 32'b0;
+        mtime         <= 64'b0;
+        mtimecmp      <= 64'hFFFFFFFFFFFFFFFF;
+        msip          <= 1'b0;
+        mtime_frac    <= 64'b0;
+        waddr         <= 32'b0;
+        wdata         <= 32'b0;
         s_axi_awready <= 1'b0;
         s_axi_wready  <= 1'b0;
         s_axi_bvalid  <= 1'b0;
         awcomplete    <= 1'b0;
         wcomplete     <= 1'b0;
     end else begin
-        mtime <= mtime + 1;
+        if (MTIME_FREQ_HZ >= CLK_FREQ_HZ) begin
+            mtime <= mtime + 1;
+        end else if ((mtime_frac + MTIME_FREQ_HZ) >= CLK_FREQ_HZ) begin
+            mtime      <= mtime + 1;
+            mtime_frac <= (mtime_frac + MTIME_FREQ_HZ) - CLK_FREQ_HZ;
+        end else begin
+            mtime_frac <= mtime_frac + MTIME_FREQ_HZ;
+        end
 
         if (!awcomplete && !s_axi_awready && s_axi_awvalid) begin
             s_axi_awready <= 1'b1;
@@ -102,11 +114,17 @@ always @(posedge clk_in) begin
         if (wcomplete && awcomplete && !s_axi_bvalid) begin
             s_axi_bvalid <= 1'b1;
             case (waddr[15:0])
-                16'h0000: msip           <= wdata[0];
+                16'h0000: msip            <= wdata[0];
                 16'h4000: mtimecmp[31:0]  <= wdata;
                 16'h4004: mtimecmp[63:32] <= wdata;
-                16'hBFF8: mtime[31:0]     <= wdata;
-                16'hBFFC: mtime[63:32]    <= wdata;
+                16'hBFF8: begin
+                    mtime[31:0] <= wdata;
+                    mtime_frac  <= 64'b0;
+                end
+                16'hBFFC: begin
+                    mtime[63:32] <= wdata;
+                    mtime_frac   <= 64'b0;
+                end
                 default: ;
             endcase
         end else if (s_axi_bvalid && s_axi_bready) begin

@@ -351,6 +351,7 @@ assign m_interrupt_active = interrupt_safe &&
                              meip_in && csr.mie[11]);
 
 assign s_interrupt_active = interrupt_safe &&
+                            (r_current_mode != M_MODE) &&
                             (csr.mstatus.sie || r_current_mode == U_MODE) &&
                             ((csr.ssip && csr.mie[1] && csr.mideleg[1]) ||
                              (stip_eff && csr.mie[5] && csr.mideleg[5]) ||

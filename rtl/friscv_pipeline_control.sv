@@ -146,7 +146,7 @@ always_comb begin
 
     // Suppress mret redirect until the hazard clears so IF sees the committed mepc
     effective_ret = ret_in && !ret_csr_hazard && !ret_pipe_hazard;
-    effective_jal = jal_ok_in  && !mem_stall && !hazard_stall;
+    effective_jal = jal_ok_in && !mem_stall && !hazard_stall && !trap_pending_stall;
 
     stall_if_out  = mem_stall || hazard_stall || trap_pending_stall;
     stall_id_out  = mem_stall || hazard_stall || trap_pending_stall;
