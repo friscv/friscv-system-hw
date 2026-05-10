@@ -21,7 +21,7 @@ Version info is listed in friscv_pkg.sv
 //   0xBFFC        : mtime[63:32]   (R/W)
 
 module friscv_clint #(
-    parameter [63:0] CLK_FREQ_HZ   = 55_555_557,
+    parameter [63:0] CLK_FREQ_HZ   = 50_000_000,
     parameter [63:0] MTIME_FREQ_HZ = 10_000_000
 ) (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk_in CLK" *)

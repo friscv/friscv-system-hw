@@ -64,7 +64,7 @@ python3 build.py <target> [--bin FILE]
 
 ## Building Test Programs
 
-Test programs are RISC-V assembly files in `test/`. They require the `riscv32-unknown-elf` toolchain and `make`:
+Test programs are RISC-V assembly files in `test/`. They require the `riscv64-unknown-elf` toolchain and `make`:
 
 ```bash
 cd test

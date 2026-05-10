@@ -22,7 +22,7 @@
             reg = <0>;
             status = "okay";
             riscv,isa = "rv32ima_zifencei_zicsr";
-            clock-frequency = <55555557>;
+            clock-frequency = <50000000>;
 
             cpu0_intc: interrupt-controller {
                 #address-cells = <0>;
@@ -49,7 +49,7 @@
         reg = <0x10000000 0x100>;
         reg-shift = <2>;
         reg-io-width = <4>;
-        clock-frequency = <55555557>;
+        clock-frequency = <50000000>;
         current-speed = <115200>;
     };
 };

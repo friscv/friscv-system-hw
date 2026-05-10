@@ -57,7 +57,7 @@
 .equ MODE_WAIT, 0x3
 
 _start:
-    li a0, 30                  # UART divisor = 55_555_557 / (16 * 115200) = 30
+    li a0, 27                  # UART divisor = 50_000_000 / (16 * 115200) = 30
     call uart_init
 
     la a0, ready_msg

@@ -259,6 +259,8 @@ always_comb begin
         SRA_OP:    alu_data_raw = $signed(alu_input_a) >>> alu_input_b[4:0];
         SLT_OP:    alu_data_raw = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
         SLTU_OP:   alu_data_raw = {31'b0, alu_input_a < alu_input_b};
+        // TODO: wire multiplier outputs to a signal other than alu_data_raw
+        //       to not mess up timing analysis for alu -> jump target -> pc
         MUL_OP:    alu_data_raw = alu_input_a * alu_input_b;
         MULH_OP:   alu_data_raw = 32'(64'($signed(alu_input_a)) * 64'($signed(alu_input_b))) >> 32;
         MULHU_OP:  alu_data_raw = 32'(((64'(alu_input_a)) * 64'(alu_input_b)) >> 32);

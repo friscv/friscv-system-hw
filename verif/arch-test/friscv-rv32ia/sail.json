@@ -206,7 +206,7 @@
     "simple_interrupt_generator": {
       "base": 268439552
     },
-    "clock_frequency": 55555557,
+    "clock_frequency": 50000000,
     "instructions_per_tick": 1,
     "wfi_is_nop": true,
     "max_time_to_wait": 10

@@ -48,7 +48,7 @@ proc get_cpu_count {} {
     return 4
 }
 
-set num_jobs [get_cpu_count]
+set num_jobs [expr {max(1, [get_cpu_count] - 2)}]
 reset_run synth_1
 launch_runs synth_1 -jobs $num_jobs
 wait_on_run synth_1
