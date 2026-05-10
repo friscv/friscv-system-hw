@@ -763,8 +763,8 @@ always_comb begin : csr_read
 
         // Machine Trap Setup
         CSR_MSTATUS:       csr_out = csr.mstatus;
-        //                                mx----zyxwvutsrqponmlkjihgfedcb a
-        CSR_MISA:          csr_out = {31'b0100000000010100000000010000000,{ENABLE_EXTENSION_A}};
+        //                                mx----zyxwvutsrqpon m                        lkjihgfedcb a
+        CSR_MISA:          csr_out = {19'b0100000000010100000,{ENABLE_EXTENSION_M},11'b00010000000,{ENABLE_EXTENSION_A}};
         CSR_MEDELEG:       csr_out = csr.medeleg;
         CSR_MIDELEG:       csr_out = csr.mideleg;
         CSR_MIE:           csr_out = csr.mie;
@@ -1036,26 +1036,40 @@ always_comb begin
             rd_sel_out  = ir_buff.r.rd;
 
             case (ir_buff.r.funct3)
-                3'b000: begin
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = ADD_OP;
-                        7'b0100000: instr_ex_out.alu_op = SUB_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                end
-                3'b001: instr_ex_out.alu_op = SLL_OP;
-                3'b010: instr_ex_out.alu_op = SLT_OP;
-                3'b011: instr_ex_out.alu_op = SLTU_OP;
-                3'b100: instr_ex_out.alu_op = XOR_OP;
-                3'b101: begin
-                    case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SRL_OP;
-                        7'b0100000: instr_ex_out.alu_op = SRA_OP;
-                        default:    illegal_inst = 1'b1;
-                    endcase
-                end
-                3'b110: instr_ex_out.alu_op = OR_OP;
-                3'b111: instr_ex_out.alu_op = AND_OP;
+                3'b000:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = ADD_OP;
+                    else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SUB_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MUL_OP;
+                    else illegal_inst = 1'b1;
+                3'b001:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLL_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULH_OP;
+                    else illegal_inst = 1'b1;
+                3'b010:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLT_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULHSU_OP;
+                    else illegal_inst = 1'b1;
+                3'b011:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLTU_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULHU_OP;
+                    else illegal_inst = 1'b1;
+                3'b100:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = XOR_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = DIV_OP;
+                    else illegal_inst = 1'b1;
+                3'b101:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SRL_OP;
+                    else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SRA_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = DIVU_OP;
+                    else illegal_inst = 1'b1;
+                3'b110:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = OR_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = REM_OP;
+                    else illegal_inst = 1'b1;
+                3'b111:
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = AND_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = REMU_OP;
+                    else illegal_inst = 1'b1;
             endcase
 
             // Check if funct7 of SLL/SLT/SLTU/XOR/OR/AND is legal
@@ -1064,7 +1078,7 @@ always_comb begin
                  ir_buff.r.funct3 == 3'b011 ||
                  ir_buff.r.funct3 == 3'b100 ||
                  ir_buff.r.funct3 == 3'b110 ||
-                 ir_buff.r.funct3 == 3'b111) && ir_buff.r.funct7 != 7'b0)
+                 ir_buff.r.funct3 == 3'b111) && (ir_buff.r.funct7 != 7'b0 && ir_buff.r.funct7 != 7'b0000001))
                 illegal_inst = 1'b1;
         end
 

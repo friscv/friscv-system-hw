@@ -49,9 +49,13 @@ package friscv_pkg;
     localparam logic ENABLE_FINE_TLB_FLUSH = 1;
 
     // Extension selection
+    localparam logic ENABLE_MUL = 1;
+    localparam logic ENABLE_DIV = 0;
+    // M extension configured by choosing MUL and DIV above
+    localparam logic ENABLE_EXTENSION_M = 1'(ENABLE_MUL && ENABLE_DIV);
     localparam logic ENABLE_EXTENSION_A = 1;
-    localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
     // ALWAYS ENABLED localparam logic ENABLE_EXTENSION_ZICSR = 1;
+    localparam logic ENABLE_EXTENSION_ZIFENCEI = 1;
     // ALWAYS ENABLED localparam logic ENABLE_EXTENSION_SSTC = 1;
 
     // If enabled, a write to END_ADDRESS will stall the core until reset
@@ -365,17 +369,25 @@ package friscv_pkg;
         RS2, IMM, CSR
     } b_bus_sel_e;
 
-    typedef enum logic [3:0] {
-        ADD_OP  = 4'b0000,
-        SUB_OP  = 4'b1000,
-        AND_OP  = 4'b0111,
-        OR_OP   = 4'b0110,
-        XOR_OP  = 4'b0100,
-        SLL_OP  = 4'b0001,
-        SRL_OP  = 4'b0101,
-        SRA_OP  = 4'b1101,
-        SLT_OP  = 4'b0010,
-        SLTU_OP = 4'b0011
+    typedef enum logic [4:0] {
+        ADD_OP    = 5'b00000,
+        SUB_OP    = 5'b01000,
+        AND_OP    = 5'b00111,
+        OR_OP     = 5'b00110,
+        XOR_OP    = 5'b00100,
+        SLL_OP    = 5'b00001,
+        SRL_OP    = 5'b00101,
+        SRA_OP    = 5'b01101,
+        SLT_OP    = 5'b00010,
+        SLTU_OP   = 5'b00011,
+        MUL_OP    = 5'b01001,
+        MULH_OP   = 5'b01010,
+        MULHU_OP  = 5'b01011,
+        MULHSU_OP = 5'b01100,
+        DIV_OP    = 5'b01110,
+        DIVU_OP   = 5'b01111,
+        REM_OP    = 5'b10000,
+        REMU_OP   = 5'b10001
     } alu_op_e;
 
     typedef enum logic [3:0] {

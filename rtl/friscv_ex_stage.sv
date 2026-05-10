@@ -249,17 +249,21 @@ assign alu_input_b = b_bus;
 
 always_comb begin
     case (instr_buff.alu_op)
-        ADD_OP:  alu_data_raw = alu_input_a + alu_input_b;
-        SUB_OP:  alu_data_raw = alu_input_a - alu_input_b;
-        AND_OP:  alu_data_raw = alu_input_a & alu_input_b;
-        OR_OP:   alu_data_raw = alu_input_a | alu_input_b;
-        XOR_OP:  alu_data_raw = alu_input_a ^ alu_input_b;
-        SLL_OP:  alu_data_raw = alu_input_a << alu_input_b[4:0];
-        SRL_OP:  alu_data_raw = alu_input_a >> alu_input_b[4:0];
-        SRA_OP:  alu_data_raw = $signed(alu_input_a) >>> alu_input_b[4:0];
-        SLT_OP:  alu_data_raw = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
-        SLTU_OP: alu_data_raw = {31'b0, alu_input_a < alu_input_b};
-        default: alu_data_raw = 32'h0;
+        ADD_OP:    alu_data_raw = alu_input_a + alu_input_b;
+        SUB_OP:    alu_data_raw = alu_input_a - alu_input_b;
+        AND_OP:    alu_data_raw = alu_input_a & alu_input_b;
+        OR_OP:     alu_data_raw = alu_input_a | alu_input_b;
+        XOR_OP:    alu_data_raw = alu_input_a ^ alu_input_b;
+        SLL_OP:    alu_data_raw = alu_input_a << alu_input_b[4:0];
+        SRL_OP:    alu_data_raw = alu_input_a >> alu_input_b[4:0];
+        SRA_OP:    alu_data_raw = $signed(alu_input_a) >>> alu_input_b[4:0];
+        SLT_OP:    alu_data_raw = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
+        SLTU_OP:   alu_data_raw = {31'b0, alu_input_a < alu_input_b};
+        MUL_OP:    alu_data_raw = alu_input_a * alu_input_b;
+        MULH_OP:   alu_data_raw = 32'(64'($signed(alu_input_a)) * 64'($signed(alu_input_b))) >> 32;
+        MULHU_OP:  alu_data_raw = 32'(((64'(alu_input_a)) * 64'(alu_input_b)) >> 32);
+        MULHSU_OP: alu_data_raw = 32'((64'($signed(alu_input_a)) * 64'($signed({1'b0, alu_input_b}))) >> 32);
+        default:   alu_data_raw = 32'h0;
     endcase
 end
 
