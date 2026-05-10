@@ -279,20 +279,11 @@ logic       ctr_access_illegal;
 always_comb begin
     selected_is_ctr  = 1'b1;
     selected_ctr_bit = 5'd0;
-
     case (selected_csr)
-        CSR_CYCLE, CSR_CYCLEH: begin
-            selected_ctr_bit = 5'd0;
-        end
-        CSR_TIME, CSR_TIMEH: begin
-            selected_ctr_bit = 5'd1;
-        end
-        CSR_INSTRET, CSR_INSTRETH: begin
-            selected_ctr_bit = 5'd2;
-        end
-        default: begin
-            selected_is_ctr = 1'b0;
-        end
+        CSR_CYCLE, CSR_CYCLEH:     selected_ctr_bit = 5'd0;
+        CSR_TIME, CSR_TIMEH:       selected_ctr_bit = 5'd1;
+        CSR_INSTRET, CSR_INSTRETH: selected_ctr_bit = 5'd2;
+        default:                   selected_is_ctr = 1'b0;
     endcase
 end
 
@@ -440,38 +431,31 @@ always_comb begin
     exception_cause_code = 5'd0;
 
     case (trap_src)
-        TRAP_SRC_IF: begin
+        TRAP_SRC_IF:
             case (if_trap)
                 IF_TRAP_FAULT:  exception_cause_code = 5'd12;  // Instruction page fault
                 IF_TRAP_ACCESS: exception_cause_code = 5'd1;   // Instruction access fault
                 default:        exception_cause_code = 5'd0;
             endcase
-        end
-
-        TRAP_SRC_ID: begin
-            if (ecall_active) begin
+        TRAP_SRC_ID:
+            if (ecall_active)
                 case (r_current_mode)
                     U_MODE:  exception_cause_code = 5'd8;   // Environment call from U-mode
                     S_MODE:  exception_cause_code = 5'd9;   // Environment call from S-mode
                     default: exception_cause_code = 5'd11;  // Environment call from M-mode
                 endcase
-            end else if (ebreak_active) begin
+            else if (ebreak_active)
                 exception_cause_code = 5'd3;  // Breakpoint
-            end else if (illegal_inst) begin
+            else if (illegal_inst)
                 exception_cause_code = 5'd2;  // Illegal instruction
-            end else if (target_misaligned) begin
+            else if (target_misaligned)
                 exception_cause_code = 5'd0;  // Instruction address misaligned
-            end
-        end
-
-        TRAP_SRC_EX: begin
+        TRAP_SRC_EX:
             case (ex_trap_in)
                 EX_TRAP_MISALIGNED: exception_cause_code = 5'd0;  // Instruction address misaligned
                 default:            exception_cause_code = 5'd0;
             endcase
-        end
-
-        TRAP_SRC_MEM: begin
+        TRAP_SRC_MEM:
             case (mem_trap_in)
                 MEM_TRAP_LOAD_MISALIGNED:  exception_cause_code = 5'd4;   // Load address misaligned
                 MEM_TRAP_LOAD_ACCESS:      exception_cause_code = 5'd5;   // Load access fault
@@ -481,11 +465,7 @@ always_comb begin
                 MEM_TRAP_STORE:            exception_cause_code = 5'd15;  // Store/AMO page fault
                 default:                   exception_cause_code = 5'd0;
             endcase
-        end
-
-        default: begin
-            exception_cause_code = 5'd0;
-        end
+        default: exception_cause_code = 5'd0;
     endcase
 end
 
@@ -566,7 +546,7 @@ always_comb begin
         TRAP_SRC_IF:  trap_tval = (if_trap == IF_TRAP_ACCESS) ? '0 : fault_addr_buff;
         TRAP_SRC_ID:  trap_tval = illegal_inst ? ir_buff.b  : '0;
         TRAP_SRC_EX:  trap_tval = '0;
-        TRAP_SRC_MEM: begin
+        TRAP_SRC_MEM:
             case (mem_trap_in)
                 MEM_TRAP_LOAD_MISALIGNED,
                 MEM_TRAP_LOAD_ACCESS,
@@ -574,7 +554,6 @@ always_comb begin
                 MEM_TRAP_STORE_ACCESS:     trap_tval = '0;
                 default:                   trap_tval = mem_trap_va_in;
             endcase
-        end
         default: trap_tval = '0;
     endcase
 end
@@ -1191,7 +1170,7 @@ always_comb begin
             if (ir_buff.r.funct3 == 3'b0) begin  // Non-CSR SYSTEM instructions
                 case (ir_buff.r.funct7)
                     7'b0001001: begin  // SFENCE.VMA
-                        if (ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
+                        if      (ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
                         else if (r_current_mode == U_MODE) illegal_inst = 1'b1;
                         else if (r_current_mode == S_MODE && csr.mstatus.tvm) illegal_inst = 1'b1;
                         else begin
@@ -1212,14 +1191,12 @@ always_comb begin
                         case (ir_buff.b[31:20])
                             12'b000000000000: ecall_active  = 1'b1;  // ECALL
                             12'b000000000001: ebreak_active = 1'b1;  // EBREAK
-                            12'b001100000010: begin  // MRET
+                            12'b001100000010:        // MRET
                                 if (r_current_mode != M_MODE) illegal_inst = 1'b1;
                                 else instr_ex_out.mret_en = 1'b1;
-                            end
-                            12'b000100000010: begin  // SRET
+                            12'b000100000010:        // SRET
                                 if (r_current_mode < S_MODE) illegal_inst = 1'b1;
                                 else instr_ex_out.sret_en = 1'b1;
-                            end
                             12'b000100000101: begin  // WFI
                                 instr_ex_out.branch_jal_sel = JAL_INSTR;
                                 instr_ex_out.a_bus_sel = PC;
