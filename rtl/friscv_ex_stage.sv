@@ -13,7 +13,7 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+import friscv_pkg::*;
 
 module friscv_ex_stage (
     input  logic           clk_in,
@@ -56,11 +56,14 @@ module friscv_ex_stage (
 
     // Outputs to control logic
     output logic           branch_ok_out,
+    output logic           div_active_out,
+    output addr_t          branch_target_out,
 
     // Trap signals
     input  logic           trap_commit_in,
     output ex_trap_e       trap_out,
     output addr_t          trap_pc_out,
+    output addr_t          trap_va_out,
 
     // TLB flush
     output logic           flush_tlb_out,
@@ -95,19 +98,70 @@ logic misaligned_branch_raw;
 
 ex_trap_e r_trap;
 addr_t    r_trap_pc;
+addr_t    r_trap_va;
 
 assign trap_out = r_trap;
 assign trap_pc_out = r_trap_pc;
+assign trap_va_out = r_trap_va;
+
+data_t branch_target;
 
 friscv_ex_stage_branch_unit branch_unit (
     .branch_jal_sel_in ( instr_buff.branch_jal_sel ),
     .branch_cond_in    ( instr_buff.branch_cond    ),
     .src1_in           ( rs1_buff                  ),
     .src2_in           ( rs2_buff                  ),
-    .target            ( alu_data_out              ),
+    .target            ( branch_target             ),
     .branch_ok_out     ( branch_ok_raw             ),
     .misaligned_out    ( misaligned_branch_raw     )
 );
+
+assign branch_target_out = branch_target;
+
+// ============================================================
+// Non-restoring divider
+// ============================================================
+
+logic [31:0] div_q, div_r;
+
+generate if (ENABLE_DIV) begin : gen_div
+    logic div_active, div_done;
+    logic div_started;
+
+    logic div_start_pulse;
+    assign div_start_pulse = instr_buff.div_en && !div_started;
+
+    logic div_flush;
+    assign div_flush = stage_flush_in || trap_commit_in;
+
+    always_ff @(posedge clk_in) begin
+        if (!rst_n_in || div_flush || div_done) begin
+            div_started <= 1'b0;
+        end else if (div_start_pulse) begin
+            div_started <= 1'b1;
+        end
+    end
+
+    friscv_divider i_divider (
+        .clk_in               (clk_in                ),
+        .rst_n_in             (rst_n_in              ),
+        .flush_in             (div_flush             ),
+        .division_detected_in (div_start_pulse       ),
+        .signed_division_in   (instr_buff.div_signed ),
+        .divisor              (alu_input_b           ),
+        .dividend             (alu_input_a           ),
+        .quotient             (div_q                 ),
+        .remainder            (div_r                 ),
+        .active_out           (div_active            ),
+        .done_out             (div_done              )
+    );
+
+    assign div_active_out = instr_buff.div_en && !div_done;
+end else begin : gen_no_div
+    assign div_q = '0;
+    assign div_r = '0;
+    assign div_active_out = 1'b0;
+end endgenerate
 
 // ============================================================
 // Input capture
@@ -131,13 +185,17 @@ always_ff @(posedge clk_in) begin
         sfence_vma_prev <= 1'b0;
         r_trap <= EX_TRAP_NONE;
         r_trap_pc <= '0;
+        r_trap_va <= '0;
 
     end else begin
 
         if (trap_commit_in) begin
-            // The trap has been consumed by ID. Keep this as a bubble.
+            // The trap has been consumed by ID.
             r_trap <= EX_TRAP_NONE;
             r_trap_pc <= '0;
+            r_trap_va <= '0;
+            instr_buff <= NOP_CTRL;
+            rd_sel_buff <= 5'b0;
 
         end else if (r_trap != EX_TRAP_NONE) begin
             // Hold the captured trap until ID commits it.
@@ -156,6 +214,7 @@ always_ff @(posedge clk_in) begin
 
                 r_trap <= EX_TRAP_MISALIGNED;
                 r_trap_pc <= pc_buff;
+                r_trap_va <= branch_target;
 
             end else begin
                 if (stage_flush_in || branch_ok_out) begin
@@ -243,6 +302,43 @@ end
 assign alu_input_a = (instr_buff.invert_op_a) ? ~a_bus : a_bus;
 assign alu_input_b = b_bus;
 
+// Dedicated adder for branch/jump targets
+data_t addr_result;
+assign addr_result = alu_input_a + alu_input_b;
+assign branch_target = instr_buff.jalr_target ? {addr_result[31:1], 1'b0} : addr_result;
+
+// ============================================================
+// Multiplier
+// ============================================================
+
+data_t mul_result_lo, mul_result_hi;
+
+generate if (ENABLE_MUL) begin : gen_mul
+    logic signed [32:0] mul_op_a, mul_op_b;
+    logic signed [65:0] mul_result;
+
+    always_comb begin
+        // A: sign-extend for MULH, MULHSU, zero-extend for MULHU
+        case (instr_buff.alu_op)
+            MULHU_OP: mul_op_a = {1'b0, alu_input_a};
+            default:  mul_op_a = {alu_input_a[31], alu_input_a};
+        endcase
+
+        // B: sign-extend for MULH only, zero-extend for MULHU, MULHSU
+        case (instr_buff.alu_op)
+            MULH_OP: mul_op_b = {alu_input_b[31], alu_input_b};
+            default: mul_op_b = {1'b0, alu_input_b};
+        endcase
+    end
+
+    assign mul_result = mul_op_a * mul_op_b;
+    assign mul_result_lo = mul_result[31:0];
+    assign mul_result_hi = mul_result[63:32];
+end else begin : gen_no_mul
+    assign mul_result_lo = '0;
+    assign mul_result_hi = '0;
+end endgenerate
+
 // ============================================================
 // Execute operation
 // ============================================================
@@ -259,17 +355,19 @@ always_comb begin
         SRA_OP:    alu_data_raw = $signed(alu_input_a) >>> alu_input_b[4:0];
         SLT_OP:    alu_data_raw = {31'b0, $signed(alu_input_a) < $signed(alu_input_b)};
         SLTU_OP:   alu_data_raw = {31'b0, alu_input_a < alu_input_b};
-        // TODO: wire multiplier outputs to a signal other than alu_data_raw
-        //       to not mess up timing analysis for alu -> jump target -> pc
-        MUL_OP:    alu_data_raw = alu_input_a * alu_input_b;
-        MULH_OP:   alu_data_raw = 32'(64'($signed(alu_input_a)) * 64'($signed(alu_input_b))) >> 32;
-        MULHU_OP:  alu_data_raw = 32'(((64'(alu_input_a)) * 64'(alu_input_b)) >> 32);
-        MULHSU_OP: alu_data_raw = 32'((64'($signed(alu_input_a)) * 64'($signed({1'b0, alu_input_b}))) >> 32);
+        MUL_OP:    alu_data_raw = mul_result_lo;
+        MULH_OP:   alu_data_raw = mul_result_hi;
+        MULHU_OP:  alu_data_raw = mul_result_hi;
+        MULHSU_OP: alu_data_raw = mul_result_hi;
+        DIV_OP:    alu_data_raw = div_q;
+        DIVU_OP:   alu_data_raw = div_q;
+        REM_OP:    alu_data_raw = div_r;
+        REMU_OP:   alu_data_raw = div_r;
         default:   alu_data_raw = 32'h0;
     endcase
 end
 
-assign alu_data_out = instr_buff.jalr_target ? {alu_data_raw[31:1], 1'b0} : alu_data_raw;
+assign alu_data_out = alu_data_raw;
 
 // ============================================================
 // Position store data

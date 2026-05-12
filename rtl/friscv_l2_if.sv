@@ -13,7 +13,7 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+import friscv_pkg::*;
 
 interface friscv_l2_if;
     logic       valid;

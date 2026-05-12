@@ -13,7 +13,7 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+import friscv_pkg::*;
 
 module friscv_id_stage #(
     parameter int HART_ID = 0
@@ -46,6 +46,7 @@ module friscv_id_stage #(
     // EX stage trap
     input  ex_trap_e  ex_trap_in,
     input  addr_t     ex_trap_pc_in,
+    input  addr_t     ex_trap_va_in,
     input  mode_e     ex_trap_mode_in,
     output logic      ex_trap_commit_out,
 
@@ -241,10 +242,15 @@ typedef struct packed {
 
     // Machine Memory Protection
     data_t pmpcfg0;
+    data_t pmpcfg1;
     addr_t pmpaddr0;
     addr_t pmpaddr1;
     addr_t pmpaddr2;
     addr_t pmpaddr3;
+    addr_t pmpaddr4;
+    addr_t pmpaddr5;
+    addr_t pmpaddr6;
+    addr_t pmpaddr7;
 
     // Machine Counter/Timers
     logic [63:0] mcycle;
@@ -544,15 +550,14 @@ addr_t trap_tval;
 always_comb begin
     case (trap_src)
         TRAP_SRC_IF:  trap_tval = (if_trap == IF_TRAP_ACCESS) ? '0 : fault_addr_buff;
-        TRAP_SRC_ID:  trap_tval = illegal_inst ? ir_buff.b  : '0;
-        TRAP_SRC_EX:  trap_tval = '0;
+        TRAP_SRC_ID:  trap_tval = illegal_inst      ? ir_buff.b         :
+                                  target_misaligned ? misaligned_target : '0;
+        TRAP_SRC_EX:  trap_tval = ex_trap_va_in;
         TRAP_SRC_MEM:
             case (mem_trap_in)
-                MEM_TRAP_LOAD_MISALIGNED,
                 MEM_TRAP_LOAD_ACCESS,
-                MEM_TRAP_STORE_MISALIGNED,
-                MEM_TRAP_STORE_ACCESS:     trap_tval = '0;
-                default:                   trap_tval = mem_trap_va_in;
+                MEM_TRAP_STORE_ACCESS: trap_tval = '0;
+                default:               trap_tval = mem_trap_va_in;
             endcase
         default: trap_tval = '0;
     endcase
@@ -585,7 +590,6 @@ always_ff @(posedge clk_in) begin
             trap_seen <= 1'b1;
             r_mret_inhibit <= 1'b0;
             if (trap_to_s_mode) begin
-                // Delegated trap: enter S-mode
                 r_current_mode   <= S_MODE;
                 csr.sepc         <= trap_epc;
                 csr.mstatus.spie <= csr.mstatus.sie;
@@ -614,7 +618,6 @@ always_ff @(posedge clk_in) begin
             end
 
         end else if (ret_commit_in && sret_active) begin
-            // Commit SRET
             r_mret_inhibit   <= 1'b1;
             csr.mstatus.sie  <= csr.mstatus.spie;
             csr.mstatus.spie <= 1'b1;
@@ -701,10 +704,15 @@ always_ff @(posedge clk_in) begin
 
                 // Machine Memory Protection
                 CSR_PMPCFG0:  csr.pmpcfg0  <= csr_data_in;
+                CSR_PMPCFG1:  csr.pmpcfg1  <= csr_data_in;
                 CSR_PMPADDR0: csr.pmpaddr0 <= csr_data_in;
                 CSR_PMPADDR1: csr.pmpaddr1 <= csr_data_in;
                 CSR_PMPADDR2: csr.pmpaddr2 <= csr_data_in;
                 CSR_PMPADDR3: csr.pmpaddr3 <= csr_data_in;
+                CSR_PMPADDR4: csr.pmpaddr4 <= csr_data_in;
+                CSR_PMPADDR5: csr.pmpaddr5 <= csr_data_in;
+                CSR_PMPADDR6: csr.pmpaddr6 <= csr_data_in;
+                CSR_PMPADDR7: csr.pmpaddr7 <= csr_data_in;
 
                 // Machine Counter Setup
                 CSR_MCOUNTINHIBIT: csr.mcountinhibit <= csr_data_in & 32'h0000_0005;
@@ -762,10 +770,15 @@ always_comb begin : csr_read
 
         // Machine Memory Protection
         CSR_PMPCFG0:       csr_out = csr.pmpcfg0;
+        CSR_PMPCFG1:       csr_out = csr.pmpcfg1;
         CSR_PMPADDR0:      csr_out = csr.pmpaddr0;
         CSR_PMPADDR1:      csr_out = csr.pmpaddr1;
         CSR_PMPADDR2:      csr_out = csr.pmpaddr2;
         CSR_PMPADDR3:      csr_out = csr.pmpaddr3;
+        CSR_PMPADDR4:      csr_out = csr.pmpaddr4;
+        CSR_PMPADDR5:      csr_out = csr.pmpaddr5;
+        CSR_PMPADDR6:      csr_out = csr.pmpaddr6;
+        CSR_PMPADDR7:      csr_out = csr.pmpaddr7;
 
         // Machine Counter/Timers
         CSR_MCYCLE:        csr_out = csr.mcycle[31:0];
@@ -838,6 +851,7 @@ assign jal_target_out = jal_ok_out ? jal_target : '0;
 
 // Compute target_misaligned independently of trap_out to avoid a combinatorial loop
 logic target_misaligned;
+addr_t misaligned_target;
 always_comb begin
     unique case (ir_buff.r.opcode)
         JALR: begin
@@ -845,13 +859,18 @@ always_comb begin
             data_t jalr_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
             addr_t target = (jalr_base + jalr_imm) & ~ 32'd1;
             target_misaligned = target[1] && instr_valid_buff;
+            misaligned_target = target;
         end
         JAL: begin
             data_t jal_imm = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
             addr_t target = pc_in_buff + jal_imm;
             target_misaligned = target[1] && instr_valid_buff;
+            misaligned_target = target;
         end
-        default: target_misaligned = 1'b0;
+        default: begin
+            target_misaligned = 1'b0;
+            misaligned_target = '0;
+        end
     endcase
 end
 
@@ -1034,20 +1053,36 @@ always_comb begin
                     else illegal_inst = 1'b1;
                 3'b100:
                     if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = XOR_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = DIV_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                        instr_ex_out.alu_op = DIV_OP;
+                        instr_ex_out.div_en = 1'b1;
+                        instr_ex_out.div_signed = 1'b1;
+                    end
                     else illegal_inst = 1'b1;
                 3'b101:
                     if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SRL_OP;
                     else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SRA_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = DIVU_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                        instr_ex_out.alu_op = DIVU_OP;
+                        instr_ex_out.div_en = 1'b1;
+                        instr_ex_out.div_signed = 1'b0;
+                    end
                     else illegal_inst = 1'b1;
                 3'b110:
                     if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = OR_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = REM_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                        instr_ex_out.alu_op = REM_OP;
+                        instr_ex_out.div_en = 1'b1;
+                        instr_ex_out.div_signed = 1'b1;
+                    end
                     else illegal_inst = 1'b1;
                 3'b111:
                     if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = AND_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) instr_ex_out.alu_op = REMU_OP;
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                        instr_ex_out.alu_op = REMU_OP;
+                        instr_ex_out.div_en = 1'b1;
+                        instr_ex_out.div_signed = 1'b0;
+                    end
                     else illegal_inst = 1'b1;
             endcase
 

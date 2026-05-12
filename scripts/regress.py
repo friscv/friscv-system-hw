@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parent.parent
-ACT_ELFS = REPO / "verif" / "arch-test" / "riscv-arch-test" / "work" / "friscv-rv32ia" / "elfs"
+ACT_ELFS = REPO / "verif" / "arch-test" / "riscv-arch-test" / "work" / "friscv-full" / "elfs"
 SIM_EXE = REPO / "build" / "verilator" / "tb_integration" / "Vtb_integration"
 OUT = REPO / "build" / "regress" / "arch-test"
 OBJCOPY = "riscv64-unknown-elf-objcopy"

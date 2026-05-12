@@ -15,7 +15,7 @@ Version info is listed in friscv_pkg.sv
 AUTO-GENERATED FROM: zsbl.S
 */
 
-`include "friscv_pkg.sv"
+import friscv_pkg::*;
 
 module friscv_zsbl_rom (
     input  logic  i_clk,

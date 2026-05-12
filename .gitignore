@@ -59,6 +59,9 @@ build/
 
 # Software build artifacts
 software/*.dtb
+software/src/
+software/rootfs/
+software/initramfs.cpio.gz
 
 # Simulation caches
 sim/cache/

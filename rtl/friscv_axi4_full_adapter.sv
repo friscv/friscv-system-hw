@@ -13,7 +13,7 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+import friscv_pkg::*;
 
 module friscv_axi4_full_adapter #(
     localparam BURST_LEN = 8  // TODO calculate this from cache size

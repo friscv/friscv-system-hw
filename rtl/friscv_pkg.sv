@@ -25,8 +25,7 @@ v 2.1.0     Emil Popovic, MMU, certification tests, boots os, modular interface
 
 */
 
-`ifndef FRISCV_PKG_DEF
-`define FRISCV_PKG_DEF
+`timescale 1ns / 1ps
 
 package friscv_pkg;
 
@@ -50,7 +49,7 @@ package friscv_pkg;
 
     // Extension selection
     localparam logic ENABLE_MUL = 1;
-    localparam logic ENABLE_DIV = 0;
+    localparam logic ENABLE_DIV = 1;
     // M extension configured by choosing MUL and DIV above
     localparam logic ENABLE_EXTENSION_M = 1'(ENABLE_MUL && ENABLE_DIV);
     localparam logic ENABLE_EXTENSION_A = 1;
@@ -148,10 +147,15 @@ package friscv_pkg;
 
         // Machine Memory Protection
         CSR_PMPCFG0   = 12'h3A0,
+        CSR_PMPCFG1   = 12'h3A1,
         CSR_PMPADDR0  = 12'h3B0,
         CSR_PMPADDR1  = 12'h3B1,
         CSR_PMPADDR2  = 12'h3B2,
         CSR_PMPADDR3  = 12'h3B3,
+        CSR_PMPADDR4  = 12'h3B4,
+        CSR_PMPADDR5  = 12'h3B5,
+        CSR_PMPADDR6  = 12'h3B6,
+        CSR_PMPADDR7  = 12'h3B7,
 
         // Machine Counter/Timers
         CSR_MCYCLE    = 12'hB00,
@@ -437,6 +441,8 @@ package friscv_pkg;
         logic           sret_en;
         csr_addr_e      csr_addr;
         logic           sfence_vma;
+        logic           div_en;
+        logic           div_signed;
     } instr_ex_t;
 
     localparam instr_ex_t NOP_CTRL = '{
@@ -458,7 +464,9 @@ package friscv_pkg;
         mret_en: 1'b0,   
         sret_en: 1'b0,
         csr_addr: CSR_ZERO,
-        sfence_vma: 1'b0
+        sfence_vma: 1'b0,
+        div_en: 1'b0,
+        div_signed: 1'b0
     };
 
     typedef enum logic [1:0] {
@@ -468,6 +476,3 @@ package friscv_pkg;
     } rw_cmd_e;
 
 endpackage
-
-import friscv_pkg::*;
-`endif

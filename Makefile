@@ -2,10 +2,10 @@ VERILATOR := verilator
 VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Wno-fatal -Wno-TIMESCALEMOD
 VERILATOR_OUT := build/verilator/tb_integration
 ACT_ROOT := verif/arch-test/riscv-arch-test
-ACT_CONFIG_SRC := verif/arch-test/friscv-rv32ia
-ACT_CONFIG_DST := $(ACT_ROOT)/config/cores/friscv/friscv-rv32ia
-ACT_CONFIG := config/cores/friscv/friscv-rv32ia/test_config.yaml
-ACT_WORK := $(ACT_ROOT)/work/friscv-rv32ia
+ACT_CONFIG_SRC := verif/arch-test/friscv-full
+ACT_CONFIG_DST := $(ACT_ROOT)/config/cores/friscv/friscv-full
+ACT_CONFIG := config/cores/friscv/friscv-full/test_config.yaml
+ACT_WORK := $(ACT_ROOT)/work/friscv-full
 ACT_EXCLUDE_EXTENSIONS ?= Sm,S,InterruptsSm,InterruptsS,InterruptsU,ExceptionsZalrsc,ExceptionsZaamo,PMPF,PMPS,PMPSm,PMPU,PMPZaamo,PMPZalrsc,PMPZca,PMPZicbo,Svade,Svadu,SvaduPMP,SvPMP,SvZicbo,SvPMPZicbo
 JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 UV_LINK_MODE ?= copy
@@ -13,7 +13,7 @@ UV_LINK_MODE ?= copy
 .PHONY: verilate
 verilate:
 	mkdir -p $(VERILATOR_OUT)
-	$(VERILATOR) $(VERILATOR_FLAGS) --top-module tb_integration rtl/*.sv rtl/friscv_clint.v sim/tb_integration.sv -Mdir $(VERILATOR_OUT)
+	$(VERILATOR) $(VERILATOR_FLAGS) --top-module tb_integration rtl/friscv_pkg.sv $(filter-out rtl/friscv_pkg.sv,$(wildcard rtl/*.sv)) rtl/friscv_clint.v sim/tb_integration.sv -Mdir $(VERILATOR_OUT)
 
 .PHONY: test-bin
 test-bin:
