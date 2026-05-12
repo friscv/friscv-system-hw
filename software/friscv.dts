@@ -7,7 +7,7 @@
     compatible = "fer,friscv-refsoc";
 
     chosen {
-        bootargs = "earlycon=sbi console=ttyS0,115200";
+        bootargs = "earlycon=sbi";
         stdout-path = &uart0;
     };
 
