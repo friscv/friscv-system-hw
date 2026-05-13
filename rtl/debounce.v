@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module debounce #(
     parameter COUNT = 2_000_000
 ) (

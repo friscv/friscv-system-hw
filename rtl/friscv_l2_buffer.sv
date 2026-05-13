@@ -13,6 +13,8 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
+`timescale 1ns / 1ps
+
 import friscv_pkg::*;
 
 module friscv_l2_buffer (
