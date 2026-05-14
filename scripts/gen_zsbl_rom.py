@@ -11,7 +11,7 @@ def assemble_and_link(input_file, output_elf, linker_script=None, simulation=Fal
     # First assemble
     temp_obj = input_file.with_suffix('.o')
     cmd_as = [
-        "riscv32-unknown-elf-as",
+        "riscv64-unknown-elf-as",
         "-march=rv32i",
         "-mabi=ilp32",
         "-o", str(temp_obj),
@@ -28,7 +28,8 @@ def assemble_and_link(input_file, output_elf, linker_script=None, simulation=Fal
 
     # Then link
     cmd_ld = [
-        "riscv32-unknown-elf-ld",
+        "riscv64-unknown-elf-ld",
+        "-m", "elf32lriscv",
         "-o", str(output_elf),
     ]
     if linker_script:
@@ -49,7 +50,7 @@ def extract_raw_bytes(elf_file):
     """Extract raw .text section bytes using objcopy."""
     tmp_bin = elf_file.with_suffix('.bin')
     cmd = [
-        "riscv32-unknown-elf-objcopy",
+        "riscv64-unknown-elf-objcopy",
         "-O", "binary",
         "--only-section=.text",
         str(elf_file),
@@ -70,7 +71,7 @@ def extract_raw_bytes(elf_file):
 def extract_mnemonics(elf_file):
     """Extract address→mnemonic map from objdump for use as comments."""
     cmd = [
-        "riscv32-unknown-elf-objdump",
+        "riscv64-unknown-elf-objdump",
         "-d",
         "-M", "no-aliases,numeric",
         str(elf_file)
@@ -111,7 +112,9 @@ Version info is listed in friscv_pkg.sv
 AUTO-GENERATED FROM: {input_file}
 */
 
-`include "friscv_pkg.sv"
+`timescale 1ns / 1ps
+
+import friscv_pkg::*;
 
 module friscv_zsbl_rom (
     input  logic  i_clk,

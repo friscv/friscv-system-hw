@@ -13,6 +13,7 @@ friscv-system-hw/
 vivado_pid*
 NA/
 dfx_runtime.txt
+xvlog.pb
 
 # Block designs - ignore everything except .tcl files
 bd/*
@@ -26,10 +27,12 @@ bd/*/*
 *.mcs
 *.xsa
 *.elf
+*.bak
 
 # Do not ignore generated overlays
 !overlay/*.bit
 !overlay/*.hwh
+!overlay/*.xsa
 
 # Synthesis and implementation reports
 *.rpt
@@ -52,3 +55,17 @@ test/*.o
 test/*.elf
 test/*.bin
 test/*.dis
+build/
+
+# Software build artifacts
+software/*.dtb
+software/src/
+software/rootfs/
+software/initramfs.cpio.gz
+
+# Simulation caches
+sim/cache/
+sim/out/
+
+# Git patches
+*.patch

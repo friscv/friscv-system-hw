@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -13,7 +13,9 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+`timescale 1ns / 1ps
+
+import friscv_pkg::*;
 
 module friscv_if_stage (
     input  logic  clk_in,
@@ -25,7 +27,7 @@ module friscv_if_stage (
     input  logic  i_mem_wait_in,
     input  logic  jump_ok_in,
     input  addr_t jump_target_in,
- 
+
     // Outputs to ID stage
     output addr_t pc_out,
     output addr_t pc_plus_4_out,
@@ -37,10 +39,10 @@ module friscv_if_stage (
     output logic  i_mem_en_out,
     
     // Interrupts
-    input  logic  interrupt_in, 
-    input  logic  mret_in,      
-    input  addr_t mtvec_in,    
-    input  addr_t mepc_in
+    input  logic  trap_in, 
+    input  logic  ret_in,      
+    input  addr_t tvec_in,    
+    input  addr_t epc_in
 );
 
 (* max_fanout = 50 *) addr_t pc_reg;
@@ -51,26 +53,26 @@ logic  r_fetch_active;
 // we must discard it and re-issue the fetch for the redirect target.
 logic  r_flush_pending;
 
-always_ff @(posedge clk_in or negedge rst_n_in) begin
+always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
         pc_reg          <= RESET_VEC;
         r_fetch_active  <= 1'b1;
         ir_buff         <= NOP;
         r_flush_pending <= 1'b0;
     end else begin
-        if (flush_in || jump_ok_in || interrupt_in || mret_in) begin
-            if(mret_in) begin
-                pc_reg <= {mepc_in[ADDR_WIDTH-1:2], 2'b00};
-            end else if(interrupt_in) begin
-                pc_reg <= {mtvec_in[ADDR_WIDTH-1:2], 2'b00};
-            end else if(jump_ok_in) begin
-                pc_reg <= {jump_target_in[ADDR_WIDTH-1:2], 2'b0};
+        if (flush_in || jump_ok_in || trap_in || ret_in) begin
+            if (ret_in) begin
+                pc_reg <= epc_in;
+            end else if (trap_in) begin
+                pc_reg <= tvec_in;
+            end else if (jump_ok_in) begin
+                pc_reg <= jump_target_in;
             end else begin
                 pc_reg <= RESET_VEC;
             end
             r_fetch_active  <= 1'b1;
             ir_buff         <= NOP;
-            r_flush_pending <= r_fetch_active;
+            r_flush_pending <= r_fetch_active && i_mem_wait_in;
         end else if (r_flush_pending && !i_mem_wait_in) begin
             // Stale AXI response arrived for the old address.
             // Discard it, hold pc_reg at the redirect target, restart fetch.
@@ -82,7 +84,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         end else if (r_fetch_active && !i_mem_wait_in) begin
             r_fetch_active <= 1'b0;
             ir_buff        <= i_mem_data_in;
-        end 
+        end
     end
 end
 

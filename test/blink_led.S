@@ -12,10 +12,10 @@ timer_handler:
     sw    t1, 4(sp)
     sw    t2, 8(sp)
 
-    # Reset counter to 0 so the next IRQ fires in exactly 0.5 s
-    li    t0, 0x40100000
-    sw    x0, 8(t0)
-    sw    x0, 12(t0)
+    # Reset mtime to 0 so the next IRQ fires in exactly 0.5 s
+    li    t0, 0x0200BFF8
+    sw    x0, 0(t0)           # mtime lo = 0
+    sw    x0, 4(t0)           # mtime hi = 0
 
     # Toggle led_state
     la    t1, led_state
@@ -38,24 +38,29 @@ main:
     li    sp, 0x80000800
 
     la    t0, timer_handler
-    csrw  0x305, t0
+    csrw  0x305, t0           # mtvec
 
     la    t0, led_state
     sw    x0, 0(t0)
     li    t0, 0x40000000
     sw    x0, 0(t0)
 
-    # Configure timer: target = 45,454,544 cycles = 0.5 s @ 90.909088 MHz
-    li    t0, 0x40100000
-    sw    x0, 8(t0)
-    sw    x0, 12(t0)
-    li    t1, 0x02B594D0      # 45,454,544 cycles
-    sw    t1, 0(t0)
-    sw    x0, 4(t0)
+    # Reset mtime to 0
+    li    t0, 0x0200BFF8
+    sw    x0, 0(t0)           # mtime lo = 0
+    sw    x0, 4(t0)           # mtime hi = 0
 
-    # Enable global machine interrupts
-    li    t0, 8
-    csrw  0x300, t0
+    # Set mtimecmp = 25,000,000 cycles = 0.5 s @ 50.000,000 MHz
+    li    t0, 0x02004000
+    li    t1, 25000000
+    sw    t1, 0(t0)           # mtimecmp lo
+    sw    x0, 4(t0)           # mtimecmp hi = 0
+
+    # Enable machine timer interrupt (MTIE) and global machine interrupts (MIE)
+    li    t0, 0x80            # MTIE = bit 7
+    csrw  0x304, t0           # mie
+    li    t0, 8               # MIE = bit 3
+    csrw  0x300, t0           # mstatus
 
 idle:
     j     idle

@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -14,7 +14,7 @@ Version info is listed in friscv_pkg.sv
 */
 
 // Pure Verilog wrapper for Vivado block design integration
-// The actual implementation is in friscv_cpu_subsystem.sv
+// The actual implementation is in friscv_cpu_subsystem_axi.sv
 module friscv_cpu_subsystem_wrapper (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 aclk CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF m_axi, ASSOCIATED_RESET aresetn" *)
@@ -24,7 +24,11 @@ module friscv_cpu_subsystem_wrapper (
     input  wire aresetn,
 
     output wire done,
-    input  wire i_timer_irq,
+    input  wire msip,
+    input  wire mtip,
+    input  wire meip,
+    
+    input  wire [63:0] mtime,
 
     // AXI4 Master Write Address Channel
     output wire        m_axi_awvalid,
@@ -70,11 +74,14 @@ module friscv_cpu_subsystem_wrapper (
     input  wire [1:0]  m_axi_rresp
 );
 
-friscv_cpu_subsystem cpu_subsystem (
+friscv_cpu_subsystem_axi cpu_subsystem (
     .i_clk          ( aclk          ),
     .i_rstn         ( aresetn       ),
     .o_end          ( done          ),
-    .i_timer_irq    ( i_timer_irq   ),
+    .i_msip         ( msip          ),
+    .i_mtip         ( mtip          ),
+    .i_meip         ( meip          ),
+    .i_mtime        ( mtime         ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

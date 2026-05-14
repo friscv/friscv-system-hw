@@ -2,6 +2,11 @@
 # Tests: IRQ handler entry, MRET return, register preservation, MIE gate
 #
 # Final result will be 0xAABBCCDD only if all tests pass correctly
+#
+# CLINT register map (base = 0x02000000):
+#   +0x0000        : msip[0]
+#   +0x4000/+0x4004: mtimecmp[63:0]  (lo/hi)
+#   +0xBFF8/+0xBFFC: mtime[63:0]     (lo/hi)
 
 .option arch, +zicsr
 .text
@@ -17,14 +22,15 @@ _start:
 
 # ============================================================
 # HANDLER 1 - test 1 (interrupt entry)
-# Increments x10, disables timer, returns.
+# Increments x10, saves mepc into x15, disables timer, returns.
 # ============================================================
 handler1:
     addi x10, x10, 1
-    lui  x5, 0x40100           # 0x40100000
+    csrr x15, mepc             # save mepc for boundary check
+    lui  x5, 0x2004            # mtimecmp base: 0x02004000
     li   x6, -1
-    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
-    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -33,23 +39,39 @@ handler1:
 # ============================================================
 handler2:
     li   x12, 0xBEEF
-    lui  x5, 0x40100
+    lui  x5, 0x2004            # mtimecmp base: 0x02004000
     li   x6, -1
-    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
-    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
-# HANDLER 3 - test 4 (MIE gate)
+# HANDLER 4 - test 4 (WFI)
+# Disables timer, advances mepc past WFI, returns.
+# WFI loops to itself; handler must advance mepc+4 or we return to WFI again.
+# ============================================================
+handler4:
+    addi x10, x10, 1
+    lui  x5, 0x2004            # disable timer
+    li   x6, -1
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
+    csrr x1, mepc              # mepc points at the WFI instruction
+    addi x1, x1, 4
+    csrw mepc, x1              # advance past WFI so MRET resumes after it
+    mret
+
+# ============================================================
+# HANDLER 3 - test 3 (MIE gate)
 # Must NEVER execute: IRQ cannot be taken with MIE = 0.
 # Increments x14 to leave a detectable trace if called.
 # ============================================================
 handler3:
     addi x14, x14, 1
-    lui  x5, 0x40100
+    lui  x5, 0x2004            # mtimecmp base: 0x02004000
     li   x6, -1
-    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF (suppress IRQ)
-    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF (suppress IRQ)
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
     mret
 
 # ============================================================
@@ -67,17 +89,23 @@ test1:
     la   x1, handler1
     csrw 0x305, x1             # mtvec = handler1
 
-    lui  x5, 0x40100           # timer base = 0x40100000
-    sw   x0, 8(x5)             # counter[31:0]  = 0
-    sw   x0, 12(x5)            # counter[63:32] = 0
-    li   x6, 64
-    sw   x6, 0(x5)             # target[31:0]  = 64 (fire after 64 ticks)
-    sw   x0, 4(x5)             # target[63:32] = 0
+    # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0  (0x0200BFF8)
+    sw   x0, -4(x5)            # mtime[63:32] = 0  (0x0200BFFC)
 
-    li   x1, 8
-    csrw 0x300, x1             # mstatus.MIE = 1
+    # Set mtimecmp = 64 (addr 0x02004000)
+    lui  x5, 0x2004
+    li   x6, 64
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64 (fire after 64 ticks)
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x6, 4096              # spin limit
+
+    li   x1, 0x80
+    csrw mie, x1               # mie.MTIE = 1 (bit 7)
+    li   x1, 8
+    csrw mstatus, x1           # mstatus.MIE = 1
 test1_spin:
     bnez x10, test1_done       # exit when handler has fired
     addi x6, x6, -1
@@ -85,10 +113,18 @@ test1_spin:
     j    test_fail             # timeout: handler never called
 
 test1_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mstatus, x0           # disable MIE
 
     li   x1, 1
     bne  x10, x1, test_fail    # must be exactly 1 (single entry, timer disabled)
+
+    # Verify mepc was within the spin loop: test1_spin <= mepc <= test1_spin+8
+    la   x1, test1_spin
+    bltu x15, x1, test_fail    # mepc before spin loop - fail
+    addi x1, x1, 8             # last valid mepc = 3rd instruction of spin loop
+    bgtu x15, x1, test_fail    # mepc after spin loop - fail
+
+    sw   x15, 4(x31)           # checkpoint: mepc value (expect within spin loop)
 
 test1_pass:
     addi x28, x28, 0x111
@@ -113,20 +149,26 @@ test2:
     li   x13, 0                # post-interrupt step counter
 
     la   x1, handler2
-    csrw 0x305, x1             # mtvec = handler2
+    csrw mtvec, x1             # mtvec = handler2
 
-    lui  x5, 0x40100
-    sw   x0, 8(x5)             # counter[31:0]  = 0
-    sw   x0, 12(x5)            # counter[63:32] = 0
+    # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0  (0x0200BFF8)
+    sw   x0, -4(x5)            # mtime[63:32] = 0  (0x0200BFFC)
+
+    # Set mtimecmp = 64
+    lui  x5, 0x2004
     li   x6, 64
-    sw   x6, 0(x5)             # target[31:0]  = 64
-    sw   x0, 4(x5)             # target[63:32] = 0
-
-    li   x1, 8
-    csrw 0x300, x1             # MIE = 1
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
 
     li   x6, 4096
     li   x7, 0xBEEF
+
+    li   x1, 0x80
+    csrw mie, x1               # mie.MTIE = 1
+    li   x1, 8
+    csrw mstatus, x1           # MIE = 1
 test2_spin:
     beq  x12, x7, test2_done   # handler ran AND MRET brought us back
     addi x6, x6, -1
@@ -134,7 +176,7 @@ test2_spin:
     j    test_fail             # timeout: MRET never returned to main code
 
 test2_done:
-    csrw 0x300, x0             # disable MIE
+    csrw mstatus, x0           # disable MIE
     addi x13, x13, 1           # main code continues here after MRET
 
     li   x1, 0xAA55
@@ -161,14 +203,18 @@ test3:
     li   x14, 0                # spurious-entry counter
 
     la   x1, handler3
-    csrw 0x305, x1             # mtvec = handler3
+    csrw mtvec, x1             # mtvec = handler3
 
-    lui  x5, 0x40100
-    sw   x0, 8(x5)             # counter[31:0]  = 0
-    sw   x0, 12(x5)            # counter[63:32] = 0
+    # Reset mtime to 0 (addr 0x0200BFF8 = lui 0x200C + addi -8)
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0  (0x0200BFF8)
+    sw   x0, -4(x5)            # mtime[63:32] = 0  (0x0200BFFC)
+
+    # Set mtimecmp = 64
+    lui  x5, 0x2004
     li   x6, 64
-    sw   x6, 0(x5)             # target[31:0]  = 64
-    sw   x0, 4(x5)             # target[63:32] = 0
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
     # MIE intentionally NOT enabled
 
     li   x6, 1024
@@ -177,11 +223,11 @@ test3_spin:
     addi x6, x6, -1
     bnez x6, test3_spin
 
-    # clean up timer before leaving: set target to max to suppress IRQ
-    lui  x5, 0x40100
+    # clean up: set mtimecmp to max to suppress IRQ
+    lui  x5, 0x2004
     li   x6, -1
-    sw   x6, 0(x5)             # target[31:0]  = 0xFFFFFFFF
-    sw   x6, 4(x5)             # target[63:32] = 0xFFFFFFFF
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 0xFFFFFFFF
+    sw   x6, 4(x5)             # mtimecmp[63:32] = 0xFFFFFFFF
 
 test3_pass:
     addi x28, x28, 0x333
@@ -191,12 +237,50 @@ test3_pass:
     bne  x28, x27, test_fail
 
 # ================================================================
+# TEST 4 - WFI suspends execution until interrupt wakes it
+# ================================================================
+test4:
+    li   x10, 0                # handler entry counter
+
+    la   x1, handler4
+    csrw mtvec, x1             # mtvec = handler4
+
+    lui  x5, 0x200C
+    sw   x0, -8(x5)            # mtime[31:0]  = 0
+    sw   x0, -4(x5)            # mtime[63:32] = 0
+
+    lui  x5, 0x2004
+    li   x6, 64
+    sw   x6, 0(x5)             # mtimecmp[31:0]  = 64
+    sw   x0, 4(x5)             # mtimecmp[63:32] = 0
+
+    li   x1, 0x80
+    csrw mie, x1               # mie.MTIE = 1
+    li   x1, 8
+    csrw mstatus, x1           # mstatus.MIE = 1
+
+    wfi                        # suspend here until timer fires
+
+    # MRET from handler resumes
+    csrw mstatus, x0           # disable MIE
+
+    li   x1, 1
+    bne  x10, x1, test_fail    # handler must have been entered exactly once
+
+test4_pass:
+    addi x28, x28, 0x444
+    sw   x10, 12(x31)          # checkpoint 3: handler entry count (expect 1)
+    addi x29, x29, 1
+    li   x27, 0xAAA
+    bne  x28, x27, test_fail
+
+# ================================================================
 # All tests passed
 # ================================================================
 all_tests_pass:
-    li   x1, 3
+    li   x1, 4
     bne  x29, x1, test_fail
-    li   x2, 0x666
+    li   x2, 0xAAA
     bne  x28, x2, test_fail
 
     li   x1, 0xAABBCCDD

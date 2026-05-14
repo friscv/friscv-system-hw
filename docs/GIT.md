@@ -92,7 +92,7 @@ python build.py bitstream
 This performs a clean synthesis and implementation run and copies the outputs to `overlay/`:
 
 | File | Description |
-|------|-------------|
+| ---- | ----------- |
 | `overlay/friscv.bit` | FPGA bitstream |
 | `overlay/friscv.hwh` | Hardware handoff file |
 | `scripts/ps7_init.tcl` | Zynq PS7 initialisation |
@@ -102,7 +102,7 @@ Commit these files together with the RTL change so that the bitstream in `overla
 ## Summary of Rules
 
 | Rule | Command |
-|------|---------|
+| ---- | ------- |
 | Create new source files in `rtl/` or `sim/`, then add them from the Vivado GUI | — |
 | Export block designs after any BD change | `python build.py export-bd` |
 | Run all `integration_test_*.S` tests before committing | Vivado sim |

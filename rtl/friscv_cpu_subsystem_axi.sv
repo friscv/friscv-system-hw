@@ -3,8 +3,8 @@
 
 Use under License Agreement ONLY.
 
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK, 
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or 
+IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
+(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
 (B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
 
 https://hpc.fer.hr/en/hpc
@@ -13,14 +13,20 @@ licensing.hpc@fer.hr
 Version info is listed in friscv_pkg.sv
 */
 
-`include "friscv_pkg.sv"
+`timescale 1ns / 1ps
 
-module friscv_cpu_subsystem (
+import friscv_pkg::*;
+
+module friscv_cpu_subsystem_axi (
     input  logic        i_clk,
     input  logic        i_rstn,
     output logic        o_end,
     
-    input  logic        i_timer_irq,
+    input  logic        i_msip,
+    input  logic        i_mtip,
+    input  logic        i_meip,
+
+    input  logic [63:0] i_mtime,
  
     // AXI4 Master Write Address Channel
     output logic        m_axi_awvalid,
@@ -66,99 +72,22 @@ module friscv_cpu_subsystem (
     input  logic [1:0]  m_axi_rresp
 );
 
-mem_width_e  w_size;
-logic [31:0] w_phy_addr;
-logic [31:0] w_dram_addr;
-logic [31:0] w_wdata;
-logic [31:0] w_rdata;
-rw_cmd_e     w_rw;
-logic        w_wait;
+friscv_mem_if mem_if ();
 
-if (DRAM_BASE == 32'h8000_0000) begin
-    assign w_dram_addr = w_phy_addr[31] ? {1'b0, w_phy_addr[30:0]} + DRAM_START_AT : w_phy_addr;
-end else if (DRAM_BASE == 32'h0) begin
-    assign w_dram_addr = w_phy_addr + DRAM_START_AT;
-end else begin
-    assign w_dram_addr = (w_phy_addr < DRAM_BASE) ? w_phy_addr : (w_phy_addr - DRAM_BASE) + DRAM_START_AT;
-end
-
-// Metastability protection for reset
-logic [1:0]  r_rstn_sync = 2'b00;
-
-always_ff @(posedge i_clk) begin
-    r_rstn_sync <= {r_rstn_sync[0], i_rstn};
-end
-
-// Reset debouncer
-logic        r_rstn_debounced = 1'b0;
-logic [20:0] r_debounce_cnt = 21'd0;
-
-always_ff @(posedge i_clk) begin
-    if (r_rstn_sync[1] == r_rstn_debounced) begin
-        // Signal is stable, reset counter
-        r_debounce_cnt <= '0;
-    end else begin
-        // Signal changed, increment counter
-        if (r_debounce_cnt < RST_DEBOUNCE_CYCLES) begin
-            r_debounce_cnt <= r_debounce_cnt + 1'b1;
-        end else begin
-            // Signal has been stable for debounce period, update output
-            r_rstn_debounced <= r_rstn_sync[1];
-        end
-    end
-end
-
-logic w_core_rstn;
-assign w_core_rstn = r_rstn_debounced;
-
-friscv_core_complex cc_0 (
-    .i_clk       ( i_clk       ),
-    .i_rstn      ( w_core_rstn ),
-    .o_end       ( o_end       ),
-    .i_timer_irq ( i_timer_irq ),
-    .o_mem_size  ( w_size      ),
-    .o_mem_addr  ( w_phy_addr  ),
-    .o_mem_wdata ( w_wdata     ),
-    .i_mem_rdata ( w_rdata     ),
-    .o_mem_rw    ( w_rw        ),
-    .i_mem_wait  ( w_wait      )
+friscv_cpu_subsystem_core core (
+    .i_clk   ( i_clk   ),
+    .i_rstn  ( i_rstn  ),
+    .o_end   ( o_end   ),
+    .i_msip  ( i_msip  ),
+    .i_mtip  ( i_mtip  ),
+    .i_meip  ( i_meip  ),
+    .i_mtime ( i_mtime ),
+    .mem_if  ( mem_if  )
 );
 
-// AXI master reset sequencer
-// Wait for transactions to complete before resetting
-logic r_axi_reset_req;
-logic r_axi_in_reset = 1'b1;  // Start in reset
-
-always_ff @(posedge i_clk or negedge r_rstn_debounced) begin
-    if (!r_rstn_debounced) begin
-        r_axi_reset_req <= 1'b1;  // Request reset when button pressed
-    end else begin
-        r_axi_reset_req <= 1'b0;  // Clear request when button released
-    end
-end
-
-always_ff @(posedge i_clk) begin
-    if (r_axi_reset_req && !w_wait) begin
-        // Once transaction completes and reset is requested, assert reset
-        r_axi_in_reset <= 1'b1;
-    end else if (!r_axi_reset_req) begin
-        // Only release reset when external reset is released
-        r_axi_in_reset <= 1'b0;
-    end
-end
-
-logic w_axi_rstn;
-assign w_axi_rstn = !r_axi_in_reset;
-
-friscv_axi_master m_axi (
+friscv_axi4_full_adapter m_axi (
     .i_clk          ( i_clk         ),
-    .i_rstn         ( w_axi_rstn    ),
-    .i_size         ( w_size        ),
-    .i_addr         ( w_dram_addr   ),
-    .i_wdata        ( w_wdata       ),
-    .o_rdata        ( w_rdata       ),
-    .i_rw           ( w_rw          ),
-    .o_wait         ( w_wait        ),
+    .mem_if         ( mem_if        ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),
