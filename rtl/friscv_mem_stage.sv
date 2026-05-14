@@ -77,6 +77,7 @@ module friscv_mem_stage (
     input  data_t          d_mem_data_in,
     output logic           d_mem_en_out,
     output logic           d_mem_wr_out,
+    output logic           d_mem_store_like_out,
     output mem_width_e     d_mem_size_out,
     input  logic           d_mem_wait_in,
     input  logic           d_mem_err_in,
@@ -393,6 +394,7 @@ end
 assign d_mem_en_out = r_mem_active;
 assign d_mem_wr_out = r_mem_active && (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) &&
                       (!pipe_buff.conditional || cond_valid_r);
+assign d_mem_store_like_out = r_mem_active && r_mem_store_like;
 
 // ============================================================
 // Address and width enum conversion alignment

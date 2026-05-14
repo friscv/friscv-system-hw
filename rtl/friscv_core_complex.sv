@@ -58,6 +58,7 @@ data_t      w_data_wdata;
 data_t      w_data_rdata;
 logic       w_data_en;
 logic       w_data_wr;
+logic       w_data_store_like;
 mem_width_e w_data_size;
 logic       w_data_wait;
 logic       w_data_err;
@@ -164,6 +165,7 @@ if (ENABLE_MMU) begin
         .o_data_rdata    ( w_data_rdata    ),
         .i_data_en       ( w_data_en       ),
         .i_data_wr       ( w_data_wr       ),
+        .i_data_store_like ( w_data_store_like ),
         .o_data_wait     ( w_data_wait     ),
         .o_data_err      ( w_data_err      ),
         .i_amo_op        ( w_amo_op        ),
@@ -335,6 +337,7 @@ friscv_core #(
     .d_mem_data_in    ( w_data_rdata    ),
     .d_mem_en_out     ( w_data_en       ),
     .d_mem_wr_out     ( w_data_wr       ),
+    .d_mem_store_like_out ( w_data_store_like ),
     .d_mem_size_out   ( w_data_size     ),
     .d_mem_wait_in    ( w_data_wait     ),
     .d_mem_err_in     ( w_data_err      ),

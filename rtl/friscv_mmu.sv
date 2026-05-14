@@ -35,6 +35,7 @@ module friscv_mmu (
     output data_t       o_data_rdata,
     input  logic        i_data_en,
     input  logic        i_data_wr,
+    input  logic        i_data_store_like,
     output logic        o_data_wait,
     output logic        o_data_err,
     input  amo_op_e     i_amo_op,
@@ -231,7 +232,7 @@ always_comb begin
     w_start_req_ctx.sum      = i_sum;
     w_start_req_ctx.mxr      = i_mxr;
     w_start_req_ctx.is_inst  = w_grant_start_inst;
-    w_start_req_ctx.is_write = !w_grant_start_inst && (i_data_wr || (i_amo_op != AMO_NONE));
+    w_start_req_ctx.is_write = !w_grant_start_inst && (i_data_wr || i_data_store_like || (i_amo_op != AMO_NONE));
 end
 
 always_comb begin
