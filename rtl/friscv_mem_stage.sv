@@ -391,7 +391,8 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
 end
 
 assign d_mem_en_out = r_mem_active;
-assign d_mem_wr_out = r_mem_active && (pipe_buff.mem_instr_sel == MEM_INSTR_STORE);
+assign d_mem_wr_out = r_mem_active && (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) &&
+                      (!pipe_buff.conditional || cond_valid_r);
 
 // ============================================================
 // Address and width enum conversion alignment

@@ -129,18 +129,36 @@ logic [31:0] div_q, div_r;
 generate if (ENABLE_DIV) begin : gen_div
     logic div_active, div_done;
     logic div_started;
+    logic div_done_latched;
 
     logic div_start_pulse;
-    assign div_start_pulse = instr_buff.div_en && !div_started;
+    assign div_start_pulse = instr_buff.div_en && !div_started && !div_done_latched;
 
     logic div_flush;
     assign div_flush = stage_flush_in || trap_commit_in;
 
+    data_t div_a_reg, div_b_reg;
+    logic  div_signed_reg;
+    logic  div_start_r;
+
     always_ff @(posedge clk_in) begin
-        if (!rst_n_in || div_flush || div_done) begin
-            div_started <= 1'b0;
-        end else if (div_start_pulse) begin
-            div_started <= 1'b1;
+        if (!rst_n_in || div_flush || !instr_buff.div_en || (div_done_latched && !stage_stall_in)) begin
+            div_started      <= 1'b0;
+            div_done_latched <= 1'b0;
+            div_start_r      <= 1'b0;
+            div_a_reg        <= '0;
+            div_b_reg        <= '0;
+            div_signed_reg   <= 1'b0;
+        end else begin
+            div_start_r <= div_start_pulse;
+            if (div_start_pulse) begin
+                div_started  <= 1'b1;
+                div_a_reg    <= alu_input_a;
+                div_b_reg    <= alu_input_b;
+                div_signed_reg <= instr_buff.div_signed;
+            end
+            if (div_done)
+                div_done_latched <= 1'b1;
         end
     end
 
@@ -148,17 +166,17 @@ generate if (ENABLE_DIV) begin : gen_div
         .clk_in               (clk_in                ),
         .rst_n_in             (rst_n_in              ),
         .flush_in             (div_flush             ),
-        .division_detected_in (div_start_pulse       ),
-        .signed_division_in   (instr_buff.div_signed ),
-        .divisor              (alu_input_b           ),
-        .dividend             (alu_input_a           ),
+        .division_detected_in (div_start_r           ),
+        .signed_division_in   (div_signed_reg        ),
+        .divisor              (div_b_reg             ),
+        .dividend             (div_a_reg             ),
         .quotient             (div_q                 ),
         .remainder            (div_r                 ),
         .active_out           (div_active            ),
         .done_out             (div_done              )
     );
 
-    assign div_active_out = instr_buff.div_en && !div_done;
+    assign div_active_out = instr_buff.div_en && !div_done_latched;
 end else begin : gen_no_div
     assign div_q = '0;
     assign div_r = '0;
