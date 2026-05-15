@@ -31,12 +31,15 @@ python build.py open
 
 Instead:
 
-1. Create the file manually in `rtl/` (for synthesizable RTL) or `sim/` (for simulation-only files).
+1. Create the file manually in the appropriate directory:
+   - `rtl/core/` for generic core RTL (pipeline, MMU, arbiter, interfaces, etc.)
+   - `rtl/soc/` for reference SoC RTL (AXI adapter, CLINT, remapper, wrappers, etc.)
+   - `sim/` for simulation-only files
 2. Open the project in Vivado.
-3. In the Sources panel, right-click → **Add Sources** and add the file from its location in `rtl/` or `sim/`.
+3. In the Sources panel, right-click → **Add Sources** and add the file from its location.
 4. Verify the file appears under the correct source set (Design Sources or Simulation Sources).
 
-All synthesizable RTL must live under `rtl/`. All simulation files must live under `sim/`. Files outside these directories will not be picked up when the project is recreated from TCL.
+All synthesizable RTL must live under `rtl/core/` or `rtl/soc/`. All simulation files must live under `sim/`. Files outside these directories will not be picked up when the project is recreated from TCL.
 
 ## Modifying Block Designs
 
@@ -103,7 +106,7 @@ Commit these files together with the RTL change so that the bitstream in `overla
 
 | Rule | Command |
 | ---- | ------- |
-| Create new source files in `rtl/` or `sim/`, then add them from the Vivado GUI | — |
+| Create new source files in `rtl/core/`, `rtl/soc/`, or `sim/`, then add them from the Vivado GUI | — |
 | Export block designs after any BD change | `python build.py export-bd` |
 | Run all `integration_test_*.S` tests before committing | Vivado sim |
 | Verify clean project recreation before committing | `python build.py clean && python build.py project` |

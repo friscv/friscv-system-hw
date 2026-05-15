@@ -1,7 +1,7 @@
 # `friscv_mem_if` Protocol Specification
 
-Interface definition: [`rtl/friscv_mem_if.sv`](../rtl/friscv_mem_if.sv)  
-Type definitions: [`rtl/friscv_pkg.sv`](../rtl/friscv_pkg.sv)
+Interface definition: [`rtl/core/friscv_mem_if.sv`](../rtl/core/friscv_mem_if.sv)  
+Type definitions: [`rtl/core/friscv_pkg.sv`](../rtl/core/friscv_pkg.sv)
 
 ## Signal Table
 
