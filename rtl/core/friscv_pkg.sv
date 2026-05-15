@@ -23,7 +23,8 @@ v 1.1.0		Franko Ciric, Karlo Milicic Juhas, 2025_06, HW and SW support for some 
 v 1.2.0     Leonel Maguitman, 2025_12, use of external DRAM throught Arm interface
 v 2.0.0     Emil Popovic, Franko Ciric, 2026_03, AXI interface, combinatorial control unit, automation scripts, A extension, external timer interrupt
 v 2.1.0     Emil Popovic, 2026_05, MMU, certification tests, boots os, modular interface
-v 2.1.1     Emil Popovic, 2026_06, cleanup, Linux build and boot
+v 2.1.1     Emil Popovic, 2026_05, cleanup, Linux build and boot
+v 2.2.0     Emil Popovic, 2026_05, file cleanup, reorganization, docs update
 
 */
 
