@@ -9,6 +9,7 @@
 `timescale 1ns / 1ps
 
 import friscv_pkg::*;
+import friscv_soc_pkg::*;
 
 module friscv_remap (
     input  addr_t i_addr,

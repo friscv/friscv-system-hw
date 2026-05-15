@@ -27,17 +27,8 @@ module friscv_cpu_subsystem_core (
     friscv_mem_if.master mem_if
 );
 
-// Metastability protection for reset
-logic w_rstn_sync;
-sync #(.WIDTH(1)) rstn_sync (
-    .i_clk    ( i_clk       ),
-    .i_unsync ( i_rstn      ),
-    .o_synced ( w_rstn_sync )
-);
-
 mem_width_e w_size;
-addr_t      w_phy_addr;
-addr_t      w_dram_addr;
+addr_t      w_addr;
 data_t      w_wdata;
 data_t      w_rdata;
 rw_cmd_e    w_rw;
@@ -48,17 +39,6 @@ logic       w_beat_valid;
 logic w_mem_err;
 assign w_mem_err = mem_if.err;
 
-// TODO: move the SoC-specific remapper out of the generic core and into an SoC-specific wrapper
-// Address space remapping
-if (ENABLE_REMAP) begin
-    friscv_remap remapper (
-        .i_addr ( w_phy_addr  ),
-        .o_addr ( w_dram_addr )
-    );
-end else begin
-    assign w_dram_addr = w_phy_addr;
-end
-
 // ============================================================
 // Core complex instance
 // ============================================================
@@ -67,14 +47,14 @@ friscv_core_complex #(
     .HART_ID(0)
 ) cc_0 (
     .i_clk        ( i_clk        ),
-    .i_rstn       ( w_rstn_sync  ),
+    .i_rstn       ( i_rstn       ),
     .o_end        ( o_end        ),
     .i_msip       ( i_msip       ),
     .i_mtip       ( i_mtip       ),
     .i_meip       ( i_meip       ),
     .i_mtime      ( i_mtime      ),
     .o_mem_size   ( w_size       ),
-    .o_mem_addr   ( w_phy_addr   ),
+    .o_mem_addr   ( w_addr       ),
     .o_mem_wdata  ( w_wdata      ),
     .i_mem_rdata  ( w_rdata      ),
     .o_mem_rw     ( w_rw         ),
@@ -96,7 +76,7 @@ logic r_mem_reset_req;
 logic r_mem_in_reset = 1'b1;  // Start in reset
 
 always_ff @(posedge i_clk) begin
-    if (!w_rstn_sync) begin
+    if (!i_rstn) begin
         r_mem_reset_req <= 1'b1;  // Request reset when button pressed
     end else begin
         r_mem_reset_req <= 1'b0;  // Clear request when button released
@@ -118,7 +98,7 @@ end
 // ============================================================
 
 assign mem_if.size     = w_size;
-assign mem_if.addr     = w_dram_addr;
+assign mem_if.addr     = w_addr;
 assign mem_if.wdata    = w_wdata;
 assign mem_if.rw       = w_rw;
 assign mem_if.burst_en = w_burst_en;

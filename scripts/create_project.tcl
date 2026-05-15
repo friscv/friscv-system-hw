@@ -3,6 +3,8 @@ set project_name "friscv-system-hw"
 set origin_dir [file normalize [file dirname [info script]]/..]
 set project_dir "${origin_dir}/${project_name}"
 set rtl_dir "${origin_dir}/rtl"
+set rtl_core_dir "${rtl_dir}/core"
+set rtl_soc_dir "${rtl_dir}/soc"
 set constraints_dir "${origin_dir}/constraints"
 set ip_dir "${origin_dir}/ip"
 set bd_dir "${origin_dir}/bd"
@@ -56,7 +58,7 @@ set_property strategy Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
 # Add RTL sources (without copying)
 puts "Adding RTL sources from ${rtl_dir}..."
 if {[file exists ${rtl_dir}]} {
-    set rtl_files [glob -nocomplain ${rtl_dir}/*.v ${rtl_dir}/*.sv]
+    set rtl_files [glob -nocomplain ${rtl_dir}/*.v ${rtl_dir}/*.sv ${rtl_core_dir}/*.v ${rtl_core_dir}/*.sv ${rtl_soc_dir}/*.v ${rtl_soc_dir}/*.sv]
     if {[llength $rtl_files] > 0} {
         add_files -norecurse -fileset sources_1 $rtl_files
         puts "  Added [llength $rtl_files] RTL file(s)"

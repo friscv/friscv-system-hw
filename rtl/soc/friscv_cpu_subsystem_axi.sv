@@ -11,6 +11,7 @@
 `timescale 1ns / 1ps
 
 import friscv_pkg::*;
+import friscv_soc_pkg::*;
 
 module friscv_cpu_subsystem_axi (
     input  logic        i_clk,
@@ -67,22 +68,53 @@ module friscv_cpu_subsystem_axi (
     input  logic [1:0]  m_axi_rresp
 );
 
-friscv_mem_if mem_if ();
-
-friscv_cpu_subsystem_core core (
-    .i_clk   ( i_clk   ),
-    .i_rstn  ( i_rstn  ),
-    .o_end   ( o_end   ),
-    .i_msip  ( i_msip  ),
-    .i_mtip  ( i_mtip  ),
-    .i_meip  ( i_meip  ),
-    .i_mtime ( i_mtime ),
-    .mem_if  ( mem_if  )
+logic w_rstn_sync;
+sync #(.WIDTH(1)) rstn_sync (
+    .i_clk    ( i_clk       ),
+    .i_unsync ( i_rstn      ),
+    .o_synced ( w_rstn_sync )
 );
 
+friscv_mem_if core_mem_if ();
+friscv_mem_if axi_mem_if ();
+
+friscv_cpu_subsystem_core core (
+    .i_clk   ( i_clk       ),
+    .i_rstn  ( w_rstn_sync ),
+    .o_end   ( o_end       ),
+    .i_msip  ( i_msip      ),
+    .i_mtip  ( i_mtip      ),
+    .i_meip  ( i_meip      ),
+    .i_mtime ( i_mtime     ),
+    .mem_if  ( core_mem_if )
+);
+
+// SoC-specific address remapping (CLINT, UART, DRAM offset)
+addr_t w_remapped_addr;
+if (ENABLE_REMAP) begin : gen_remap
+    friscv_remap remapper (
+        .i_addr ( core_mem_if.addr ),
+        .o_addr ( w_remapped_addr  )
+    );
+end else begin : gen_no_remap
+    assign w_remapped_addr = core_mem_if.addr;
+end
+
+assign axi_mem_if.size     = core_mem_if.size;
+assign axi_mem_if.addr     = w_remapped_addr;
+assign axi_mem_if.wdata    = core_mem_if.wdata;
+assign axi_mem_if.rw       = core_mem_if.rw;
+assign axi_mem_if.burst_en = core_mem_if.burst_en;
+assign axi_mem_if.rstn     = core_mem_if.rstn;
+
+assign core_mem_if.rdata      = axi_mem_if.rdata;
+assign core_mem_if.wait_req   = axi_mem_if.wait_req;
+assign core_mem_if.beat_valid = axi_mem_if.beat_valid;
+assign core_mem_if.err        = axi_mem_if.err;
+
 friscv_axi4_full_adapter m_axi (
-    .i_clk          ( i_clk         ),
-    .mem_if         ( mem_if        ),
+    .i_clk          ( i_clk        ),
+    .mem_if         ( axi_mem_if   ),
     .m_axi_awvalid  ( m_axi_awvalid ),
     .m_axi_awready  ( m_axi_awready ),
     .m_axi_awaddr   ( m_axi_awaddr  ),

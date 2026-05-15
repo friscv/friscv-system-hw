@@ -71,14 +71,6 @@ package friscv_pkg;
     // If enabled, a write to END_ADDRESS will stall the core until reset
     localparam logic ENABLE_HW_HALT = 1;
 
-    // Address space remapping configuration
-    localparam logic ENABLE_REMAP = 1;
-    // CLINT address workaround
-    // Remaps standard address to free address in AXI - 0x0200_0000 -> 0x4010_0000
-    localparam logic ENABLE_REMAP_CLINT = 1;
-    // Remaps 0x1000_0000 -> 0x4060_0000
-    localparam logic ENABLE_REMAP_UART = 1;
-
     // --- Configurable parameter definitions end ---
 
     // Architectural parameters - do not modify without a very good reason
@@ -99,15 +91,9 @@ package friscv_pkg;
     typedef logic [31:0]              inst_t;
     typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
-    // TODO: SoC configuration parameters should be moved to a separate package, but for now this is simpler
     localparam addr_t ZSBL_BASE       = 32'h1000;      // RISC-V convention
     localparam addr_t END_ADDRESS     = 32'h50000000;  // FRISC convention
     localparam addr_t DRAM_BASE       = 32'h80000000;  // RISC-V convention
-    localparam addr_t DRAM_START_AT   = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM. TODO: this is SoC related, should not be here
-    localparam addr_t CLINT_REAL_BASE = 32'h40100000;  // Must match AXI address map
-    localparam addr_t CLINT_PHY_BASE  = 32'h02000000;  // RISC-V convention
-    localparam addr_t UART_REAL_BASE  = 32'h40600000;
-    localparam addr_t UART_PHY_BASE   = 32'h10000000;  // RISC-V convention
 
     // Reset to DRAM_BASE (0x80000000) by default, but if ZSBL is enabled, reset to ZSBL_BASE (0x1000)
     localparam addr_t RESET_VEC = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;  // Reset to ZSBL if enabled, else jump to RAM

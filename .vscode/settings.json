@@ -1,4 +1,4 @@
 {
-    "verilog.linting.verilator.arguments": "--timing -y ../rtl ../rtl/friscv_pkg.sv -Wno-MODDUP",
-    "verilog.linting.verilator.runAtFileLocation": true
+    "verilog.linting.verilator.arguments": "--timing -y rtl -y rtl/core -y rtl/soc rtl/core/friscv_pkg.sv rtl/soc/friscv_soc_pkg.sv -Wno-MODDUP",
+    "verilog.linting.verilator.runAtFileLocation": false
 }

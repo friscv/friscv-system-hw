@@ -360,7 +360,7 @@ def target_zsbl_rom(test_name=None) -> None:
         sys.executable,
         str(SCRIPTS_DIR / "gen_zsbl_rom.py"),
         "",  # source placeholder
-        "rtl/friscv_zsbl_rom.sv",
+        "rtl/core/friscv_zsbl_rom.sv",
         "--start-addr", "0x1000",
     ]
     if test_name:

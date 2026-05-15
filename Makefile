@@ -1,5 +1,5 @@
 VERILATOR := verilator
-VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Wno-fatal -Wno-TIMESCALEMOD
+VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Irtl/core -Irtl/soc -Wno-fatal -Wno-TIMESCALEMOD
 VERILATOR_OUT := build/verilator/tb_integration
 ACT_ROOT := verif/arch-test/riscv-arch-test
 ACT_CONFIG_SRC := verif/arch-test/friscv-full
@@ -13,7 +13,7 @@ UV_LINK_MODE ?= copy
 .PHONY: verilate
 verilate:
 	mkdir -p $(VERILATOR_OUT)
-	$(VERILATOR) $(VERILATOR_FLAGS) --top-module tb_integration rtl/friscv_pkg.sv $(filter-out rtl/friscv_pkg.sv,$(wildcard rtl/*.sv)) rtl/friscv_clint.v sim/tb_integration.sv -Mdir $(VERILATOR_OUT)
+	$(VERILATOR) $(VERILATOR_FLAGS) --top-module tb_integration rtl/core/friscv_pkg.sv rtl/soc/friscv_soc_pkg.sv $(filter-out rtl/core/friscv_pkg.sv rtl/soc/friscv_soc_pkg.sv,$(wildcard rtl/core/*.sv rtl/soc/*.sv rtl/*.sv)) rtl/soc/friscv_clint.v sim/tb_integration.sv -Mdir $(VERILATOR_OUT)
 
 .PHONY: test-bin
 test-bin:
