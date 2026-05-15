@@ -1,17 +1,27 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
+ * This module implements the Instruction Decode (ID) stage of the FRISC-V pipeline. It is responsible for:
+ * - Capturing inputs from the IF stage and buffering them for the EX stage
+ * - Reading the register file for source operands
+ * - Decoding the instruction and generating control signals for the EX stage
+ * - Handling CSR reads and writes, including maintaining a CSR file and implementing trap logic
+ * - Detecting and prioritizing traps and interrupts, with support for delegation to S-mode
+ * - Interfacing with the pipeline control logic for stalling and flushing
+ *
+ * The ID stage is the module that commits traps, meaning it determines when a trap should be taken, and from what source.
+ * It then confirms to the trapping stage that its trap is being handled (through x_trap_commit_out).
+ *
+ * A trap is commited on the first cycle that the ID stage detects a trap and there are no hazards with data relevant to
+ * the trap (e.g. a CSR write that would update mtvec before the trap is taken).
+ */
 
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+// TODO break this module up into (or similar):
+//  - id_stage
+//  - csr_file
+//  - reg_file
+//  - trap_handler
 
 `timescale 1ns / 1ps
 
@@ -134,7 +144,6 @@ logic      inst_fault_buff;
 addr_t     fault_addr_buff;
 logic      inst_err_buff;
 mode_e     pc_mode_buff;
-logic      if_trap_inhibit;
 
 assign rs1_out = regfile[rs1_sel_out];
 assign rs2_out = regfile[rs2_sel_out];
@@ -193,11 +202,12 @@ end
 // Control and Status Registers
 // ============================================================
 
+// Current privilege mode of the hart.
 mode_e r_current_mode = M_MODE;
 
 // CSR file definition
+// Read-only CSRs are not stored here, they are hardwired in the read block
 typedef struct packed {
-
     // Supervisor Interrupt Pending
     logic ssip;
     logic stip;
@@ -265,10 +275,14 @@ typedef struct packed {
 // Initialize CSRs to 0
 csr_file_t csr = '0;
 
-csr_addr_e selected_csr;  // Extract selected CSR from ir_buff
+// Extract selected CSR address from the instruction word
+// This will store garbage if not a CSR instruction, but that's ok.
+csr_addr_e selected_csr;
 assign selected_csr = csr_addr_e'(ir_buff.b[31:20]);
 
 // Read-only status of CSR being WRITTEN BACK
+// This is to protect the state of read-only CSRs, but should never be true
+// as writes to read-only CSRs will be decoded as illegal instructions and trap.
 logic wb_csr_ro;
 assign wb_csr_ro = csr_sel_in[11:10] == 2'b11;
 
@@ -276,6 +290,19 @@ assign wb_csr_ro = csr_sel_in[11:10] == 2'b11;
 logic decode_csr_ro;
 assign decode_csr_ro = selected_csr[11:10] == 2'b11;
 
+// Determine if the instruction being decoded will write to a CSR.
+// CSR write will have no effect if either the destination is x0 or uimm is 5'b0.
+// This signal is used during CSR instruction to determine if a CSR write is legal (i.e. not to a read-only CSR).
+logic is_csr_write;
+always_comb begin
+    case (ir_buff.r.funct3)
+        3'b001, 3'b101: is_csr_write = (ir_buff.r.opcode == SYSTEM);  // CSRRW/I always write
+        default:        is_csr_write = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.rs1 != 5'b0);
+    endcase
+end
+
+// For determining if an access is legal, decode_csr_mode stores the minimum mode required
+// to access the selected CSR (see: csr_addr_e selected_csr). Will be garbage if not a CSR instruction.
 mode_e decode_csr_mode;
 assign decode_csr_mode = mode_e'(selected_csr[9:8]);
 
@@ -283,7 +310,8 @@ logic       selected_is_ctr;
 logic [4:0] selected_ctr_bit;
 logic       ctr_access_illegal;
 
-// Determine which counter is selected
+// Determine which counter is selected.
+// This will be compared against m/scounteren bits to determine if the access is legal.
 always_comb begin
     selected_is_ctr  = 1'b1;
     selected_ctr_bit = 5'd0;
@@ -295,29 +323,17 @@ always_comb begin
     endcase
 end
 
-// Determine if current mode can access selected counter
+// Determine if current mode can access selected counter.
+// Access to a counter is legal if its corresponding m/scounteren bit is set.
 always_comb begin
     ctr_access_illegal = 1'b0;
-
     if (selected_is_ctr) begin
         case (r_current_mode)
             M_MODE:  ctr_access_illegal = 1'b0;
             S_MODE:  ctr_access_illegal = !csr.mcounteren[selected_ctr_bit];
-            default: ctr_access_illegal = !csr.mcounteren[selected_ctr_bit] ||
-                                          !csr.scounteren[selected_ctr_bit];
+            default: ctr_access_illegal = !csr.mcounteren[selected_ctr_bit] || !csr.scounteren[selected_ctr_bit];
         endcase
     end
-end
-
-// Determine if the instruction being decoded will write to a CSR
-// CSR write will have no effect if either the destination is x0 or uimm is 5'b0
-logic is_csr_write;
-
-always_comb begin
-    case (ir_buff.r.funct3)
-        3'b001, 3'b101: is_csr_write = (ir_buff.r.opcode == SYSTEM);  // CSRRW/I always write
-        default:        is_csr_write = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.rs1 != 5'b0);
-    endcase
 end
 
 // ============================================================
@@ -330,25 +346,39 @@ logic r_mret_inhibit;
 //  1) Not returning from a previous interrupt,
 //  2) Not executing a branch and
 //  3) Not in the middle of a fetch
-logic interrupt_safe, exception_safe;
+// This is to prevent a taken interrupt killing valid instructions, or ret being skipped.
+// A previous interrupt must safely exit before taking the next interrupt.
+logic interrupt_safe;
 assign interrupt_safe = !r_mret_inhibit && !branch_ok_in && (|pc_in_buff);
+
+// A synchronous exception is safe only if the buffer holds a valid instruciton,
+// and a redirect is not being processed that would kill the trapping instruction anyway (branch_ok_in).
+logic exception_safe;
 assign exception_safe = !branch_ok_in && instr_valid_buff;
 
-// Interrupt active detection
+// Interrupt detection ========================================
 
-logic m_interrupt_active, s_interrupt_active;
-
+// STIP has two sources:
+//  1) Hardware: when mtime >= stimecmp, and menvcfgh[31] enables this behavior
+//  2) Software: when M-mode or S-mode writes to the STIP bit in mip
+// stip_eff is the effective STIP value taking both into account.
 logic stip_hw;
 logic stip_eff;
 assign stip_hw  = csr.menvcfgh[31] && (mtime_in >= {csr.stimecmph, csr.stimecmp});
 assign stip_eff = csr.stip || stip_hw;
 
+// m_interrupt_active if an interrupt to M-mode is pending and not masked or delegated.
+// This interrupt will be taken as soon as it is safe to do so.
+logic m_interrupt_active;
 assign m_interrupt_active = interrupt_safe &&
                             (csr.mstatus.mie || r_current_mode != M_MODE) &&
                             (msip_in && csr.mie[3] ||
                              mtip_in && csr.mie[7] ||
                              meip_in && csr.mie[11]);
 
+// s_interrupt_active if an interrupt to S-mode is pending and not masked, delegated, or overridden by an M-mode interrupt.
+// This interrupt will be taken as soon as it is safe to do so and there are no M-mode interrupts.
+logic s_interrupt_active;
 assign s_interrupt_active = interrupt_safe &&
                             (r_current_mode != M_MODE) &&
                             (csr.mstatus.sie || r_current_mode == U_MODE) &&
@@ -356,24 +386,32 @@ assign s_interrupt_active = interrupt_safe &&
                              (stip_eff && csr.mie[5] && csr.mideleg[5]) ||
                              (csr.seip && csr.mie[9] && csr.mideleg[9]));
 
-logic interrupt_active, exception_active;
+// An interrupt is active (pending or being taken) if either an M-mode or S-mode interrupt is active.
+// All required gating is done by m_interrupt_active and s_interrupt_active.
+logic interrupt_active;
 assign interrupt_active = m_interrupt_active || s_interrupt_active;
 
-// Exception active detection
+// Exception detection ========================================
 
-logic inst_addr_virtual;
-assign inst_addr_virtual = ENABLE_MMU &&
-                           (r_current_mode != M_MODE) &&
-                           (satp_mode_e'(csr.satp.mode) != SATP_BARE);
+// IF stage traps can be page faults or access faults.
+// These are propagated to ID with a cycle of latency and come with the relevant faulting instruction.
+typedef enum logic [1:0] {
+    IF_TRAP_NONE,
+    IF_TRAP_FAULT,
+    IF_TRAP_ACCESS
+} if_trap_e;
 
 if_trap_e if_trap;
 assign if_trap = inst_fault_buff ? IF_TRAP_FAULT  :
                  inst_err_buff   ? IF_TRAP_ACCESS :
                                    IF_TRAP_NONE;
 
+// An IF exception is not taken if there is a branch redirect in-flight that would kill the trapping instruction anyway, or if the trap is currently inhibited.
+logic if_trap_inhibit;
 logic is_if_trap;
 assign is_if_trap = (if_trap != IF_TRAP_NONE) && !if_trap_inhibit && !branch_ok_in;
 
+// The exception is originating from ID if it is ecall, ebreak, illegal instruction, or jump target misaligned.
 logic is_id_trap;
 assign is_id_trap = exception_safe &&
                     (ecall_active  ||
@@ -387,6 +425,15 @@ assign is_mem_trap = mem_trap_in != MEM_TRAP_NONE;
 logic is_ex_trap;
 assign is_ex_trap = ex_trap_in != EX_TRAP_NONE;
 
+// Select where the exception is originating from to determine which exception has priority.
+typedef enum logic [2:0] {
+    TRAP_SRC_NONE,
+    TRAP_SRC_MEM,
+    TRAP_SRC_EX,
+    TRAP_SRC_ID,
+    TRAP_SRC_IF
+} trap_src_e;
+
 trap_src_e trap_src;
 assign trap_src =
     is_mem_trap ? TRAP_SRC_MEM :
@@ -395,7 +442,8 @@ assign trap_src =
     is_id_trap  ? TRAP_SRC_ID  :
                   TRAP_SRC_NONE;
 
-logic ecall_active, ebreak_active;
+// An exception is active (pending) if any of the exception sources are active.
+logic exception_active;
 assign exception_active = is_if_trap || is_id_trap || is_ex_trap || is_mem_trap;
 
 // Trap RAW hazard - a CSR write in EX or MEM might update mtvec/mstatus/mepc before the
@@ -424,26 +472,31 @@ assign trap_pipe_hazard = trap_raw &&
 assign trap_out         = trap_raw && !trap_seen && !trap_csr_hazard && !trap_pipe_hazard;
 assign trap_pending_out = trap_raw && !trap_seen && (trap_csr_hazard || trap_pipe_hazard);
 
+// Signal the EX or MEM stage that their trap is being taken, so they can kill their instructions.
 assign ex_trap_commit_out  = trap_out && (trap_src == TRAP_SRC_EX || trap_src == TRAP_SRC_MEM);
 assign mem_trap_commit_out = trap_out && (trap_src == TRAP_SRC_MEM);
 
+// MRET and SRET are detected outside the main decoder to avoid a combinatorial loop and improve timing.
 logic mret_active, sret_active;
 assign mret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b001100000010);
 assign sret_active = (ir_buff.r.opcode == SYSTEM) && (ir_buff.r.funct3 == 3'b000) && (ir_buff.b[31:20] == 12'b000100000010);
 
+// Signal to the control logic that a return instruction is being taken.
 assign ret_out = (mret_active || sret_active) && !illegal_inst;
 
-// Compute exception cause code
-logic [4:0] exception_cause_code;
-always_comb begin
-    exception_cause_code = 5'd0;
+// Generate Cause Code ========================================
 
+// Take the exception source decoded above and generate the corresponding exception cause code.
+logic [4:0] exception_cause_code;
+logic ecall_active, ebreak_active;
+always_comb begin
+    exception_cause_code = 5'd0;  // No exception by default
     case (trap_src)
         TRAP_SRC_IF:
             case (if_trap)
                 IF_TRAP_FAULT:  exception_cause_code = 5'd12;  // Instruction page fault
                 IF_TRAP_ACCESS: exception_cause_code = 5'd1;   // Instruction access fault
-                default:        exception_cause_code = 5'd0;
+                default:        exception_cause_code = 5'd0;   // No exception
             endcase
         TRAP_SRC_ID:
             if (ecall_active)
@@ -461,7 +514,7 @@ always_comb begin
         TRAP_SRC_EX:
             case (ex_trap_in)
                 EX_TRAP_MISALIGNED: exception_cause_code = 5'd0;  // Instruction address misaligned
-                default:            exception_cause_code = 5'd0;
+                default:            exception_cause_code = 5'd0;  // No exception
             endcase
         TRAP_SRC_MEM:
             case (mem_trap_in)
@@ -471,7 +524,7 @@ always_comb begin
                 MEM_TRAP_STORE_ACCESS:     exception_cause_code = 5'd7;   // Store/AMO access fault
                 MEM_TRAP_LOAD:             exception_cause_code = 5'd13;  // Load page fault
                 MEM_TRAP_STORE:            exception_cause_code = 5'd15;  // Store/AMO page fault
-                default:                   exception_cause_code = 5'd0;
+                default:                   exception_cause_code = 5'd0;   // No exception
             endcase
         default: exception_cause_code = 5'd0;
     endcase
@@ -752,6 +805,8 @@ always_comb begin : csr_read
 
         // Machine Trap Setup
         CSR_MSTATUS:       csr_out = csr.mstatus;
+        // M and A bits are generated dynamically based on parameters.
+        // When adding new extensions, set the corresponding MISA bits from config, unless always present. 
         //                                mx----zyxwvutsrqpon m                        lkjihgfedcb a
         CSR_MISA:          csr_out = {19'b0100000000010100000,{ENABLE_EXTENSION_M},11'b00010000000,{ENABLE_EXTENSION_A}};
         CSR_MEDELEG:       csr_out = csr.medeleg;
@@ -851,12 +906,15 @@ end
 addr_t jal_target;
 assign jal_target_out = jal_ok_out ? jal_target : '0;
 
-// Compute target_misaligned independently of trap_out to avoid a combinatorial loop
+// Compute target_misaligned independently of trap_out to avoid a combinatorial loop.
+// target_misaligned is only active when the instruction is a JAL/JALR and the target address is misaligned.
+// misaligned_tartget is the computed target address for JAL/JALR, used to update tval, 0 otherwise.
 logic target_misaligned;
 addr_t misaligned_target;
 always_comb begin
     unique case (ir_buff.r.opcode)
         JALR: begin
+            // Also detect misalignment on the commiting cycle of the instruction updating the source register.
             addr_t jalr_base = (rd_sel_in != 0 && ir_buff.r.rs1 == rd_sel_in) ? rd_data_in : regfile[ir_buff.r.rs1];
             data_t jalr_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
             addr_t target = (jalr_base + jalr_imm) & ~ 32'd1;
@@ -876,7 +934,8 @@ always_comb begin
     endcase
 end
 
-// Compute the final target
+// Compute the final target of a JAL/JALR if ENABLE_EARLY_JAL_JALR is set (ID redirects instead of EX).
+// This is separate from the target_misaligned logic to avoid a combinatorial loop in trap detection.
 always_comb begin
     if (ENABLE_EARLY_JAL_JALR && !trap_out) begin
         addr_t jal_target_base;
@@ -906,6 +965,16 @@ always_comb begin
         jal_target = '0;
     end
 end
+
+// ============================================================
+// MMU outputs
+// ============================================================
+
+assign satp_out = csr.satp;
+assign sum_out  = csr.mstatus.sum;
+assign mxr_out  = csr.mstatus.mxr;
+assign mode_out = r_current_mode;
+assign data_mode_out = (r_current_mode == M_MODE && csr.mstatus.mprv) ? csr.mstatus.mpp : r_current_mode;
 
 // ============================================================
 // Instruction decoding
@@ -985,6 +1054,8 @@ always_comb begin
                 case (ir_buff.r.funct3)
                     3'b010: begin  // RV32A Standard Extension instructions
                         instr_ex_out.wb_data_sel = WB_DATA_SEL_MEM;
+                        // This should be treated as a MEM_INSTR_STORE by default, but I am too lazy to change it.
+                        // The MEM stage fixes it by treating all AMOs as amo-like and all except LR as store-like.
                         instr_ex_out.mem_instr_sel = MEM_INSTR_LOAD;
                         instr_ex_out.load_store_width = WIDTH_I32;
                         instr_ex_out.alu_op = ADD_OP;
@@ -996,12 +1067,12 @@ always_comb begin
                         rs1_sel_out = ir_buff.r.rs1;
 
                         case (ir_buff.r.funct7[6:2])
-                            5'b00011: begin  // SC.W
+                            5'b00011: begin                            // SC.W
                                 instr_ex_out.mem_instr_sel = MEM_INSTR_STORE;
                                 instr_ex_out.conditional = 1'b1;
                                 instr_ex_out.wb_data_sel = WB_DATA_SEL_SC_RES;
                             end
-                            5'b00010: begin  // LR.W
+                            5'b00010: begin                            // LR.W
                                 instr_ex_out.reserve = 1'b1;
                                 if (ir_buff.r.rs2 != 5'b0) illegal_inst = 1'b1;
                             end
@@ -1024,11 +1095,13 @@ always_comb begin
             end
         end
 
-        OP: begin
+        OP: begin  // rd <- rs1 <op> rs2
+            // This is an R-type three-operand register-register ALU operation.
+            // rs1 and rs2 are the source registers, rd is the destination register.
             instr_ex_out.a_bus_sel = RS1;
             instr_ex_out.b_bus_sel = RS2;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
-            instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
+            instr_ex_out.wb_data_sel   = WB_DATA_SEL_ALU;
 
             imm_sel = I_TYPE;
             rs1_sel_out = ir_buff.r.rs1;
@@ -1037,50 +1110,50 @@ always_comb begin
 
             case (ir_buff.r.funct3)
                 3'b000:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = ADD_OP;
-                    else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SUB_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MUL_OP;
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = ADD_OP;                  // ADD
+                    else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SUB_OP;                  // SUB
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MUL_OP;    // MUL
                     else illegal_inst = 1'b1;
                 3'b001:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLL_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULH_OP;
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLL_OP;                  // SLL
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULH_OP;   // MULH
                     else illegal_inst = 1'b1;
                 3'b010:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLT_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULHSU_OP;
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLT_OP;                  // SLT
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULHSU_OP; // MULHSU
                     else illegal_inst = 1'b1;
                 3'b011:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLTU_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULHU_OP;
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SLTU_OP;                 // SLTU
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_MUL) instr_ex_out.alu_op = MULHU_OP;  // MULHU
                     else illegal_inst = 1'b1;
                 3'b100:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = XOR_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = XOR_OP;  // XOR
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin            // DIV
                         instr_ex_out.alu_op = DIV_OP;
                         instr_ex_out.div_en = 1'b1;
                         instr_ex_out.div_signed = 1'b1;
                     end
                     else illegal_inst = 1'b1;
                 3'b101:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SRL_OP;
-                    else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SRA_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = SRL_OP;  // SRL
+                    else if (ir_buff.r.funct7 == 7'b0100000) instr_ex_out.alu_op = SRA_OP;  // SRA
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin            // DIVU
                         instr_ex_out.alu_op = DIVU_OP;
                         instr_ex_out.div_en = 1'b1;
                         instr_ex_out.div_signed = 1'b0;
                     end
                     else illegal_inst = 1'b1;
                 3'b110:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = OR_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = OR_OP;    // OR
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin             // REM
                         instr_ex_out.alu_op = REM_OP;
                         instr_ex_out.div_en = 1'b1;
                         instr_ex_out.div_signed = 1'b1;
                     end
                     else illegal_inst = 1'b1;
                 3'b111:
-                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = AND_OP;
-                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin
+                    if      (ir_buff.r.funct7 == 7'b0000000) instr_ex_out.alu_op = AND_OP;   // AND
+                    else if (ir_buff.r.funct7 == 7'b0000001 && ENABLE_DIV) begin             // REMU
                         instr_ex_out.alu_op = REMU_OP;
                         instr_ex_out.div_en = 1'b1;
                         instr_ex_out.div_signed = 1'b0;
@@ -1088,7 +1161,7 @@ always_comb begin
                     else illegal_inst = 1'b1;
             endcase
 
-            // Check if funct7 of SLL/SLT/SLTU/XOR/OR/AND is legal
+            // Check if funct7 of SLL/SLT/SLTU/XOR/OR/AND is legal.
             if ((ir_buff.r.funct3 == 3'b001 ||
                  ir_buff.r.funct3 == 3'b010 ||
                  ir_buff.r.funct3 == 3'b011 ||
@@ -1098,7 +1171,9 @@ always_comb begin
                 illegal_inst = 1'b1;
         end
 
-        OP_IMM: begin
+        OP_IMM: begin  // rd <- rs1 <op> imm
+            // This is an I-type and I2-type ALU operation with an immediate operand.
+            // rs1 is the source register, rd is the destination register, and the immediate is the second operand.
             instr_ex_out.a_bus_sel = RS1;
             instr_ex_out.b_bus_sel = IMM;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
@@ -1109,13 +1184,14 @@ always_comb begin
             rd_sel_out  = ir_buff.r.rd;
         
             case (ir_buff.r.funct3)
-                3'b000: instr_ex_out.alu_op = ADD_OP;
-                3'b010: instr_ex_out.alu_op = SLT_OP;
-                3'b011: instr_ex_out.alu_op = SLTU_OP;
-                3'b100: instr_ex_out.alu_op = XOR_OP;
-                3'b110: instr_ex_out.alu_op = OR_OP;
-                3'b111: instr_ex_out.alu_op = AND_OP;
-                3'b001: begin
+                3'b000: instr_ex_out.alu_op = ADD_OP;       // ADDI
+                3'b010: instr_ex_out.alu_op = SLT_OP;       // SLTI
+                3'b011: instr_ex_out.alu_op = SLTU_OP;      // SLTIU
+                3'b100: instr_ex_out.alu_op = XOR_OP;       // XORI
+                3'b110: instr_ex_out.alu_op = OR_OP;        // ORI
+                3'b111: instr_ex_out.alu_op = AND_OP;       // ANDI
+                // I2-type shift instructions (with immediate shamt)
+                3'b001: begin                                     // SLLI
                     imm_sel = I2_TYPE;
                     instr_ex_out.alu_op = SLL_OP;
                     if (ir_buff.r.funct7 != 7'b0) illegal_inst = 1'b1;
@@ -1123,37 +1199,35 @@ always_comb begin
                 3'b101: begin
                     imm_sel = I2_TYPE;
                     case (ir_buff.r.funct7)
-                        7'b0000000: instr_ex_out.alu_op = SRL_OP;
-                        7'b0100000: instr_ex_out.alu_op = SRA_OP;
+                        7'b0000000: instr_ex_out.alu_op = SRL_OP;  // SRLI
+                        7'b0100000: instr_ex_out.alu_op = SRA_OP;  // SRAI
                         default:    illegal_inst = 1'b1;
                     endcase
                 end
             endcase
         end
         
-        AUIPC: begin
+        AUIPC: begin  // rd <- PC + (imm << 12)
             instr_ex_out.a_bus_sel = PC;
             instr_ex_out.b_bus_sel = IMM;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
-
             imm_sel = U_TYPE;
             rd_sel_out  = ir_buff.r.rd;
         end
         
-        LUI: begin
+        LUI: begin  // rd <- imm << 12
             instr_ex_out.a_bus_sel = RS1;
             instr_ex_out.b_bus_sel = IMM;
             instr_ex_out.alu_op = ADD_OP;
             instr_ex_out.mem_instr_sel = MEM_INSTR_NONE;
             instr_ex_out.wb_data_sel = WB_DATA_SEL_ALU;
-
             imm_sel = U_TYPE;
             rd_sel_out  = ir_buff.r.rd;
         end
         
-        BRANCH: begin
+        BRANCH: begin  // pc <- pc + (imm << 1) if <branch_cond>(rs1, rs2)
             instr_ex_out.branch_jal_sel = BRANCH_INSTR;
             instr_ex_out.a_bus_sel = PC;
             instr_ex_out.b_bus_sel = IMM;
@@ -1207,12 +1281,12 @@ always_comb begin
             if (ir_buff.r.funct3 == 3'b0) begin  // Non-CSR SYSTEM instructions
                 case (ir_buff.r.funct7)
                     7'b0001001: begin  // SFENCE.VMA
-                        if      (ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
-                        else if (r_current_mode == U_MODE) illegal_inst = 1'b1;
-                        else if (r_current_mode == S_MODE && csr.mstatus.tvm) illegal_inst = 1'b1;
+                        if      (ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;                         // SFENCE.VMA requires rd=x0.
+                        else if (r_current_mode == U_MODE) illegal_inst = 1'b1;                     // U-mode cannot execute SFENCE.VMA.
+                        else if (r_current_mode == S_MODE && csr.mstatus.tvm) illegal_inst = 1'b1;  // S-mode with TVM=1 cannot execute SFENCE.VMA.
                         else begin
                             instr_ex_out.sfence_vma = 1'b1;
-                            // Flush pipeline and jump to PC+4
+                            // Flush pipeline and jump to PC+4 to refetch with a clean TLB.
                             instr_ex_out.branch_jal_sel = BRANCH_INSTR;
                             instr_ex_out.branch_cond = COND_ALWAYS;
                             instr_ex_out.a_bus_sel = ZERO_A;
@@ -1223,18 +1297,21 @@ always_comb begin
                         end
                     end
                     default: begin
+                        // These instructions require rs1=x0 and rd=x0.
                         if (ir_buff.r.rs1 != 5'b0 || ir_buff.r.rd != 5'b0) illegal_inst = 1'b1;
 
                         case (ir_buff.b[31:20])
                             12'b000000000000: ecall_active  = 1'b1;  // ECALL
                             12'b000000000001: ebreak_active = 1'b1;  // EBREAK
-                            12'b001100000010:        // MRET
+                            12'b001100000010:                        // MRET
                                 if (r_current_mode != M_MODE) illegal_inst = 1'b1;
                                 else instr_ex_out.mret_en = 1'b1;
-                            12'b000100000010:        // SRET
+                            12'b000100000010:                        // SRET
                                 if (r_current_mode < S_MODE) illegal_inst = 1'b1;
                                 else instr_ex_out.sret_en = 1'b1;
-                            12'b000100000101: begin  // WFI
+                            12'b000100000101: begin                  // WFI
+                                // WFI executes as J pc (loops on itself) until an interrupt is taken
+                                // where the handler breaks from the WFI loop by modifying epc.
                                 instr_ex_out.branch_jal_sel = JAL_INSTR;
                                 instr_ex_out.a_bus_sel = PC;
                                 instr_ex_out.b_bus_sel = IMM;
@@ -1302,19 +1379,9 @@ always_comb begin
         default: illegal_inst = 1'b1;
     endcase
 
-    // Propagate illegal instruction as bubble
-    // MUST KEEP THIS LAST
+    // Propagate illegal instruction as bubble.
+    // MUST KEEP THIS LAST, it overrides all other control signals (inserts bubble) if the decoded instruction is illegal.
     if (illegal_inst) instr_ex_out = NOP_CTRL;
 end
-
-// ============================================================
-// MMU outputs
-// ============================================================
-
-assign satp_out = csr.satp;
-assign sum_out  = csr.mstatus.sum;
-assign mxr_out  = csr.mstatus.mxr;
-assign mode_out = r_current_mode;
-assign data_mode_out = (r_current_mode == M_MODE && csr.mstatus.mprv) ? csr.mstatus.mpp : r_current_mode;
 
 endmodule

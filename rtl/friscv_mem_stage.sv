@@ -1,17 +1,10 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the memory stage of the FRISC-V pipeline.
+ * It handles memory accesses, load data capture and expansion, LR/SC operations, and page fault handling.
+ */
 
 `timescale 1ns / 1ps
 
@@ -105,6 +98,7 @@ typedef struct packed {
     mode_e          mode;
 } mem_pipe_t;
 
+// A NOP instance of the pipeline register struct (mem_pipe_t)
 localparam mem_pipe_t MEM_PIPE_BUBBLE = '{
     pc: '0,
     pc_plus_4: '0,
@@ -154,18 +148,20 @@ assign csr_en_out       = pipe_buff.csr_en && !w_mem_completion_fault;
 data_t load_data;
 data_t load_data_buff;  // Buffered load data
 
-(* MAX_FANOUT = 8 *) logic r_mem_active;
+logic r_mem_active;
 logic r_load_data_valid;  // Flag indicating load data has been captured
 
 logic w_is_mem_instr;
 assign w_is_mem_instr = mem_instr_sel_in != MEM_INSTR_NONE;
 
+// Detect if this is a store-like instruction (store, SC, or AMO)
 logic w_mem_store_like;
 assign w_mem_store_like = (mem_instr_sel_in == MEM_INSTR_STORE) || (amo_op_in != AMO_NONE);
 
 logic r_mem_store_like;
 assign r_mem_store_like = (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) || (pipe_buff.amo_op != AMO_NONE);
 
+// Detect if this is an atomic-like instruction (LR/SC or AMO)
 logic w_mem_atomic_like;
 assign w_mem_atomic_like = reserve_in || conditional_in || (amo_op_in != AMO_NONE);
 
@@ -230,9 +226,9 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
         r_mem_fault_pc    <= '0;
         r_mem_fault_va    <= '0;
         r_mem_fault_mode  <= M_MODE;
-    end
 
-    else begin
+    end else begin
+
         if (clear_reserve_in) begin
             reserve_valid <= 1'b0;
         end
@@ -388,13 +384,16 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_load_data_valid <= 1'b1;
             end
         end
+
     end
 end
 
-assign d_mem_en_out = r_mem_active;
-assign d_mem_wr_out = r_mem_active && (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) &&
-                      (!pipe_buff.conditional || cond_valid_r);
+assign d_mem_en_out   = r_mem_active;
+assign d_mem_data_out = pipe_buff.store_data;
+assign d_mem_wr_out   = r_mem_active && (pipe_buff.mem_instr_sel == MEM_INSTR_STORE) &&
+                        (!pipe_buff.conditional || cond_valid_r);
 assign d_mem_store_like_out = r_mem_active && r_mem_store_like;
+assign d_mem_amo_op_out     = r_mem_active ? pipe_buff.amo_op : AMO_NONE;
 
 // ============================================================
 // Address and width enum conversion alignment
@@ -402,11 +401,14 @@ assign d_mem_store_like_out = r_mem_active && r_mem_store_like;
 
 always_comb begin
     if (d_mem_en_out) begin
+        // The downstream memory system expects WIDTH_I8/16/32, so convert U encodings into I.
         case (pipe_buff.load_store_width)
             WIDTH_U8:  d_mem_size_out = WIDTH_I8;
             WIDTH_U16: d_mem_size_out = WIDTH_I16;
             default:   d_mem_size_out = pipe_buff.load_store_width;
         endcase
+        // Clear low bits for misaligned accesses, which will trap anyway,
+        // but ensures the memory system never sees an unexpected address.
         case (pipe_buff.load_store_width)
             WIDTH_I8, WIDTH_U8:   d_mem_addr_out = pipe_buff.alu_data;
             WIDTH_I16, WIDTH_U16: d_mem_addr_out = {pipe_buff.alu_data[ADDR_WIDTH-1:1], 1'b0};
@@ -415,20 +417,17 @@ always_comb begin
         endcase
     end else begin
         d_mem_size_out = WIDTH_I32;
-        d_mem_addr_out = 32'h0;
+        d_mem_addr_out = '0;
     end
 end
-
-assign d_mem_data_out  = pipe_buff.store_data;
-assign rd_sel_out      = w_mem_completion_fault ? 5'b0 : pipe_buff.rd_sel;
-assign pc_plus_4_out   = pipe_buff.pc_plus_4;
-assign alu_data_out    = pipe_buff.alu_data;
-assign wb_data_sel_out = pipe_buff.wb_data_sel;
-assign d_mem_amo_op_out = r_mem_active ? pipe_buff.amo_op : AMO_NONE;
 
 // ============================================================
 // Load data expansion to 32b
 // ============================================================
+
+// Data will be byte-aligned by how it is stored in memory, so we must shift it to the
+// right position based on the original address and the access width.
+// ie. for a LH reading 0x1234xxxx from address 0x1002, the data will be stored as 0x00001234 in a register.
 
 always_comb begin
     case (pipe_buff.load_store_width)
@@ -467,10 +466,15 @@ always_comb begin
 end
 
 // ============================================================
-// Resolved load / SC result passed to WB
+// Forward to WB
 // ============================================================
 
 assign load_data_out = r_load_data_valid ? load_data_buff : load_data;
 assign sc_res_out    = {31'h0, r_sc_res_valid ? r_sc_res : !cond_valid_r};
+
+assign rd_sel_out       = w_mem_completion_fault ? 5'b0 : pipe_buff.rd_sel;
+assign pc_plus_4_out    = pipe_buff.pc_plus_4;
+assign alu_data_out     = pipe_buff.alu_data;
+assign wb_data_sel_out  = pipe_buff.wb_data_sel;
 
 endmodule

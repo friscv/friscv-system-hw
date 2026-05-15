@@ -1,17 +1,13 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the top-level FRISC-V CPU subsystem, connecting the core to external interfaces.
+ * It only provides the external memory interface and interrupt inputs.
+ *
+ * Use this module when instantiating the CPU subsystem in a larger SoC, together with an accompanying adapter.
+ * See: friscv_cpu_subsystem_axi.sv for an example of using this core with an AXI4 external bus.
+ */
 
 `timescale 1ns / 1ps
 
@@ -52,6 +48,7 @@ logic       w_beat_valid;
 logic w_mem_err;
 assign w_mem_err = mem_if.err;
 
+// TODO: move the SoC-specific remapper out of the generic core and into an SoC-specific wrapper
 // Address space remapping
 if (ENABLE_REMAP) begin
     friscv_remap remapper (
@@ -61,6 +58,10 @@ if (ENABLE_REMAP) begin
 end else begin
     assign w_dram_addr = w_phy_addr;
 end
+
+// ============================================================
+// Core complex instance
+// ============================================================
 
 friscv_core_complex #(
     .HART_ID(0)
@@ -83,12 +84,18 @@ friscv_core_complex #(
     .i_beat_valid ( w_beat_valid )
 );
 
+// ============================================================
+// Adapter reset sequencer
+// ============================================================
+
+// TODO what does this reset logic even do?
+
 // External memory reset sequencer
 // Wait for transactions to complete before resetting the bus adapter.
 logic r_mem_reset_req;
 logic r_mem_in_reset = 1'b1;  // Start in reset
 
-always_ff @(posedge i_clk or negedge w_rstn_sync) begin
+always_ff @(posedge i_clk) begin
     if (!w_rstn_sync) begin
         r_mem_reset_req <= 1'b1;  // Request reset when button pressed
     end else begin
@@ -106,15 +113,19 @@ always_ff @(posedge i_clk) begin
     end
 end
 
-assign mem_if.size      = w_size;
-assign mem_if.addr      = w_dram_addr;
-assign mem_if.wdata     = w_wdata;
-assign mem_if.rw        = w_rw;
-assign mem_if.burst_en  = w_burst_en;
-assign mem_if.rstn      = !r_mem_in_reset;
+// ============================================================
+// Connect external memory interface
+// ============================================================
 
-assign w_rdata          = mem_if.rdata;
-assign w_wait           = mem_if.wait_req || r_mem_in_reset;
-assign w_beat_valid     = mem_if.beat_valid;
+assign mem_if.size     = w_size;
+assign mem_if.addr     = w_dram_addr;
+assign mem_if.wdata    = w_wdata;
+assign mem_if.rw       = w_rw;
+assign mem_if.burst_en = w_burst_en;
+assign mem_if.rstn     = !r_mem_in_reset;
+
+assign w_rdata         = mem_if.rdata;
+assign w_wait          = mem_if.wait_req || r_mem_in_reset;
+assign w_beat_valid    = mem_if.beat_valid;
 
 endmodule

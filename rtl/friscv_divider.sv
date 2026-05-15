@@ -1,17 +1,15 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the non-pipelined non-restoring division algorithm.
+ * It supports both signed and unsigned division, as well as division by zero and the overflow case of INT_MIN / -1.
+ * The division operation is started when division_detected_in is asserted, and the divisor/dividend inputs are stable.
+ * The module will assert active_out for the duration of the division operation, which takes 32 cycles.
+ * When the operation is complete, done_out is asserted for one cycle, and the quotient and remainder outputs are valid.
+ *
+ * Note: always register the inputs and outputs of this module to avoid bugs during pipeline stalls.
+ */
 
 `timescale 1ns / 1ps
 
@@ -90,16 +88,16 @@ module friscv_divider (
                 IDLE: begin
                     next_done = 1'b0;
                     if (division_detected_in) begin
-                        next_A       = 33'h0;
+                        next_A       = '0;
                         next_Counter = 6'd32;
 
-                        if (divisor == 32'd0) begin
+                        if (divisor == '0) begin
                             next_remainder = dividend;
                             next_quotient  = 32'hFFFFFFFF;
                             next_edge_case = 1'b1;
                             next_state     = DONE;
                         end else if (signed_division_in && dividend == 32'h80000000 && divisor == 32'hFFFFFFFF) begin
-                            next_remainder = 32'd0;
+                            next_remainder = '0;
                             next_quotient  = 32'h80000000;
                             next_edge_case = 1'b1;
                             next_state     = DONE;
@@ -151,15 +149,15 @@ module friscv_divider (
 
     always_ff @(posedge clk_in) begin
         if (!rst_n_in) begin
-            A              <= 33'h0;
-            M              <= 32'h0;
-            Q              <= 32'h0;
-            Counter        <= 6'd0;
+            A              <= '0;
+            M              <= '0;
+            Q              <= '0;
+            Counter        <= '0;
             current_state  <= IDLE;
             active_out     <= 1'b0;
             done_out       <= 1'b0;
-            quotient       <= 32'h0;
-            remainder      <= 32'h0;
+            quotient       <= '0;
+            remainder      <= '0;
             quotient_sign  <= 1'b0;
             remainder_sign <= 1'b0;
             edge_case      <= 1'b0;

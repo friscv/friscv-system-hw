@@ -1,17 +1,21 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements a fully associative TLB with a clock (second-chance) replacement policy.
+ * The TLB is flushed on SFENCE.VMA instructions, with support for both global and fine-grained flushing based on VPN and ASID.
+ * If ENABLE_FINE_TLB_FLUSH is not enabled, any SFENCE.VMA will flush all entries. Enabling it allows for better performance
+ * but increases area significantly.
+ *
+ * Any matched lookup will be combinatorially output, there is no handshake for a lookup.
+ * On a fill, if there is an invalid entry, it will be used. Otherwise, the clock algorithm will select a victim for replacement
+ * and fill on the next posedge.
+ *
+ * This module does not perform any permission checks, and simply does lookups and fills.
+ * A flush and a fill cannot happen in the same cycle, flush takes priority over fill.
+ *
+ * This module is parametrized for both 32-bit and 64-bit implementations.
+ */
 
 `timescale 1ns / 1ps
 
@@ -81,7 +85,6 @@ function automatic logic [VPN_WIDTH-1:0] vpn_mask(
     input satp_mode_e mode
 );
     logic [5:0] shift;
-
     shift = (mode == SATP_SV32) ? 6'(level * 10) : 6'(level * 9);  // 10-bit VPNs in SV32, 9-bit in others
     vpn_mask = (shift >= VPN_WIDTH) ? '0 : ~((VPN_WIDTH'(1) << shift) - 1);
 endfunction : vpn_mask
@@ -107,9 +110,10 @@ always_ff @(posedge i_clk) begin : tlb_fill_and_flush
         if (o_hit)
             r_ref[w_hit_idx] <= 1'b1;
 
-        if (i_flush) begin  // Global flush enable, has priority
+        if (i_flush) begin  // Global flush enable, has priority (nothing flushed if not i_flush)
 
-            if (ENABLE_FINE_TLB_FLUSH && i_flush_vpn_en && i_flush_asid_en) begin  // sfence.vma rs1, rs2: VPN+ASID match, not global
+            // sfence.vma rs1, rs2: VPN+ASID match, not global
+            if (ENABLE_FINE_TLB_FLUSH && i_flush_vpn_en && i_flush_asid_en) begin
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va_asid
                     logic [VPN_WIDTH-1:0] mask;
@@ -122,7 +126,8 @@ always_ff @(posedge i_clk) begin : tlb_fill_and_flush
                         r_tlb[g] <= '0;
                 end
 
-            end else if (ENABLE_FINE_TLB_FLUSH && i_flush_vpn_en) begin  // sfence.vma rs1, x0: VPN match, all ASIDs and global
+            // sfence.vma rs1, x0: VPN match, all ASIDs and global
+            end else if (ENABLE_FINE_TLB_FLUSH && i_flush_vpn_en) begin
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_va
                     logic [VPN_WIDTH-1:0] mask;
@@ -135,14 +140,17 @@ always_ff @(posedge i_clk) begin : tlb_fill_and_flush
                         r_tlb[g] <= '0;
                 end
 
-            end else if (ENABLE_FINE_TLB_FLUSH && i_flush_asid_en) begin  // sfence.vma x0, rs2: ASID match, not global
+            // sfence.vma x0, rs2: ASID match, not global
+            end else if (ENABLE_FINE_TLB_FLUSH && i_flush_asid_en) begin
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_asid
                     if (r_tlb[g].asid == i_flush_asid && !r_tlb[g].perm.g)
                         r_tlb[g] <= '0;
                 end
 
-            end else begin  // sfence.vma x0, x0: flush all
+            // sfence.vma x0, x0: flush all
+            // Fall through to here if ENABLE_FINE_TLB_FLUSH is not set.
+            end else begin
 
                 for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_flush_all
                     r_tlb[g] <= '0;

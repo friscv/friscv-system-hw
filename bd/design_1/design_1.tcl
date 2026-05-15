@@ -985,8 +985,8 @@ proc create_root_design { parentCell } {
   [get_bd_pins fv_interconnect/M03_ARESETN] \
   [get_bd_pins gpio_aresetn/s_axi_aresetn] \
   [get_bd_pins fv_interconnect/M04_ARESETN] \
-  [get_bd_pins debounce_rstn/rst_n] \
   [get_bd_pins fv_uart16550/s_axi_aresetn] \
+  [get_bd_pins debounce_rstn/rst_n] \
   [get_bd_pins friscv_clint/rstn_in]
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins debug_interconnect/ACLK] \
@@ -1005,10 +1005,10 @@ proc create_root_design { parentCell } {
   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
   [get_bd_pins fv_interconnect/M04_ACLK] \
-  [get_bd_pins debounce_rstn/clk] \
   [get_bd_pins fv_uart16550/s_axi_aclk] \
-  [get_bd_pins friscv_cpu_subsystem/aclk] \
-  [get_bd_pins friscv_clint/clk_in]
+  [get_bd_pins debounce_rstn/clk] \
+  [get_bd_pins friscv_clint/clk_in] \
+  [get_bd_pins friscv_cpu_subsystem/aclk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins proc_sys_reset_0/ext_reset_in]
   connect_bd_net -net rst_to_rstn_Res  [get_bd_pins rst_to_rstn/Res] \

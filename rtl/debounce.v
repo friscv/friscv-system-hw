@@ -1,3 +1,11 @@
+/*
+ * A debouncer module that takes a noisy input signal (i_sig) and produces a clean output signal (o_sig)
+ * that only changes state after the input has been stable for a certain number of clock cycles.
+ * The COUNT parameter determines how many clock cycles the input must be stable before the output changes.
+ *
+ * This module assumes that the input signal is already synchronized to the clock domain of clk.
+ */
+
 `timescale 1ns / 1ps
 
 module debounce #(

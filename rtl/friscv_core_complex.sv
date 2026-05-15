@@ -1,17 +1,10 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements a single FRISC-V core, with everything that is local to the core (including the MMU and AMO unit) integrated into a single module.
+ * Never instantiate a core without this wrapper.
+ */
 
 `timescale 1ns / 1ps
 
@@ -146,6 +139,8 @@ assign o_mem_wdata = w_amo_active ? w_amo_store_data : w_l2_wdata;
 logic  w_inst_fault, w_load_fault, w_store_fault;
 addr_t w_fault_addr;
 
+// The MMU contains an arbiter.
+// If the MMU is disabled, a bare arbiter is instantiated instead.
 if (ENABLE_MMU) begin
     friscv_mmu mmu (
         .i_clk           ( i_clk           ),
@@ -238,6 +233,12 @@ end else begin
     assign w_fault_addr  = '0;
 end
 
+// ============================================================
+// Level 2 bus buffering
+// ============================================================
+
+// Connect the upstream signals to the core
+
 assign l2_upstream_if.valid  = (w_l2_req_rw != RW_IDLE);
 assign l2_upstream_if.addr   = w_l2_req_addr;
 assign l2_upstream_if.size   = w_l2_req_size;
@@ -249,11 +250,9 @@ assign w_l2_req_wait  = l2_upstream_if.stall;
 assign w_l2_req_err   = l2_upstream_if.err;
 assign w_l2_req_rdata = l2_upstream_if.rdata;
 
-// ============================================================
-// Level 2 bus buffering
-// ============================================================
-
 if (ENABLE_L2_BUFFER) begin
+    // The buffer decouples the core from the downstream memory system.
+    // This adds latency but improves timing significantly.
     friscv_l2_buffer l2_buff (
         .i_clk         ( i_clk            ),
         .i_rstn        ( i_rstn           ),
@@ -261,6 +260,7 @@ if (ENABLE_L2_BUFFER) begin
         .if_downstream ( l2_downstream_if )
     );
 end else begin
+    // Just connect the wires if there is no buffer
     assign l2_upstream_if.stall = l2_downstream_if.stall;
     assign l2_upstream_if.err   = l2_downstream_if.err;
     assign l2_upstream_if.rdata = l2_downstream_if.rdata;
@@ -272,6 +272,8 @@ end else begin
     assign l2_downstream_if.rw     = l2_upstream_if.rw;
     assign l2_downstream_if.amo_op = l2_upstream_if.amo_op;
 end
+
+// Connect the downstream signals to the L2 backend (external bus and AMO unit)
 
 assign l2_downstream_if.stall = w_l2_backend_wait;
 assign l2_downstream_if.err   = w_l2_backend_err;
@@ -287,6 +289,7 @@ assign w_l2_amo_op = l2_downstream_if.amo_op;
 // End signal detection on write to END_ADDRESS
 // ============================================================
 
+// TODO: make this not a janky hack
 logic r_end_signal;
 
 always_ff @(posedge i_clk) begin

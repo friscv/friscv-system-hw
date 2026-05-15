@@ -1,17 +1,18 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the Execute (EX) stage of the FRISC-V pipeline.
+ * It performs ALU operations, calculates branch targets, and handles traps that occur during execution
+ * (misaligned redirects). Traps are held until the instruction commits in ID to avoid complications with flushing
+ * and redirecting in the middle of EX.
+ *
+ * The main datapath components in this stage are the ALU and the branch unit. The ALU supports all the operations
+ * required by the RISC-V spec, as well as multiplication and division if enabled (ENABLE_MUL and ENABLE_DIV).
+ *
+ * EX also executes TLB flushes during the first cycle of the SFENCE.VMA instruction. The flush signal is pulsed
+ * for one cycle to avoid repeat flushes that cause a livelock.
+ */
 
 `timescale 1ns / 1ps
 
@@ -163,17 +164,17 @@ generate if (ENABLE_DIV) begin : gen_div
     end
 
     friscv_divider i_divider (
-        .clk_in               (clk_in                ),
-        .rst_n_in             (rst_n_in              ),
-        .flush_in             (div_flush             ),
-        .division_detected_in (div_start_r           ),
-        .signed_division_in   (div_signed_reg        ),
-        .divisor              (div_b_reg             ),
-        .dividend             (div_a_reg             ),
-        .quotient             (div_q                 ),
-        .remainder            (div_r                 ),
-        .active_out           (div_active            ),
-        .done_out             (div_done              )
+        .clk_in               ( clk_in         ),
+        .rst_n_in             ( rst_n_in       ),
+        .flush_in             ( div_flush      ),
+        .division_detected_in ( div_start_r    ),
+        .signed_division_in   ( div_signed_reg ),
+        .divisor              ( div_b_reg      ),
+        .dividend             ( div_a_reg      ),
+        .quotient             ( div_q          ),
+        .remainder            ( div_r          ),
+        .active_out           ( div_active     ),
+        .done_out             ( div_done       )
     );
 
     assign div_active_out = instr_buff.div_en && !div_done_latched;
@@ -319,12 +320,18 @@ always_comb begin
     endcase
 end
 
+// The invert_op_a signal can be used for bit-clearing operations, such as in CSRRC,
+// where new_value = old_value & ~rs1.
 assign alu_input_a = (instr_buff.invert_op_a) ? ~a_bus : a_bus;
 assign alu_input_b = b_bus;
 
 // Dedicated adder for branch/jump targets
+// This is a separate adder from the one used for the main ALU to avoid critical path issues.
+// As the divider and multiplier are also on the main ALU path, STA will complain about timing
+// even though the result of multiplication or division will never be a redirection target.
 data_t addr_result;
 assign addr_result = alu_input_a + alu_input_b;
+// Also clear bit 0 for JALR targets, as required by the spec.
 assign branch_target = instr_buff.jalr_target ? {addr_result[31:1], 1'b0} : addr_result;
 
 // ============================================================
@@ -334,6 +341,9 @@ assign branch_target = instr_buff.jalr_target ? {addr_result[31:1], 1'b0} : addr
 data_t mul_result_lo, mul_result_hi;
 
 generate if (ENABLE_MUL) begin : gen_mul
+    // The goal here is to do only one 33x33 multiplication with pre-signed operands,
+    // instead of separate signed/unsigned multiplications with 4 32x32 multipliers.
+    // This saves area and improves timing, at the cost of minimal extra logic.
     logic signed [32:0] mul_op_a, mul_op_b;
     logic signed [65:0] mul_result;
 
@@ -351,6 +361,7 @@ generate if (ENABLE_MUL) begin : gen_mul
         endcase
     end
 
+    // Here is the single multiplier
     assign mul_result = mul_op_a * mul_op_b;
     assign mul_result_lo = mul_result[31:0];
     assign mul_result_hi = mul_result[63:32];
@@ -393,9 +404,13 @@ assign alu_data_out = alu_data_raw;
 // Position store data
 // ============================================================
 
+// Based on the store width and the least significant bits of the address,
+// here we position the store data correctly for the downstream memory unit.
+// ie. for a byte store to 0x1003, the byte to be stored will be in bits [31:24] of store_data_out.
+
 always_comb begin
     case (instr_buff.load_store_width)
-        3'b000: begin   // B
+        3'b000: begin   // Byte (8b)
             case (alu_data_out[1:0]) 
                 2'b00: store_data_out = {24'h0, rs2_buff[7:0]};
                 2'b01: store_data_out = {16'h0, rs2_buff[7:0],  8'h0};
@@ -403,11 +418,11 @@ always_comb begin
                 2'b11: store_data_out = {rs2_buff[7:0], 24'h0};
             endcase
         end
-        3'b001: begin   // H
+        3'b001: begin   // Half (16b)
             if (alu_data_out[1]) store_data_out = {rs2_buff[15:0], 16'h0};
             else                 store_data_out = {16'h0, rs2_buff[15:0]};
         end
-        3'b010:  store_data_out = rs2_buff; // W
+        3'b010:  store_data_out = rs2_buff; // Word (32b)
         default: store_data_out = 32'h0;
     endcase
 end

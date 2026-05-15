@@ -1,17 +1,11 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the AMO unit of the FRISC-V core, which handles atomic memory operations.
+ * Make sure that the input request is stable until the entire AMO sequence completes.
+ * In the case of an error, wait will be deasserted immediately, and the upstream sees the error signal on the same cycle.
+ */
 
 `timescale 1ns / 1ps
 
@@ -43,9 +37,9 @@ typedef enum logic [1:0] {
     S_STORE
 } state_e;
 
-state_e r_state, w_next_state;
-data_t  r_load_data;
-data_t  w_load_data;  // r_load_data, or live rdata on the cycle the load completes
+state_e  r_state, w_next_state;
+data_t   r_load_data;
+data_t   w_load_data;  // r_load_data, or live rdata on the cycle the load completes
 amo_op_e r_amo_op;
 data_t   r_rs2_val;
 

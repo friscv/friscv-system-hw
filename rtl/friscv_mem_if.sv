@@ -1,17 +1,12 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This interface defines the signals for the external memory interface of the FRISC-V CPU subsystem.
+ * It should be used on the core-side of any adapter implementation.
+ *
+ * See docs/MEM_IF.md for details on the protocol.
+ */
 
 `timescale 1ns / 1ps
 
@@ -31,29 +26,13 @@ interface friscv_mem_if;
     logic       err;
 
     modport master (
-        output size,
-        output addr,
-        output wdata,
-        input  rdata,
-        output rw,
-        input  wait_req,
-        output burst_en,
-        output rstn,
-        input  beat_valid,
-        input  err
+        output size, addr, wdata, rw, burst_en, rstn,
+        input  rdata, wait_req, beat_valid, err
     );
 
     modport slave (
-        input  size,
-        input  addr,
-        input  wdata,
-        output rdata,
-        input  rw,
-        output wait_req,
-        input  burst_en,
-        input  rstn,
-        output beat_valid,
-        output err
+        input  size, addr, wdata, rw, burst_en, rstn,
+        output rdata, wait_req, beat_valid, err
     );
 
 endinterface

@@ -1,3 +1,12 @@
+/*
+ * A synchronizer module that takes an asynchronous input signal (i_unsync) and produces a synchronized output signal (o_synced).
+ * The synchronization is done using a two-stage flip-flop synchronizer to reduce the chance of metastability.
+ * The WIDTH parameter allows for synchronizing multiple bits at once.
+ *
+ * Use this anywhere where you need to synchronize an asynchronous signal to the clock domain of i_clk.
+ * Do not synchronize signals in other ways.
+ */
+
 `timescale 1ns / 1ps
 
 module sync #(

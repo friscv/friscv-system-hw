@@ -1,17 +1,11 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the writeback stage of the FRISC-V pipeline.
+ * It takes inputs from the MEM stage, including the results of ALU operations, memory loads, and CSR reads,
+ * and produces the data to be written back to the register file, as well as control signals for writing to CSRs and updating instret.
+ */
 
 `timescale 1ns / 1ps
 
@@ -59,17 +53,17 @@ data_t        csr_readback_buff;
 logic         csr_en_buff;
 logic         instr_valid_buff;
 
-always_ff @(posedge clk_in or negedge rst_n_in) begin
+always_ff @(posedge clk_in) begin
     if (!rst_n_in) begin
-        pc_plus_4_buff    <= 32'h0;
-        alu_data_buff     <= 32'h0;
-        load_data_buff    <= 32'h0;
-        sc_res_buff       <= 32'h0;
+        pc_plus_4_buff    <= '0;
+        alu_data_buff     <= '0;
+        load_data_buff    <= '0;
+        sc_res_buff       <= '0;
         wb_data_sel_buff  <= WB_DATA_SEL_ALU;
         rd_sel_buff       <= 5'b0;
         csr_sel_buff      <= CSR_ZERO;
-        csr_data_buff     <= 32'h0;
-        csr_readback_buff <= 32'h0;
+        csr_data_buff     <= '0;
+        csr_readback_buff <= '0;
         csr_en_buff       <= 1'b0;
         instr_valid_buff  <= 1'b0;
     end else if (!stage_stall_in) begin

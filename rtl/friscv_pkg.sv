@@ -9,7 +9,6 @@ IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
 
 https://hpc.fer.hr/en/hpc
 licensing.hpc@fer.hr
-
 */
 
 /*
@@ -27,6 +26,14 @@ v 2.1.0     Emil Popovic, 2026_05, MMU, certification tests, boots os, modular i
 v 2.1.1     Emil Popovic, 2026_06, cleanup, Linux build and boot
 
 */
+
+/*
+ * This package defines common types, parameters and constants used throughout the FRISC-V design.
+ * It should be imported in all modules to ensure consistent definitions.
+ * Do not put any module definitions in this package, only types and parameters.
+ *
+ * Configurable parameters are between "Configurable parameter definitions start" and "Configurable parameter definitions end" comments.
+ */
 
 `timescale 1ns / 1ps
 
@@ -46,7 +53,8 @@ package friscv_pkg;
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
     // Must be a power of 2 greater than 1
-    localparam int   TLB_ENTRIES = 4;
+    localparam int   ITLB_ENTRIES = 4;
+    localparam int   DTLB_ENTRIES = 4;
     // If not enabled, any sfence.vma will flush all TLB entries
     localparam logic ENABLE_FINE_TLB_FLUSH = 1;
 
@@ -73,6 +81,9 @@ package friscv_pkg;
 
     // --- Configurable parameter definitions end ---
 
+    // Architectural parameters - do not modify without a very good reason
+
+    // Do not change to 64 yet, the core is still not parametrized everywhere correctly
     localparam int unsigned XLEN = 32;
 
     localparam int unsigned ADDR_WIDTH = XLEN;
@@ -88,18 +99,22 @@ package friscv_pkg;
     typedef logic [31:0]              inst_t;
     typedef logic [REG_SEL_WIDTH-1:0] reg_addr_t;
 
+    // TODO: SoC configuration parameters should be moved to a separate package, but for now this is simpler
     localparam addr_t ZSBL_BASE       = 32'h1000;      // RISC-V convention
     localparam addr_t END_ADDRESS     = 32'h50000000;  // FRISC convention
     localparam addr_t DRAM_BASE       = 32'h80000000;  // RISC-V convention
-    localparam addr_t DRAM_START_AT   = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM
+    localparam addr_t DRAM_START_AT   = 32'h00100000;  // Must not be less than 0x00100000, range reserved on Zynq for OCM. TODO: this is SoC related, should not be here
     localparam addr_t CLINT_REAL_BASE = 32'h40100000;  // Must match AXI address map
     localparam addr_t CLINT_PHY_BASE  = 32'h02000000;  // RISC-V convention
     localparam addr_t UART_REAL_BASE  = 32'h40600000;
-    localparam addr_t UART_PHY_BASE   = 32'h10000000;
-    localparam addr_t RESET_VEC       = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;  // Reset to ZSBL if enabled, else jump to RAM
+    localparam addr_t UART_PHY_BASE   = 32'h10000000;  // RISC-V convention
 
+    // Reset to DRAM_BASE (0x80000000) by default, but if ZSBL is enabled, reset to ZSBL_BASE (0x1000)
+    localparam addr_t RESET_VEC = (ZSBL_ROM_SIZE_BYTES > 0) ? ZSBL_BASE : DRAM_BASE;  // Reset to ZSBL if enabled, else jump to RAM
+
+    // Keep this in the same order as in the spec for easier reference
     typedef enum logic [11:0] {
-        CSR_ZERO = 12'h000,
+        CSR_ZERO = 12'h000,  // This is not a real CSR, CSR_ZERO is used to indicate no CSR access in the control logic
 
         // Supervisor Trap Setup
         CSR_SSTATUS    = 12'h100,
@@ -180,6 +195,7 @@ package friscv_pkg;
 
     typedef logic [63:0] mtime_t;
 
+    // Do not change mappings, these are per-spec and directly used in decode
     typedef enum logic [1:0] {
         U_MODE = 2'b00,
         S_MODE = 2'b01,
@@ -211,21 +227,21 @@ package friscv_pkg;
         logic        wpri_0;      // [0]     Reserved (WPRI)
     } mstatus_t;
 
-    localparam int SATP_MODE_W = (XLEN == 32) ? 1  : 4;
-    localparam int SATP_ASID_W = (XLEN == 32) ? 9  : 16;
-    localparam VPN_WIDTH = (XLEN == 32) ? 20 : 27;
-    localparam PPN_WIDTH = (XLEN == 32) ? 20 : 44;
+    // Parametrization of the MMU for 32-bit and 64-bit modes
+    localparam int SATP_MODE_W = (XLEN == 32) ? 1 : 4;
+    localparam int SATP_ASID_W = (XLEN == 32) ? 9 : 16;
+    localparam int PTE_LEVEL_W = (XLEN == 32) ? 1 : 3;
+    localparam     VPN_WIDTH   = (XLEN == 32) ? 20 : 27;
+    localparam     PPN_WIDTH   = (XLEN == 32) ? 20 : 44;
 
-    typedef logic [VPN_WIDTH-1:0] vpn_t;
-    typedef logic [PPN_WIDTH-1:0] ppn_t;
-
+    // Never use bare widths in the code, always use these typedefs to ensure correct generation in both modes
     typedef logic [SATP_MODE_W-1:0] satp_mode_t;
     typedef logic [SATP_ASID_W-1:0] asid_t;
-
-    localparam int PTE_LEVEL_W = (XLEN == 32) ? 1 : 3;
-
+    typedef logic [VPN_WIDTH-1:0]   vpn_t;
+    typedef logic [PPN_WIDTH-1:0]   ppn_t;
     typedef logic [PTE_LEVEL_W-1:0] pte_level_t;
 
+    // Do not change mappings, these are per-spec and directly used in decode
     typedef enum logic [3:0] { 
         SATP_BARE = 0,
         SATP_SV32 = 1,
@@ -234,25 +250,13 @@ package friscv_pkg;
         SATP_SV57 = 10
     } satp_mode_e;
 
-    typedef enum logic [2:0] {
-        TRAP_SRC_NONE,
-        TRAP_SRC_MEM,
-        TRAP_SRC_EX,
-        TRAP_SRC_ID,
-        TRAP_SRC_IF
-    } trap_src_e;
-
-    typedef enum logic [1:0] {
-        IF_TRAP_NONE,
-        IF_TRAP_FAULT,
-        IF_TRAP_ACCESS
-    } if_trap_e;
-
+    // Types of exceptions generated in the EX stage
     typedef enum logic {
         EX_TRAP_NONE,
         EX_TRAP_MISALIGNED
     } ex_trap_e;
 
+    // Types of memory traps generated in the MEM stage
     typedef enum logic [2:0] {
         MEM_TRAP_NONE,
         MEM_TRAP_LOAD,
@@ -263,6 +267,7 @@ package friscv_pkg;
         MEM_TRAP_STORE_ACCESS
     } mem_trap_e;
 
+    // Fields of the SATP register, using XLEN-parametrized widths
     typedef struct packed {
         satp_mode_t mode;
         logic [1:0] reserved;
@@ -270,6 +275,8 @@ package friscv_pkg;
         ppn_t       ppn;
     } satp_t;
 
+    // The MMU request context is the information about the memory access needed to perform address translation
+    // and permission checks, and to generate exceptions if needed.
     typedef struct packed {
         addr_t  addr;
         satp_t  satp;
@@ -280,6 +287,7 @@ package friscv_pkg;
         logic   is_write;
     } mmu_req_ctx_t;
 
+    // Permission bits of a page table or TLB entry.
     typedef struct packed {
         logic d;  // Dirty
         logic a;  // Accessed
@@ -302,7 +310,7 @@ package friscv_pkg;
         NEXT_PC  // Used to jump to incremented PC to refetch on FENCE.I
     } imm_e;
 
-    // Load/Store instruction funct3
+    // Load/Store instruction funct3, do not change mappings
     typedef enum logic [2:0] {
         WIDTH_I8  = 3'b000,
         WIDTH_U8  = 3'b100,
@@ -311,7 +319,7 @@ package friscv_pkg;
         WIDTH_I32 = 3'b010
     } mem_width_e;
 
-    // Instruction types
+    // Instruction types, do not change mappings, keep in spec order for easier reference
     typedef enum logic [6:0] {
         LOAD     = 7'b0000011,
         LOAD_FP  = 7'b0000111,
@@ -338,6 +346,7 @@ package friscv_pkg;
         OP_VE    = 7'b1110111
     } opcode_e;
 
+    // R-type instruction format, used for decoding R-type instructions from inst_t type signals
     typedef struct packed {
         logic [6:0] funct7;
         reg_addr_t  rs2;
@@ -347,17 +356,20 @@ package friscv_pkg;
         opcode_e    opcode;
     } r_type_t;
 
+    // Represents an instruction, provides raw bits and R-type fields
     typedef union packed {
         inst_t   b;
         r_type_t r;
     } instr_op_t;
 
+    // Types of redirects
     typedef enum logic [1:0] {
         BRANCH_JAL_NONE,
         BRANCH_INSTR,
         JAL_INSTR
     } jump_sel_e;
 
+    // Types of branch conditions, do not change mappings
     typedef enum logic [2:0] {
         COND_EQ     = 3'b000,
         COND_NE     = 3'b001,
@@ -368,14 +380,17 @@ package friscv_pkg;
         COND_GEU    = 3'b111
     } branch_cond_e;
 
+    // Choose the first operand for the ALU
     typedef enum logic [1:0] {
         RS1, ZERO_A, PC, RS1_SEL
     } a_bus_sel_e;
 
+    // Choose the second operand for the ALU
     typedef enum logic [1:0] {
         RS2, IMM, CSR
     } b_bus_sel_e;
 
+    // Arithmetic and logic operations, do not change mappings
     typedef enum logic [4:0] {
         ADD_OP    = 5'b00000,
         SUB_OP    = 5'b01000,
@@ -397,25 +412,28 @@ package friscv_pkg;
         REMU_OP   = 5'b10001
     } alu_op_e;
 
+    // AMO operation types
     typedef enum logic [3:0] {
-        AMO_NONE = 4'b0000,
-        AMO_SWAP = 4'b0001,
-        AMO_ADD  = 4'b0010,
-        AMO_XOR  = 4'b0011,
-        AMO_AND  = 4'b0100,
-        AMO_OR   = 4'b0101,
-        AMO_MIN  = 4'b0110,
-        AMO_MAX  = 4'b0111,
-        AMO_MINU = 4'b1000,
-        AMO_MAXU = 4'b1001
+        AMO_NONE,
+        AMO_SWAP,
+        AMO_ADD,
+        AMO_XOR,
+        AMO_AND,
+        AMO_OR,
+        AMO_MIN,
+        AMO_MAX,
+        AMO_MINU,
+        AMO_MAXU
     } amo_op_e;
 
+    // Choose if MEM should load, store or do nothing.
     typedef enum logic [1:0] {
         MEM_INSTR_NONE  = 2'b00,
         MEM_INSTR_LOAD  = 2'b01,
         MEM_INSTR_STORE = 2'b10
     } mem_instr_sel_e;
 
+    // Choose what data should be written back to the register file.
     typedef enum logic [2:0] {
         WB_DATA_SEL_PC_PLUS_4,
         WB_DATA_SEL_ALU,
@@ -424,6 +442,7 @@ package friscv_pkg;
         WB_DATA_SEL_CSR
     } wb_data_sel_e;
 
+    // Control signals generated by ID and used in EX, MEM and WB stages. This is the main output of the decoder.
     typedef struct packed {
         logic           instr_valid;
         jump_sel_e      branch_jal_sel;
@@ -448,6 +467,8 @@ package friscv_pkg;
         logic           div_signed;
     } instr_ex_t;
 
+    // A NOP instruction with all control signals set to safe values.
+    // Use this to insert bubbles in the pipeline when needed.
     localparam instr_ex_t NOP_CTRL = '{
         instr_valid: 1'b0,
         branch_jal_sel: BRANCH_JAL_NONE,
@@ -472,6 +493,8 @@ package friscv_pkg;
         div_signed: 1'b0
     };
 
+    // Control signals for the downstream memory system
+    // Bit [1] is read enable, bit [0] is write enable, so 00 = no access, 01 = write, 10 = read, 11 is invalid
     typedef enum logic [1:0] {
         RW_IDLE  = 2'b00,
         RW_WRITE = 2'b01,

@@ -1,17 +1,12 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-
-Version info is listed in friscv_pkg.sv
-*/
+ * This module implements the IF stage of the FRISC-V pipeline. It is responsible for:
+ * - Maintaining the PC register and generating the next PC value
+ * - Issuing instruction fetches to the instruction memory
+ * - Taking redirects (jumps, traps, mret/sret) and flushing in-flight fetches
+ */
 
 `timescale 1ns / 1ps
 
@@ -45,7 +40,7 @@ module friscv_if_stage (
     input  addr_t epc_in
 );
 
-(* max_fanout = 50 *) addr_t pc_reg;
+addr_t pc_reg;
 inst_t ir_buff;
 logic  r_fetch_active;
 // Set when a redirect (interrupt/jump/mret/flush) fires while a fetch is in-flight.
