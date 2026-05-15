@@ -65,7 +65,9 @@ friscv_core_complex dut (
     .o_mem_rw    ( mem_rw     ),
     .i_mem_wait  ( mem_wait   ),
     .o_burst_en  (  ),
-    .i_beat_valid (  )
+    .i_beat_valid( 1'b0 ),
+    .i_mtime     ( {clint_mtime_hi, clint_mtime_lo} ),
+    .i_mem_err   ( 1'b0       )
 );
 
 initial begin
