@@ -183,9 +183,6 @@ always_comb begin
     endcase
 end
 
-logic w_mem_access_fault;
-assign w_mem_access_fault = !addr_virtual_in && (alu_data_in < ZSBL_BASE);
-
 // Pass valid flag to WB; suppress same-cycle writeback when a memory op faults.
 assign instr_valid_out = pipe_buff.instr_valid && !w_mem_completion_fault;
 
@@ -288,17 +285,6 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_mem_fault_pc    <= pc_in;
                 r_mem_fault_va    <= alu_data_in;
                 r_mem_fault_mode  <= mode_in;
-            end else if (instr_valid_in && w_is_mem_instr && w_mem_access_fault) begin
-                // Access to unmapped region
-                pipe_buff         <= MEM_PIPE_BUBBLE;
-                r_mem_active      <= 1'b0;
-                r_load_data_valid <= 1'b0;
-                r_sc_res_valid    <= 1'b0;
-                cond_valid_r      <= 1'b0;
-                r_mem_fault       <= w_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
-                r_mem_fault_pc    <= pc_in;
-                r_mem_fault_va    <= alu_data_in;
-                r_mem_fault_mode  <= mode_in;
             end else begin
                 // If no faults, capture the new instruction.
                 pipe_buff <= '{
@@ -328,7 +314,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             end
 
             if (!clear_reserve_in &&
-                !(instr_valid_in && w_is_mem_instr && (w_mem_misaligned || w_mem_access_fault))) begin
+                !(instr_valid_in && w_is_mem_instr && w_mem_misaligned)) begin
                 if (reserve_in) begin
                     reserve_valid <= 1'b1;
                     reserve_addr  <= alu_data_in;
