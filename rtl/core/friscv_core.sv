@@ -16,7 +16,9 @@ module friscv_core #(
 ) (
     input  logic       i_clk,
     input  logic       i_rstn,
-    
+    output logic       o_halt,
+    input  logic       i_halt,
+
     // Interrupt requests
     input  logic       i_msip,
     input  logic       i_mtip,
@@ -196,7 +198,9 @@ friscv_pipeline_control control_unit (
     // Interrupts
     .trap_in          ( id_trap_out        ),
     .trap_pending_in  ( id_trap_pending    ),
-    .ret_in           ( id_ret_out         )
+    .ret_in           ( id_ret_out         ),
+
+    .halt_in          ( i_halt             )
 );
 
 friscv_if_stage if_stage (
@@ -232,6 +236,7 @@ friscv_id_stage #(
 ) id_stage (
     .clk_in           ( i_clk            ), 
     .rst_n_in         ( i_rstn           ),
+    .halt_out         ( o_halt           ),
 
     .branch_ok_in     ( branch_ok        ),
     

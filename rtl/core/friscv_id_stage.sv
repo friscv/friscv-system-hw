@@ -75,6 +75,7 @@ module friscv_id_stage #(
     output addr_t     jal_target_out,
 
     output logic      illegal_inst,
+    output logic      halt_out,
 
     // Inputs from IF stage
     input  addr_t     pc_in,
@@ -461,6 +462,7 @@ assign trap_gpr_hazard  = trap_raw &&
 
 // Flag to not re-take an already taken trap.
 logic trap_seen;
+logic r_in_ebreak_handler;
 
 // An incoming trap has a pipeline hazard if
 //  1) there is a memory instruction in the pipeline or
@@ -529,6 +531,9 @@ always_comb begin
         default: exception_cause_code = 5'd0;
     endcase
 end
+
+assign halt_out = (ENABLE_HALT_ON_ENTER_EBREAK && ebreak_active) ||
+                  (ENABLE_HALT_ON_RET_FROM_EBREAK && r_in_ebreak_handler && (instr_ex_out.mret_en || instr_ex_out.sret_en));
 
 // A trap is delegated to S-mode when:
 //   - Not already in M-mode (traps never transition to less-privileged mode)
@@ -629,6 +634,7 @@ always_ff @(posedge clk_in) begin
         r_current_mode <= M_MODE;
         trap_seen      <= 1'b0;
         if_trap_inhibit <= 1'b0;
+        r_in_ebreak_handler <= 1'b0;
     end else begin
         if (!trap_raw)
             trap_seen <= 1'b0;
@@ -644,6 +650,8 @@ always_ff @(posedge clk_in) begin
         if (trap_out) begin
             trap_seen <= 1'b1;
             r_mret_inhibit <= 1'b0;
+            if (trap_src == TRAP_SRC_ID && ebreak_active)
+                r_in_ebreak_handler <= 1'b1;
             if (trap_to_s_mode) begin
                 r_current_mode   <= S_MODE;
                 csr.sepc         <= trap_epc;

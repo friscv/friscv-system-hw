@@ -70,7 +70,11 @@ package friscv_pkg;
     // ALWAYS ENABLED localparam logic ENABLE_EXTENSION_SSTC = 1;
 
     // If enabled, a write to END_ADDRESS will stall the core until reset
-    localparam logic ENABLE_HW_HALT = 1;
+    localparam logic ENABLE_HALT_ON_END_ADDRESS = 1;
+    // If enabled, entering an EBREAK instruction will halt the core until reset
+    localparam logic ENABLE_HALT_ON_ENTER_EBREAK = 0;
+    // If enabled, the first MRET or SRET after entering an EBREAK handler will halt the core until reset
+    localparam logic ENABLE_HALT_ON_RET_FROM_EBREAK = 0;
 
     // --- Configurable parameter definitions end ---
 

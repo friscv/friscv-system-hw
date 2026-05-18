@@ -67,7 +67,9 @@ module friscv_pipeline_control (
     // Interrupts
     input logic       trap_in,
     input logic       trap_pending_in,
-    input logic       ret_in
+    input logic       ret_in,
+
+    input logic       halt_in
 );
 
 logic reg_hazard, csr_hazard, ret_csr_hazard, ret_pipe_hazard;
@@ -146,8 +148,8 @@ always_comb begin
     effective_ret = ret_in && !ret_csr_hazard && !ret_pipe_hazard;
     effective_jal = jal_ok_in && !mem_stall && !hazard_stall && !trap_pending_stall;
 
-    stall_if_out  = mem_stall || hazard_stall || trap_pending_stall || ex_div_active_in;
-    stall_id_out  = mem_stall || hazard_stall || trap_pending_stall || ex_div_active_in;
+    stall_if_out  = mem_stall || hazard_stall || trap_pending_stall || ex_div_active_in || halt_in;
+    stall_id_out  = mem_stall || hazard_stall || trap_pending_stall || ex_div_active_in || halt_in;
     stall_ex_out  = mem_stall || ex_div_active_in;
     stall_mem_out = mem_stall;
 

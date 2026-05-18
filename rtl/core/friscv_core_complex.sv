@@ -291,17 +291,20 @@ assign w_l2_amo_op = l2_downstream_if.amo_op;
 
 // TODO: make this not a janky hack
 logic r_end_signal;
+logic w_core_halt;
 
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
         r_end_signal <= 1'b0;
-    end else if (ENABLE_HW_HALT && w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
+    end else if (ENABLE_HALT_ON_END_ADDRESS && w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
+        r_end_signal <= 1'b1;
+    end else if (w_core_halt) begin
         r_end_signal <= 1'b1;
     end
 end
 
 assign o_end = r_end_signal;
-assign w_stall_if = w_inst_wait || r_end_signal;
+assign w_stall_if = w_inst_wait;
 
 // ============================================================
 // Core instance
@@ -312,6 +315,8 @@ friscv_core #(
 ) cpu_0 (
     .i_clk            ( i_clk           ),
     .i_rstn           ( i_rstn          ),
+    .o_halt           ( w_core_halt     ),
+    .i_halt           ( r_end_signal    ),
 
     // Interrupt requests
     .i_msip           ( i_msip          ),
