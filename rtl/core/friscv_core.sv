@@ -18,6 +18,7 @@ module friscv_core #(
     input  logic       i_rstn,
     output logic       o_halt,
     input  logic       i_halt,
+    output logic       o_ex_mem_inflight,
 
     // Interrupt requests
     input  logic       i_msip,
@@ -108,6 +109,7 @@ logic           ex_commit;
 
 logic ex_instr_is_mem;
 assign ex_instr_is_mem = ex_mem_instr_sel_out != MEM_INSTR_NONE;
+assign o_ex_mem_inflight = ex_instr_is_mem;
 
 // MEM stage signals
 mem_trap_e      mem_trap_out;

@@ -56,6 +56,7 @@ mem_width_e w_data_size;
 logic       w_data_wait;
 logic       w_data_err;
 amo_op_e    w_amo_op;
+logic       w_ex_mem_inflight;
 
 // ============================================================
 // Protection and Translation signals
@@ -289,17 +290,22 @@ assign w_l2_amo_op = l2_downstream_if.amo_op;
 // End signal detection on write to END_ADDRESS
 // ============================================================
 
-// TODO: make this not a janky hack
 logic r_end_signal;
+logic r_halt_active;
 logic w_core_halt;
 
 always_ff @(posedge i_clk) begin
     if (!i_rstn) begin
-        r_end_signal <= 1'b0;
+        r_end_signal  <= 1'b0;
+        r_halt_active <= 1'b0;
     end else if (ENABLE_HALT_ON_END_ADDRESS && w_data_addr == END_ADDRESS && w_data_en && w_data_wr) begin
-        r_end_signal <= 1'b1;
-    end else if (w_core_halt) begin
-        r_end_signal <= 1'b1;
+        r_end_signal  <= 1'b1;
+        r_halt_active <= 1'b1;
+    end else begin
+        if (w_core_halt)
+            r_halt_active <= 1'b1;
+        if (r_halt_active && !w_ex_mem_inflight && !w_data_en)
+            r_end_signal <= 1'b1;
     end
 end
 
@@ -316,7 +322,8 @@ friscv_core #(
     .i_clk            ( i_clk           ),
     .i_rstn           ( i_rstn          ),
     .o_halt           ( w_core_halt     ),
-    .i_halt           ( r_end_signal    ),
+    .i_halt           ( r_halt_active   ),
+    .o_ex_mem_inflight( w_ex_mem_inflight ),
 
     // Interrupt requests
     .i_msip           ( i_msip          ),
