@@ -5,7 +5,7 @@ This document describes the conventions and required steps for working with this
 ## Cloning
 
 ```bash
-git clone git@github.com:friscv/friscv-system-hw.git
+git clone https://github.com/friscv/FRISCV-system-HW.git
 cd friscv-system-hw
 ```
 
