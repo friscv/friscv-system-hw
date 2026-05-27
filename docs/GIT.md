@@ -27,6 +27,9 @@ git checkout -b my-new-feature
 
 Merging changes to hardware is more complex than in software, and is mostly a manual process. A way to possibly make this easier is to merge dev into your branch, integrate changes, and merge that back into `dev`. I am honestly not sure what the best way to merge complex changes is. If you have git-related problems, Google or an AI agent may be able to help you. Make sure all tests pass on the merged version too.
 
+> [!CAUTION]
+> **Always recreate the Vivado project after switching to another branch.** Using the block design of a different branch can corrupt the Vivado project and make you have to clone the repo again, and have a bad day in general.
+
 ## Creating the Vivado Project
 
 The Vivado project is not committed. It must be generated from the TCL scripts in `scripts/`:
