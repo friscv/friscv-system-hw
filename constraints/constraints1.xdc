@@ -30,3 +30,9 @@ set_false_path -from [get_ports {btns_in[*]}]
 set_property -dict { PACKAGE_PIN M20   IOSTANDARD LVCMOS33 } [get_ports { sw_in[0] }];
 set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS33 } [get_ports { sw_in[1] }];
 set_false_path -from [get_ports {sw_in[*]}]
+
+# RGB LED via Baseboard
+set_property -dict { PACKAGE_PIN W9 IOSTANDARD LVCMOS33 } [get_ports { rgb_out[0] }]; #red
+set_property -dict { PACKAGE_PIN W8 IOSTANDARD LVCMOS33 } [get_ports { rgb_out[1] }]; #green
+set_property -dict { PACKAGE_PIN Y8 IOSTANDARD LVCMOS33 } [get_ports { rgb_out[2] }]; #blue
+set_false_path -to [get_ports {rgb_out[*]}]
