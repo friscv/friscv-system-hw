@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 """
-build.py - Cross-platform build script for FRISCV-system-HW
-Replaces build.ps1 (Windows) and Makefile (Linux/macOS)
-
 Usage:
   python build.py <target> [options]
 
@@ -17,8 +14,10 @@ Targets:
   go [--bin FILE]    Program FPGA, load binary, and run
   open               Open project in Vivado GUI
   clean              Remove project and generated files
-  zsbl-rom [TEST]    Generate ZSBL ROM from software/zsbl.S, or
-                       from test/<TEST>.S when TEST is given
+  zsbl-rom           Generate ZSBL ROM from software/zsbl.S
+  config [PRESET]    Regenerate the configurable block of friscv_pkg.sv.
+                       PRESET is 'minimal' or 'full'; with no PRESET, read
+                       config/friscv_config.toml. --check verifies sync.
   help               Show this help
 """
 
@@ -43,6 +42,7 @@ ROOT = Path(__file__).parent.resolve()
 PROJECT_DIR = ROOT / PROJECT_NAME
 SCRIPTS_DIR = ROOT / "scripts"
 OVERLAY_DIR = ROOT / "overlay"
+CONFIG_FILE = ROOT / "config" / "friscv_config.toml"
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +310,7 @@ def target_open() -> None:
         subprocess.Popen(
             cmd,
             shell=True,
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,  # type: ignore
         )
     else:
         subprocess.Popen(cmd, start_new_session=True)
@@ -379,6 +379,24 @@ def target_zsbl_rom(test_name=None) -> None:
     run(cmd)
 
 
+def target_config(preset=None, check=False) -> None:
+    section("GENERATING PACKAGE CONFIGURATION")
+    cmd = [sys.executable, str(SCRIPTS_DIR / "gen_config.py")]
+    if preset:
+        cmd += ["--preset", preset]
+    elif CONFIG_FILE.exists():
+        info(f"Using config file: {CONFIG_FILE}")
+        cmd += ["--config", str(CONFIG_FILE)]
+    else:
+        die(f"No preset given and {CONFIG_FILE} not found.\n"
+            "Choose a preset:        python build.py config minimal | full\n"
+            "Or scaffold a config:   python scripts/gen_config.py --preset full "
+            f"--emit-config {CONFIG_FILE.relative_to(ROOT)}")
+    if check:
+        cmd += ["--check"]
+    run(cmd)
+
+
 def print_help() -> None:
     print("""
 FRISCV Hardware Project - PYNQ-Z2
@@ -397,13 +415,17 @@ Targets:
   go                 Program FPGA, load binary, and run
   open               Open project in Vivado GUI
   clean              Remove project and generated files
-  zsbl-rom [TEST]    Generate ZSBL ROM:
-                       (no TEST)  from software/zsbl.S
-                       TEST       from test/<TEST>.S  (e.g. zsbl-rom halt)
+  zsbl-rom           Generate ZSBL ROM:
+  config [PRESET]    Regenerate the configurable block of friscv_pkg.sv:
+                       (no PRESET)  from config/friscv_config.toml
+                       minimal      smallest RV32I_Zicsr core
+                       full         full-featured core (MMU+M+A, 16-entry TLBs)
+                       --check      to verify the file is in sync (no write)
   help               Show this help
 
 Options:
   --bin FILE         Binary file path for load/go (default: test/prog.bin)
+  --check            For 'config': fail if friscv_pkg.sv is out of sync
 
 Typical workflow:
   python build.py project    # Create Vivado project
@@ -432,6 +454,8 @@ def main() -> None:
     parser.add_argument("--bin", dest="prog_bin", default="test/prog.bin",
                         metavar="FILE",
                         help="Binary file for load/go targets (default: test/prog.bin)")
+    parser.add_argument("--check", action="store_true",
+                        help="For 'config': verify friscv_pkg.sv is in sync (no write)")
     parser.add_argument("-h", "--help", action="store_true")
 
     args = parser.parse_args()
@@ -454,6 +478,7 @@ def main() -> None:
         "open":      target_open,
         "clean":     target_clean,
         "zsbl-rom":  lambda: target_zsbl_rom(args.target_arg),
+        "config":    lambda: target_config(args.target_arg, args.check),
     }
 
     t = args.target.lower()

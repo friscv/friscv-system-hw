@@ -40,10 +40,11 @@ v 2.2.0     Emil Popovic, 2026_05, file cleanup, reorganization, docs update
 
 package friscv_pkg;
 
+    // THIS CONFIG IS AUTOMATICALLY GENERATED, SEE config/friscv_config.toml
     // --- Configurable parameter definitions start ---
 
     // Set this to 0 for debugging
-    localparam int   ZSBL_ROM_SIZE_BYTES = 1024;
+    localparam int   ZSBL_ROM_SIZE_BYTES = 0;
 
     // Performance optimizations
     // If enabled, execute JAL(R) in IF instead of EX
@@ -54,8 +55,8 @@ package friscv_pkg;
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
     // Must be a power of 2 greater than 1
-    localparam int   ITLB_ENTRIES = 4;
-    localparam int   DTLB_ENTRIES = 4;
+    localparam int   ITLB_ENTRIES = 16;
+    localparam int   DTLB_ENTRIES = 16;
     // If not enabled, any sfence.vma will flush all TLB entries
     localparam logic ENABLE_FINE_TLB_FLUSH = 1;
 
