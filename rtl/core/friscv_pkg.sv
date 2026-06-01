@@ -1,15 +1,16 @@
-/*
-(c) FER, HPC Architecture and Application Research Center, All rights reserved
-
-Use under License Agreement ONLY.
-
-IF, PRIOR TO DOWNLOADING, STORING, INSTALLING, ACTIVATING OR USING THE WORK,
-(A) YOU DECIDE YOU ARE UNWILLING TO AGREE TO THE TERMS OF THE PROVIDED LICENSE AGREEMENT, or
-(B) YOU DID NOT RECEIVE OR OBTAIN THE LICENSE AGREEMENT, YOU HAVE NO RIGHT TO USE THE WORK AND YOU SHOULD PROMPTLY RETURN THE WORK TO FER, DELETE IT, OR DISABLE IT.
-
-https://hpc.fer.hr/en/hpc
-licensing.hpc@fer.hr
-*/
+// Copyright 2026 FER, HPC Architecture and Application Research Center
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 /*
 Version history:
@@ -25,6 +26,7 @@ v 2.0.0     Emil Popovic, Franko Ciric, 2026_03, AXI interface, combinatorial co
 v 2.1.0     Emil Popovic, 2026_05, MMU, certification tests, boots os, modular interface
 v 2.1.1     Emil Popovic, 2026_05, cleanup, Linux build and boot
 v 2.2.0     Emil Popovic, 2026_05, file cleanup, reorganization, docs update
+v 2.3.0     Borna Janezic, Emil Popovic 2026_06, new gpio, qspi, prepare for public release
 
 */
 
