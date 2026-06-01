@@ -21,7 +21,7 @@ FRISC-V is a 32-bit RISC-V core developed at [FER](https://www.fer.unizg.hr/en),
 ## Quick Start
 
 ```bash
-git clone --recurse-submodules -j8 https://github.com/friscv/FRISCV-system-HW.git
+git clone https://github.com/friscv/FRISCV-system-HW.git
 cd friscv-system-hw
 
 python3 build.py  # create Vivado project

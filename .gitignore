@@ -63,6 +63,9 @@ software/src/
 software/rootfs/
 software/initramfs.cpio.gz
 
+# Cloned test suites
+verif/arch-test/riscv-arch-test/
+
 # Simulation caches
 sim/cache/
 sim/out/

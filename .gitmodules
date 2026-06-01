@@ -1,4 +1,0 @@
-[submodule "verif/arch-test/riscv-arch-test"]
-	path = verif/arch-test/riscv-arch-test
-	url = https://github.com/riscv/riscv-arch-test.git
-	ignore = dirty

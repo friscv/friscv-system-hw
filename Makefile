@@ -1,6 +1,8 @@
 VERILATOR := verilator
 VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Irtl/core -Irtl/soc -Wno-fatal -Wno-TIMESCALEMOD
 VERILATOR_OUT := build/verilator/tb_integration
+ACT_REPO := https://github.com/riscv/riscv-arch-test.git
+ACT_REF := 5f69fff1851122eabe87233c08d6c4096dd0c5ac
 ACT_ROOT := verif/arch-test/riscv-arch-test
 ACT_CONFIG_SRC := verif/arch-test/friscv-full
 ACT_CONFIG_DST := $(ACT_ROOT)/config/cores/friscv/friscv-full
@@ -26,9 +28,15 @@ verilator-test:
 .PHONY: test
 test: verilate test-bin verilator-test
 
+.PHONY: act-clone
+act-clone:
+	@if [ ! -d $(ACT_ROOT)/.git ]; then \
+		git clone $(ACT_REPO) $(ACT_ROOT); \
+		cd $(ACT_ROOT) && git checkout $(ACT_REF); \
+	fi
+
 .PHONY: act-config
-act-config:
-	test -d $(ACT_ROOT) || (echo "error: missing $(ACT_ROOT). Add/init the riscv-arch-test submodule." && exit 1)
+act-config: act-clone
 	mkdir -p $(ACT_CONFIG_DST)
 	cp $(ACT_CONFIG_SRC)/* $(ACT_CONFIG_DST)/
 

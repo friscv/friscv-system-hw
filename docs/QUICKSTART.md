@@ -19,7 +19,7 @@ vivado -version
 ## 2. Clone and Create the Vivado Project
 
 ```bash
-git clone --recurse-submodules -j8 https://github.com/friscv/FRISCV-system-HW.gitcd friscv-system-hw
+git clone https://github.com/friscv/FRISCV-system-HW.gitcd friscv-system-hw
 cd friscv-system-hw
 python3 build.py
 ```

@@ -47,13 +47,7 @@ Everything from [Integration Tests](#integration-tests-verilator), plus:
 | `riscv64-unknown-elf-gcc` | `riscv64-unknown-elf-gcc --version` |
 | `sail_riscv_sim` (Sail reference model) | `sail_riscv_sim --help` |
 
-For setup of the riscv-arch-test submodule, check the official repository.
-
-The test suite is a git submodule:
-
-```bash
-git submodule update --init
-```
+The test suite is cloned automatically on first run of `make act`.
 
 ### Running (ACT)
 
