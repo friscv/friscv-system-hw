@@ -11,7 +11,7 @@ Targets:
   status             Check FPGA status
   load [--bin FILE]  Load binary to memory (default: test/prog.bin)
   run                Release FRISC-V core from reset
-  go [--bin FILE]    Program FPGA, load binary, and run
+  go [--bin FILE]    Program FPGA, load binary, and run [-t for terminal]
   open               Open project in Vivado GUI
   clean              Remove project and generated files
   zsbl-rom           Generate ZSBL ROM from software/zsbl.S
@@ -24,6 +24,7 @@ Targets:
 import argparse
 import fnmatch
 import hashlib
+import importlib.util
 import os
 import platform
 import shutil
@@ -32,6 +33,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path
+from typing import NoReturn
 
 
 # ---------------------------------------------------------------------------
@@ -79,7 +81,7 @@ def section(msg: str):  print(_c(f"\n=== {msg} ===", "32"))
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
-def die(msg: str, code: int = 1) -> None:
+def die(msg: str, code: int = 1) -> NoReturn:
     print(_c(f"ERROR: {msg}", "31"), file=sys.stderr)
     sys.exit(code)
 
@@ -292,10 +294,27 @@ def target_run() -> None:
     xsdb_run(SCRIPTS_DIR / "release_reset.tcl")
 
 
-def target_go(prog_bin: Path) -> None:
+def target_go(prog_bin: Path, terminal: bool = False, port: str = "/dev/ttyUSB0", baud: int = 115200) -> None:
     target_program()
     target_load(prog_bin)
-    target_run()
+
+    if terminal:
+        try:
+            import serial
+        except ImportError:
+            die("pyserial not installed. Run: pip install pyserial")
+
+        spec = importlib.util.spec_from_file_location("xmodem_load", SCRIPTS_DIR / "xmodem_load.py")
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        with serial.Serial(port, baud, timeout=0.1) as ser:
+            ser.reset_input_buffer()
+            target_run()
+            mod.open_terminal(ser)
+    else:
+        target_run()
 
 
 def target_open() -> None:
@@ -318,10 +337,10 @@ def target_open() -> None:
 
 def _rmtree_onexc(func, path, exc) -> None:
     winerror = getattr(exc, "winerror", None)
-    if winerror == 5:  # ERROR_ACCESS_DENIED – read-only file
+    if winerror == 5:  # ERROR_ACCESS_DENIED
         os.chmod(path, stat.S_IWRITE)
         func(path)
-    elif winerror == 32:  # ERROR_SHARING_VIOLATION – file locked by another process
+    elif winerror == 32:  # ERROR_SHARING_VIOLATION
         die(
             f"Cannot delete '{path}' because it is locked by another process.\n"
             "Close Vivado (and any Java/Tcl helper processes) then try again."
@@ -399,7 +418,7 @@ def target_config(preset=None, check=False) -> None:
 
 def print_help() -> None:
     print("""
-FRISCV Hardware Project - PYNQ-Z2
+FRISC-V reference SoC - PYNQ-Z2
 Cross-platform build script
 
 Usage: python build.py <target> [options]
@@ -412,7 +431,7 @@ Targets:
   status             Check FPGA status
   load               Load binary to DRAM (default: test/prog.bin)
   run                Release FRISC-V core from reset
-  go                 Program FPGA, load binary, and run
+  go [-t]            Program FPGA, load binary, run, and open terminal
   open               Open project in Vivado GUI
   clean              Remove project and generated files
   zsbl-rom           Generate ZSBL ROM:
@@ -425,16 +444,15 @@ Targets:
 
 Options:
   --bin FILE         Binary file path for load/go (default: test/prog.bin)
+  -t, --terminal     Open serial terminal after go (captures early output)
+  --port PORT        Serial port for --terminal (default: /dev/ttyUSB0)
+  --baud BAUD        Baud rate for --terminal (default: 115200)
   --check            For 'config': fail if friscv_pkg.sv is out of sync
 
 Typical workflow:
   python build.py project    # Create Vivado project
   python build.py bitstream  # Build bitstream (clean + compile + deploy)
-  python build.py program    # Program FPGA via JTAG
-  python build.py load       # Load software to DRAM
-  python build.py run        # Release FRISC-V from reset
-  -- or --
-  python build.py go         # program + load + run in one step
+  python build.py go -t      # program + load + run + terminal in one step
 """)
 
 
@@ -454,6 +472,12 @@ def main() -> None:
     parser.add_argument("--bin", dest="prog_bin", default="test/prog.bin",
                         metavar="FILE",
                         help="Binary file for load/go targets (default: test/prog.bin)")
+    parser.add_argument("--terminal", "-t", action="store_true",
+                        help="Open serial terminal after run/go (catches early output)")
+    parser.add_argument("--port", default="/dev/ttyUSB0",
+                        help="Serial port for --terminal (default: /dev/ttyUSB0)")
+    parser.add_argument("--baud", type=int, default=115200,
+                        help="Baud rate for --terminal (default: 115200)")
     parser.add_argument("--check", action="store_true",
                         help="For 'config': verify friscv_pkg.sv is in sync (no write)")
     parser.add_argument("-h", "--help", action="store_true")
@@ -474,7 +498,7 @@ def main() -> None:
         "status":    target_status,
         "load":      lambda: target_load(prog_bin),
         "run":       target_run,
-        "go":        lambda: target_go(prog_bin),
+        "go":        lambda: target_go(prog_bin, args.terminal, args.port, args.baud),
         "open":      target_open,
         "clean":     target_clean,
         "zsbl-rom":  lambda: target_zsbl_rom(args.target_arg),

@@ -2,6 +2,8 @@
 .text
 .globl _start
 
+.equ TIMER_CONST, 5000000 
+
 _start:
     j     main
 
@@ -50,9 +52,9 @@ main:
     sw    x0, 0(t0)           # mtime lo = 0
     sw    x0, 4(t0)           # mtime hi = 0
 
-    # Set mtimecmp = 25,000,000 cycles = 0.5 s @ 50.000,000 MHz
+    # Set mtimecmp = TIMER_CONST cycles
     li    t0, 0x02004000
-    li    t1, 25000000
+    li    t1, TIMER_CONST
     sw    t1, 0(t0)           # mtimecmp lo
     sw    x0, 4(t0)           # mtimecmp hi = 0
 

@@ -22,12 +22,8 @@ import sys
 import time
 from pathlib import Path
 
-try:
-    import serial
-    from serial.tools.miniterm import Miniterm
-except ImportError:
-    serial = None
-    Miniterm = None
+import serial
+from serial.tools.miniterm import Miniterm
 
 # XMODEM control bytes
 SOH       = 0x01  # Start of 128-byte data packet
@@ -88,11 +84,14 @@ def wait_for_start(port: serial.Serial, verbose: bool) -> bool:
     return False
 
 
-def send_xmodem(port: serial.Serial, data: bytes, verbose: bool = True) -> bool:
+def send_xmodem(port: serial.Serial, data: bytes | None, verbose: bool = True) -> bool:
     """
     Transmit data using XMODEM-CRC. Returns True on success.
     Data is padded with 0x1A (Ctrl-Z) to a multiple of PACKET_SIZE.
     """
+    if data is None:
+        return True
+
     # Flush any stale bytes in the OS RX buffer before starting
     port.reset_input_buffer()
 
@@ -177,7 +176,6 @@ def open_terminal(port: serial.Serial, quiet: bool = False) -> None:
     """Start an interactive serial terminal on an already-open port."""
     port.timeout = 0.1
     port.write_timeout = None
-    port.reset_input_buffer()
 
     term = Miniterm(port, eol="lf", filters=[])
     term.exit_character = chr(0x1D)  # Ctrl+]
@@ -258,6 +256,7 @@ def main():
             if not args.quiet:
                 print(f"Port:   {args.port}  ({args.baud} baud)")
             if args.terminal_only:
+                port.reset_input_buffer()
                 open_terminal(port, quiet=args.quiet)
                 success = True
             else:
