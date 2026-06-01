@@ -11,7 +11,7 @@ cd friscv-system-hw
 
 ## Working with git
 
-You probably don't want to be making changes directly on the `main` branch, it is the stable release branch and should only contain known-good code. The `dev` branch is used for making changes. 
+You probably don't want to be making changes directly on the `main` branch, it is the stable release branch and should only contain known-good code. The `dev` branch is used for making changes.
 
 ```bash
 # switch to the dev branch
@@ -81,18 +81,15 @@ Before committing any RTL or simulation change:
 
 ### 1. Run all integration tests
 
-All `integration_test_*.S` files in `sim/` must pass in `tb_integration`. From within Vivado's simulation flow, or via the Makefile in `sim/`, run each test in turn:
+All `integration_test_*.S` files in `test/` must pass. Run them with Verilator:
 
-- `integration_test_I.S`
-- `integration_test_Zaamo.S`
-- `integration_test_Zalrsc.S`
-- `integration_test_Zalrsc_irq.S`
-- `integration_test_Zifencei.S`
-- `integration_test_timer_irq.S`
+```bash
+make test
+```
 
-A test passes when the simulation writes the expected result to the GPIO address (`0x40000000`) and halts cleanly at `0x50000000`.
+This verilates `tb_integration`, builds all test binaries, and runs each one. `[RESULT] PASS` must appear for every test.
 
-`[RESULT] PASS` must be the last output to the console.
+Architecture compliance tests (`make act`) should also pass before considering a feature complete. See [TESTING.md](TESTING.md) for details.
 
 ### 2. Verify the project can be cleanly recreated
 
@@ -119,7 +116,9 @@ This performs a clean synthesis and implementation run and copies the outputs to
 | ---- | ----------- |
 | `overlay/friscv.bit` | FPGA bitstream |
 | `overlay/friscv.hwh` | Hardware handoff file |
-| `scripts/ps7_init.tcl` | Zynq PS7 initialisation |
+| `overlay/ps7_init.tcl` | Zynq PS7 initialisation |
+| `overlay/BOOT.bin` | QSPI boot image |
+| `overlay/fsbl.elf` | First Stage Boot Loader ELF |
 
 Commit these files together with the RTL change so that the bitstream in `overlay/` always corresponds to the committed source.
 

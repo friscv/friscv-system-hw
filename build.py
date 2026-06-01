@@ -11,6 +11,7 @@ Targets:
   status             Check FPGA status
   load [--bin FILE]  Load binary to memory (default: test/prog.bin)
   run                Release FRISC-V core from reset
+  flash              Write BOOT.bin to QSPI flash
   go [--bin FILE]    Program FPGA, load binary, and run [-t for terminal]
   open               Open project in Vivado GUI
   clean              Remove project and generated files
@@ -97,6 +98,14 @@ def run(cmd: list, **kwargs) -> None:
         sys.exit(result.returncode)
 
 
+def _try_run(cmd: list, **kwargs) -> bool:
+    """Run a command, returning True on success (does not exit on failure)."""
+    print(_c("  $ " + " ".join(str(c) for c in cmd), "90"))
+    if os.name == "nt":
+        kwargs.setdefault("shell", True)
+    return subprocess.run(cmd, **kwargs).returncode == 0
+
+
 def vivado_batch(script: Path, *args: str) -> None:
     info(f"Running Vivado script: {script}")
     cmd = [
@@ -168,6 +177,71 @@ def extract_from_xsa(xsa: Path, pattern: str, dest: Path) -> bool:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(z.read(matches[0]))
         return True
+
+
+# ---------------------------------------------------------------------------
+# Boot image generation
+# ---------------------------------------------------------------------------
+BUILD_DIR = ROOT / "build"
+
+
+def _generate_boot_bin(xsa_path: Path) -> None:
+    """Generate BOOT.bin (FSBL + bitstream) for QSPI boot. Best-effort."""
+    section("GENERATING BOOT IMAGE")
+
+    bit_path = OVERLAY_DIR / "friscv.bit"
+    fsbl_dir = BUILD_DIR / "fsbl"
+    fsbl_elf = fsbl_dir / "executable.elf"
+    boot_bin = OVERLAY_DIR / "BOOT.bin"
+
+    for tool in ("xsct", "bootgen", "make", "arm-none-eabi-gcc"):
+        if not shutil.which(tool):
+            warn(f"{tool} not found - skipping BOOT.bin generation.")
+            return
+
+    info("Generating FSBL from XSA...")
+    if fsbl_dir.exists():
+        shutil.rmtree(fsbl_dir)
+    fsbl_dir.mkdir(parents=True)
+
+    if not _try_run(["xsct", (SCRIPTS_DIR / "gen_fsbl.tcl").as_posix(),
+                     xsa_path.as_posix(), fsbl_dir.as_posix()]):
+        warn("FSBL generation failed.")
+        return
+
+    if not (fsbl_dir / "Makefile").exists():
+        warn("FSBL generation produced no Makefile.")
+        return
+
+    info("Building FSBL...")
+    if not _try_run(["make", "-C", str(fsbl_dir)]):
+        warn("FSBL build failed.")
+        return
+
+    if not fsbl_elf.exists():
+        warn("FSBL build produced no executable.")
+        return
+
+    # Copy FSBL ELF to overlay/
+    fsbl_dest = OVERLAY_DIR / "fsbl.elf"
+    shutil.copy2(fsbl_elf, fsbl_dest)
+
+    # Generate BIF and run bootgen
+    bif_path = BUILD_DIR / "boot.bif"
+    bif_path.write_text(
+        "the_ROM_image:\n"
+        "{\n"
+        f"  [bootloader] {fsbl_dest.as_posix()}\n"
+        f"  {bit_path.as_posix()}\n"
+        "}\n"
+    )
+
+    info("Running bootgen...")
+    if not _try_run(["bootgen", "-arch", "zynq", "-image", str(bif_path), "-o", str(boot_bin), "-w"]):
+        warn("bootgen failed, BOOT.bin not generated.")
+        return
+
+    success(f"BOOT.bin generated: {boot_bin}  ({fmt_size(boot_bin)})")
 
 
 # ---------------------------------------------------------------------------
@@ -253,15 +327,26 @@ def target_bitstream() -> None:
     xsa_file = ROOT / f"{PROJECT_NAME}.xsa"
     if xsa_file.exists():
         info("Extracting ps7_init.tcl from XSA...")
-        if extract_from_xsa(xsa_file, "ps7_init.tcl", SCRIPTS_DIR / "ps7_init.tcl"):
-            info(f"Extracted ps7_init.tcl to {SCRIPTS_DIR}/")
+        if extract_from_xsa(xsa_file, "ps7_init.tcl", OVERLAY_DIR / "ps7_init.tcl"):
+            info(f"Extracted ps7_init.tcl to {OVERLAY_DIR}/")
+        # Clean stale copy from scripts/
+        old_ps7 = SCRIPTS_DIR / "ps7_init.tcl"
+        if old_ps7.exists():
+            old_ps7.unlink()
+
+        # Generate BOOT.bin (FSBL + bitstream) for QSPI boot
+        _generate_boot_bin(xsa_file)
+
         remove_if_exists(xsa_file)
+
+    # Clean stale ps7_init artifacts left by xsct in the root directory
+    for pattern in ("ps7_init*.c", "ps7_init*.h", "ps7_init*.html", "ps7_init*.tcl"):
+        for f in ROOT.glob(pattern):
+            f.unlink()
 
     # summary
     section("BUILD COMPLETE")
     print(f"Bitstream:        {bit_dest}  ({fmt_size(bit_dest)})  md5={md5(bit_dest)}")
-    if hwh_dest.exists():
-        print(f"Hardware handoff: {hwh_dest}  ({fmt_size(hwh_dest)})")
 
 
 def target_program() -> None:
@@ -292,6 +377,26 @@ def target_load(prog_bin: Path) -> None:
 def target_run() -> None:
     section("RELEASING FRISC-V CORE FROM RESET")
     xsdb_run(SCRIPTS_DIR / "release_reset.tcl")
+
+
+def target_flash() -> None:
+    for tool in ("xsdb", "program_flash"):
+        if not shutil.which(tool):
+            die(f"{tool} not found in PATH.")
+    boot_bin = OVERLAY_DIR / "BOOT.bin"
+    fsbl_elf = OVERLAY_DIR / "fsbl.elf"
+    if not boot_bin.exists():
+        die("BOOT.bin not found. Run 'python build.py bitstream' first.")
+    if not fsbl_elf.exists():
+        die("fsbl.elf not found. Run 'python build.py bitstream' first.")
+    section("PROGRAMMING QSPI FLASH")
+    info(f"BOOT.bin: {boot_bin}  ({fmt_size(boot_bin)})")
+    print(_c("Set the boot mode jumper (JP4) to JTAG before continuing.", "33"))
+    input(_c("Press Enter when ready...", "33"))
+    xsdb_run(SCRIPTS_DIR / "program_qspi.tcl", boot_bin.as_posix(), fsbl_elf.as_posix())
+    success("QSPI flash programmed!")
+    print(_c("Set the boot mode jumper (JP4) back to QSPI and power-cycle.", "33"))
+    input(_c("Press Enter to finish...", "33"))
 
 
 def target_go(prog_bin: Path, terminal: bool = False, port: str = "/dev/ttyUSB0", baud: int = 115200) -> None:
@@ -351,13 +456,14 @@ def _rmtree_onexc(func, path, exc) -> None:
 
 def target_clean() -> None:
     section("CLEANING PROJECT")
-    xil_dir = ROOT / ".Xil"
-    if xil_dir.exists():
-        info("Removing .Xil directory...")
-        shutil.rmtree(xil_dir, onexc=_rmtree_onexc)
-    if PROJECT_DIR.exists():
-        info("Removing project directory...")
-        shutil.rmtree(PROJECT_DIR, onexc=_rmtree_onexc)
+    for d, label in [
+        (ROOT / ".Xil", ".Xil directory"),
+        (PROJECT_DIR, "project directory"),
+        (BUILD_DIR, "build directory"),
+    ]:
+        if d.exists():
+            info(f"Removing {label}...")
+            shutil.rmtree(d, onexc=_rmtree_onexc)
     info("Cleaning generated block design files...")
     bd_dir = ROOT / "bd"
     if bd_dir.exists():
@@ -426,8 +532,9 @@ Usage: python build.py <target> [options]
 Targets:
   project            Create Vivado project
   export-bd          Export block designs to TCL
-  bitstream          Build bitstream and deploy to overlay/
+  bitstream          Build bitstream, deploy to overlay/, generate BOOT.bin
   program            Program FPGA via JTAG
+  flash              Write BOOT.bin to QSPI (board self-configures on power-on)
   status             Check FPGA status
   load               Load binary to DRAM (default: test/prog.bin)
   run                Release FRISC-V core from reset
@@ -451,8 +558,9 @@ Options:
 
 Typical workflow:
   python build.py project    # Create Vivado project
-  python build.py bitstream  # Build bitstream (clean + compile + deploy)
-  python build.py go -t      # program + load + run + terminal in one step
+  python build.py bitstream  # Build bitstream + BOOT.bin
+  python build.py go -t      # JTAG: program + load + run + terminal
+  python build.py flash      # QSPI: board self-programs on power-on
 """)
 
 
@@ -499,6 +607,7 @@ def main() -> None:
         "load":      lambda: target_load(prog_bin),
         "run":       target_run,
         "go":        lambda: target_go(prog_bin, args.terminal, args.port, args.baud),
+        "flash":     target_flash,
         "open":      target_open,
         "clean":     target_clean,
         "zsbl-rom":  lambda: target_zsbl_rom(args.target_arg),

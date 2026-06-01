@@ -69,3 +69,7 @@ sim/out/
 
 # Git patches
 *.patch
+
+# Keep Zynq image
+!*/BOOT.bin
+!*/fsbl.elf

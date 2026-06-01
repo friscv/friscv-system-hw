@@ -144,8 +144,8 @@ initial begin
     mem[99] = 32'h0054_a023;  // sw	x5,0(x9)
     mem[100] = 32'h0430_0513;  // addi	x10,x0,67
     mem[101] = 32'hf4df_f0ef;  // jal	x1,10e0 <uart_putc>
-    mem[102] = 32'h0098_95b7;  // lui	x11,0x989
-    mem[103] = 32'h6805_8593;  // addi	x11,x11,1664 # 989680 <UART_TIMEOUT_COUNT>
+    mem[102] = 32'h000f_45b7;  // lui	x11,0xf4
+    mem[103] = 32'h2405_8593;  // addi	x11,x11,576 # f4240 <UART_TIMEOUT_COUNT>
     mem[104] = 32'hfb1f_f0ef;  // jal	x1,1150 <uart_getc_timeout>
     mem[105] = 32'hfff0_0293;  // addi	x5,x0,-1
     mem[106] = 32'h0055_0463;  // beq	x10,x5,11b0 <.xmodem_check_retry>

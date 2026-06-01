@@ -309,6 +309,7 @@ proc create_root_design { parentCell } {
   set gpio_aresetn [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 gpio_aresetn ]
   set_property -dict [list \
     CONFIG.C_ALL_OUTPUTS {1} \
+    CONFIG.C_DOUT_DEFAULT {0x00000001} \
     CONFIG.C_GPIO_WIDTH {1} \
     CONFIG.C_IS_DUAL {0} \
   ] $gpio_aresetn

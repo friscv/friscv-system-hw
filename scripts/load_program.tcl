@@ -7,7 +7,7 @@ targets -set -filter {name =~ "ARM*#0"}
 catch {stop}
 
 puts "Initializing PS7..."
-source $script_dir/ps7_init.tcl
+source [file join $script_dir ../overlay/ps7_init.tcl]
 
 if {[catch {ps7_init} result]} {
     puts "ERROR: ps7_init failed: $result"

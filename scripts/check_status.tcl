@@ -3,8 +3,9 @@ set script_dir [file dirname [info script]]
 connect
 targets -set -filter {name =~ "ARM*#0"}
 
-if {[file exists $script_dir/ps7_init.tcl]} {
-    source $script_dir/ps7_init.tcl
+set ps7_init [file join $script_dir ../overlay/ps7_init.tcl]
+if {[file exists $ps7_init]} {
+    source $ps7_init
     ps7_init
     ps7_post_config
 }

@@ -78,7 +78,8 @@ def wait_for_start(port: serial.Serial, verbose: bool) -> bool:
             port.timeout = ACK_TIMEOUT
             return True
         if verbose:
-            print(f"  Ignoring unexpected byte: 0x{byte[0]:02x}")
+            # print(f"  Ignoring unexpected byte: 0x{byte[0]:02x}")
+            pass
 
     print("Timed out waiting for start byte.", file=sys.stderr)
     return False

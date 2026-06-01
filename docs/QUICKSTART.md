@@ -5,8 +5,9 @@ This guide walks through the full workflow from a fresh clone to running a progr
 ## 1. Prerequisites
 
 - **Vivado 2025.2** with `bin/` on `PATH`
-- **Python 3.12+**
+- **Python 3.11+**
 - **`riscv64-unknown-elf` toolchain** + `make` (Linux or WSL2 on Windows)
+- **[Verilator](https://verilator.org)** (optional, for linting and simulation without Vivado)
 - PYNQ-Z2 board connected via USB (JTAG + serial on the same micro-USB port)
 
 Verify Vivado is on PATH:
@@ -18,12 +19,12 @@ vivado -version
 ## 2. Clone and Create the Vivado Project
 
 ```bash
-git clone git@github.com:friscv/friscv-system-hw.git
+git clone --recurse-submodules -j8 https://github.com/friscv/FRISCV-system-HW.gitcd friscv-system-hw
 cd friscv-system-hw
 python3 build.py
 ```
 
-This runs `scripts/create_project.tcl` in Vivado batch mode and creates the project at `friscv-system-hw/friscv-system-hw.xpr`. You only need to do this once (or after `python build.py clean`).
+This runs `scripts/create_project.tcl` in Vivado batch mode and creates the project at `friscv-system-hw/friscv-system-hw.xpr`. You only need to do this once (or after `python3 build.py clean`).
 
 To open the project in the GUI afterwards:
 
@@ -33,24 +34,7 @@ python3 build.py open
 
 Or find the `.xpr` in the Vivado GUI and open the project that way.
 
-## 3. Build the Bitstream
-
-A pre-built bitstream (`overlay/friscv.bit`) is already in the repository. Only rebuild if you have changed the RTL, block design, constraints, or the ZSBL:
-
-```bash
-python3 build.py bitstream
-```
-
-This will:
-
-1. Delete all cached synthesis and implementation runs
-2. Run Vivado synthesis + implementation + bitstream generation
-3. Copy `friscv.bit`, `friscv.hwh`, and `ps7_init.tcl` to their destinations
-
-> [!NOTE]
-> All CPU cores are used during synthesis. On a high core-count machine, ensure you have enough RAM (16 GB minimum recommended).
-
-## 4. Build a Test Program
+## 3. Build a Test Program
 
 Test programs are assembled from `test/*.S`. This step requires the RISC-V toolchain - on Windows, run this inside WSL2:
 
@@ -62,7 +46,7 @@ cd ..
 
 Output files: `test/prog.bin` (raw binary), `test/prog.elf`, `test/prog.dis`.
 
-## 5. Program, Load, and Run
+## 4. Program, Load, and Run
 
 Make sure the board is powered on and the USB cable is connected. The JTAG and serial port share the single micro-USB connector on the PYNQ-Z2.
 
@@ -84,7 +68,23 @@ To load a different binary:
 python3 build.py go --bin path/to/my.bin
 ```
 
-## 6. Observe Output (Serial)
+To open a serial terminal immediately after run:
+
+```bash
+python3 build.py go -t
+```
+
+## 4a. Running Without Hardware (Verilator)
+
+If you don't have a board connected, you can run all integration tests in simulation:
+
+```bash
+make test
+```
+
+This verilates `tb_integration`, builds all `test/integration_test_*.S` programs, and runs each one. See [TESTING.md](TESTING.md) for details.
+
+## 5. Observe Output (Serial)
 
 The ZSBL prints a boot message over UART at **115200 8N1** before handing off to the loaded program. Connect with any serial terminal:
 
@@ -103,7 +103,7 @@ Expected output on boot:
 [ZSBL] Mode: DRAM
 ```
 
-## 7. UART Boot Mode (No JTAG Needed)
+## 6. UART Boot Mode (No JTAG Needed)
 
 Set **SW0 = 1, SW1 = 0** before powering on to enter UART boot mode. The bootloader will wait for a binary over XMODEM-CRC:
 
@@ -115,14 +115,18 @@ python3 scripts/xmodem_load.py --port /dev/ttyUSB0 --baud 115200
 
 The ZSBL prints `[ZSBL] Mode: UART` and starts the transfer automatically. The program executes immediately after the transfer completes.
 
-## 8. Regenerate the Boot ROM
+## 7. Flash to QSPI (Optional)
 
-If you modify `software/zsbl.S`, regenerate the ROM before rebuilding the bitstream:
+To have the board program itself on power-on without JTAG, write the pre-built boot image to QSPI flash:
 
 ```bash
-python3 build.py zsbl-rom
-python3 build.py bitstream
+python3 build.py flash
 ```
+
+See [BOOT.md](BOOT.md#qspi-flash-boot) for jumper settings and details, the Python script will also tell you what to do.
+
+> [!NOTE]
+> This has only been tested on Linux.
 
 ## Command Reference
 
@@ -135,7 +139,7 @@ python build.py load [--bin FILE] # load binary to DDR via XSDB
 python build.py run               # release FRISC-V from reset
 python build.py go [--bin FILE]   # program + load + run
 python build.py status            # check FPGA status
-python build.py zsbl-rom [TEST]   # regenerate boot ROM
+python build.py zsbl-rom          # regenerate boot ROM
 python build.py clean             # remove Vivado project
 python build.py help              # full usage
 ```

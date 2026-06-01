@@ -6,7 +6,7 @@ Mode   | Method          | Description
 ------ | --------------- | -----------
 Mode 0 | Direct Jump     | Program loaded externally (via XSDB), just jump to program in memory.
 Mode 1 | Xmodem          | Load program from a host machine via UART
-Mode 2 | SD Card         | Load program from SD card inserted into the connection board. **This mode is not implemented yet.**
+Mode 2 | -               | -
 Mode 3 | Wait for `BTN0` | Wait for press of `BTN0`, then jump to externally loaded program.
 
 ## Selecting Boot Mode
@@ -99,3 +99,35 @@ Load a program stored on an SD card inserted into the I/O board. Tries Mode 3 af
 ### Mode 3 - Wait for Button Press
 
 Similar to Mode 0, expects a program to be externally loaded into main memory. Execution does not start immediately after release of reset, but after the user presses `BTN0`. There is no timeout for this boot mode.
+
+## QSPI Flash Boot
+
+The PYNQ-Z2 can boot entirely from QSPI flash, with no JTAG connection required. A `BOOT.bin` image containing the Zynq First Stage Boot Loader (FSBL) and the FPGA bitstream is written to the flash once. On every subsequent power-on the board programs itself and starts FRISC-V automatically.
+
+### Prerequisites
+
+The following tools (all part of the Vivado/Vitis installation) must be in the `PATH`:
+
+- `xsct`
+- `bootgen`
+- `arm-none-eabi-gcc`
+- `program_flash`
+
+### Generating BOOT.bin
+
+`BOOT.bin` is generated automatically during the bitstream build:
+
+```bash
+python3 build.py bitstream
+```
+
+The output files are `overlay/BOOT.bin` and `overlay/fsbl.elf`. If any of the QSPI prerequisites are missing, the bitstream build still succeeds but skips `BOOT.bin` generation with a warning.
+
+### Flashing
+
+1. Set the boot mode jumper **JP4** to **JTAG**.
+1. Connect the board via USB and power it on.
+1. Run `python3 build.py flash`.
+1. After flashing completes, set **JP4** back to **QSPI** and power-cycle the board.
+
+The board will now self-program on every power-on. The ZSBL boot mode (DRAM, UART, etc.) is still selected by the switches as described above.

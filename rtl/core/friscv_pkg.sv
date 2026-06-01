@@ -44,7 +44,7 @@ package friscv_pkg;
     // --- Configurable parameter definitions start ---
 
     // Set this to 0 for debugging
-    localparam int   ZSBL_ROM_SIZE_BYTES = 0;
+    localparam int   ZSBL_ROM_SIZE_BYTES = 1024;
 
     // Performance optimizations
     // If enabled, execute JAL(R) in IF instead of EX
