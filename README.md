@@ -2,7 +2,7 @@
 
 FRISC-V is a 32-bit RISC-V core developed at [FER](https://www.fer.unizg.hr/en), University of Zagreb. This repo also contains a reference SoC targeting the TUL PYNQ-Z2.
 
-**ISA:** RV32I + M (multiply/divide) + A (atomics) + Zicsr + Zifencei + Sstc + Sv32
+**ISA:** RV32I + M (multiply/divide) + A (atomics) + Zicsr + Zifencei + Zicntr + Sstc + Sv32
 
 ## Prerequisites
 
