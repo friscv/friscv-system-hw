@@ -4,6 +4,24 @@ FRISC-V is a 32-bit RISC-V core developed at [FER](https://www.fer.unizg.hr/en),
 
 **ISA:** RV32I + M (multiply/divide) + A (atomics) + Zicsr + Zifencei + Zicntr + Sstc + Sv32
 
+## Memory Map
+
+The CPU sees standard RISC-V addresses; the SoC remaps CLINT and UART to free regions of the Zynq AXI address space.
+
+| Region | Software address | AXI address | Size | Notes |
+| ------ | ---------------- | ----------- | ---- | ----- |
+| ZSBL ROM | `0x0000_1000` | — | 1 KB | On-chip boot ROM ([`software/zsbl.S`](software/zsbl.S)) |
+| GPIO 0 (LEDs + switches) | `0x4000_0000` | `0x4000_0000` | 64 KB | Ch 1: 4-bit LED output / Ch 2: 2-bit switch input (`SW0`, `SW1`) |
+| GPIO 1 (buttons) | `0x4001_0000` | `0x4001_0000` | 64 KB | 3-bit input (`BTN0`-`BTN2`); `BTN3` - external reset |
+| GPIO 2 | `0x4002_0000` | `0x4002_0000` | 64 KB | Pins on the RPI header, RGB on base board |
+| CLINT | `0x0200_0000` | `0x4010_0000` | 64 KB | Machine timer + software interrupt, `mtime` |
+| UART 16550 | `0x1000_0000` | `0x4060_0000` | 64 KB | See [docs/UART.md](docs/UART.md) |
+| DRAM | `0x8000_0000` | `0x0010_0000` | 511 MB | DDR3 via Zynq PS HP Slave |
+| End address | `0x5000_0000` | — | — | Write here to halt the core until reset |
+
+> [!NOTE]
+> The address remapping is configured in [`rtl/soc/friscv_soc_pkg.sv`](rtl/soc/friscv_soc_pkg.sv). GPIO register offsets follow the Xilinx AXI GPIO IP convention (`0x0` = channel 1 data, `0x8` = channel 2 data).
+
 ## Prerequisites
 
 | Tool | Purpose | Notes |

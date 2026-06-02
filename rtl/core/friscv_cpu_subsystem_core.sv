@@ -68,8 +68,6 @@ friscv_core_complex #(
 // Adapter reset sequencer
 // ============================================================
 
-// TODO what does this reset logic even do?
-
 // External memory reset sequencer
 // Wait for transactions to complete before resetting the bus adapter.
 logic r_mem_reset_req;

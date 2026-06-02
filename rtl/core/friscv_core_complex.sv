@@ -461,7 +461,6 @@ end else begin
                         w_l2_rw;
 end
 
-// TODO replace when cache connected
 assign o_burst_en = 1'b0;
 
 endmodule

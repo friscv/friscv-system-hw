@@ -930,12 +930,12 @@ proc create_root_design { parentCell } {
   # Create instance: fv_uart16550, and set properties
   set fv_uart16550 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uart16550:2.0 fv_uart16550 ]
 
-  # Create instance: axi_gpio_0, and set properties
-  set axi_gpio_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0 ]
+  # Create instance: fv_gpio_2, and set properties
+  set fv_gpio_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 fv_gpio_2 ]
   set_property -dict [list \
     CONFIG.C_ALL_OUTPUTS {1} \
     CONFIG.C_GPIO_WIDTH {3} \
-  ] $axi_gpio_0
+  ] $fv_gpio_2
 
 
   # Create interface connections
@@ -946,7 +946,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net fv_interconnect_M02_AXI [get_bd_intf_pins fv_uart16550/S_AXI] [get_bd_intf_pins fv_interconnect/M02_AXI]
   connect_bd_intf_net -intf_net fv_interconnect_M03_AXI [get_bd_intf_pins fv_gpio_1/S_AXI] [get_bd_intf_pins fv_interconnect/M03_AXI]
   connect_bd_intf_net -intf_net fv_interconnect_M04_AXI [get_bd_intf_pins fv_interconnect/M04_AXI] [get_bd_intf_pins friscv_clint/s_axi]
-  connect_bd_intf_net -intf_net fv_interconnect_M05_AXI [get_bd_intf_pins axi_gpio_0/S_AXI] [get_bd_intf_pins fv_interconnect/M05_AXI]
+  connect_bd_intf_net -intf_net fv_interconnect_M05_AXI [get_bd_intf_pins fv_gpio_2/S_AXI] [get_bd_intf_pins fv_interconnect/M05_AXI]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins debug_interconnect/S00_AXI] [get_bd_intf_pins processing_system7_0/M_AXI_GP0]
@@ -955,7 +955,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net Din_0_1  [get_bd_ports btns_in] \
   [get_bd_pins extract_btns/Din] \
   [get_bd_pins extract_extern_rst/Din]
-  connect_bd_net -net axi_gpio_0_gpio_io_o  [get_bd_pins axi_gpio_0/gpio_io_o] \
+  connect_bd_net -net axi_gpio_0_gpio_io_o  [get_bd_pins fv_gpio_2/gpio_io_o] \
   [get_bd_ports rgb_out]
   connect_bd_net -net axi_uart16550_0_sout  [get_bd_pins fv_uart16550/sout] \
   [get_bd_ports uart_tx]
@@ -1001,7 +1001,7 @@ proc create_root_design { parentCell } {
   [get_bd_pins fv_uart16550/s_axi_aresetn] \
   [get_bd_pins debounce_rstn/rst_n] \
   [get_bd_pins friscv_clint/rstn_in] \
-  [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+  [get_bd_pins fv_gpio_2/s_axi_aresetn] \
   [get_bd_pins fv_interconnect/M05_ARESETN]
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins debug_interconnect/ACLK] \
@@ -1024,7 +1024,7 @@ proc create_root_design { parentCell } {
   [get_bd_pins debounce_rstn/clk] \
   [get_bd_pins friscv_clint/clk_in] \
   [get_bd_pins friscv_cpu_subsystem/aclk] \
-  [get_bd_pins axi_gpio_0/s_axi_aclk] \
+  [get_bd_pins fv_gpio_2/s_axi_aclk] \
   [get_bd_pins fv_interconnect/M05_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins proc_sys_reset_0/ext_reset_in]
@@ -1039,7 +1039,7 @@ proc create_root_design { parentCell } {
 
   # Create address segments
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs gpio_aresetn/S_AXI/Reg] -force
-  assign_bd_address -offset 0x40020000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_cpu_subsystem/m_axi] [get_bd_addr_segs axi_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x40020000 -range 0x00010000 -with_name SEG_axi_gpio_0_Reg -target_address_space [get_bd_addr_spaces friscv_cpu_subsystem/m_axi] [get_bd_addr_segs fv_gpio_2/S_AXI/Reg] -force
   assign_bd_address -offset 0x40600000 -range 0x00010000 -with_name SEG_axi_uart16550_0_Reg -target_address_space [get_bd_addr_spaces friscv_cpu_subsystem/m_axi] [get_bd_addr_segs fv_uart16550/S_AXI/Reg] -force
   assign_bd_address -offset 0x40100000 -range 0x00010000 -with_name SEG_friscv_clint_0_reg0 -target_address_space [get_bd_addr_spaces friscv_cpu_subsystem/m_axi] [get_bd_addr_segs friscv_clint/s_axi/reg0] -force
   assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces friscv_cpu_subsystem/m_axi] [get_bd_addr_segs fv_gpio_0/S_AXI/Reg] -force

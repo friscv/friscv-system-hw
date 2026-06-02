@@ -1,3 +1,6 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
  * A synchronizer module that takes an asynchronous input signal (i_unsync) and produces a synchronized output signal (o_synced).
  * The synchronization is done using a two-stage flip-flop synchronizer to reduce the chance of metastability.

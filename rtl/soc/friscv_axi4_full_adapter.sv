@@ -11,7 +11,7 @@
 import friscv_pkg::*;
 
 module friscv_axi4_full_adapter #(
-    localparam BURST_LEN = 8  // TODO calculate this from cache size
+    localparam BURST_LEN = 8  // TODO calculate this from cache size when implemented
 ) (
     input  logic                    i_clk,
     friscv_mem_if.slave             mem_if,

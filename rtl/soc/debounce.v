@@ -1,3 +1,6 @@
+// (c) FER, HPC Architecture and Application Research Center, All rights reserved
+// License and version info is listed in friscv_pkg.sv
+
 /*
  * A debouncer module that takes a noisy input signal (i_sig) and produces a clean output signal (o_sig)
  * that only changes state after the input has been stable for a certain number of clock cycles.
