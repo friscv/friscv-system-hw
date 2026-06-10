@@ -923,15 +923,15 @@ always_comb begin
     unique case (ir_buff.r.opcode)
         JALR: begin
             // Also detect misalignment on the commiting cycle of the instruction updating the source register.
-            addr_t jalr_base = (rd_sel_in != 0 && ir_buff.r.rs1 == rd_sel_in) ? rd_data_in : regfile[ir_buff.r.rs1];
-            data_t jalr_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
-            addr_t target = (jalr_base + jalr_imm) & ~ 32'd1;
+            automatic addr_t jalr_base = (rd_sel_in != 0 && ir_buff.r.rs1 == rd_sel_in) ? rd_data_in : regfile[ir_buff.r.rs1];
+            automatic data_t jalr_imm = {{21{ir_buff.b[31]}}, ir_buff.b[30:20]};
+            automatic addr_t target = (jalr_base + jalr_imm) & ~ 32'd1;
             target_misaligned = target[1] && instr_valid_buff;
             misaligned_target = target;
         end
         JAL: begin
-            data_t jal_imm = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
-            addr_t target = pc_in_buff + jal_imm;
+            automatic data_t jal_imm = {{12{ir_buff.b[31]}}, ir_buff.b[19:12], ir_buff.b[20], ir_buff.b[30:21], 1'b0};
+            automatic addr_t target = pc_in_buff + jal_imm;
             target_misaligned = target[1] && instr_valid_buff;
             misaligned_target = target;
         end

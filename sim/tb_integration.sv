@@ -317,7 +317,7 @@ always_ff @(posedge clk or negedge rstn) begin
                     default: mem_rdata <= 32'h0;
                 endcase
             end else if (read_addr >= DRAM_BASE && read_addr < DRAM_BASE + MEM_SIZE) begin
-                logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
+                automatic logic [31:0] idx = (read_addr - DRAM_BASE) & 32'hFFFFFFFC;
                 mem_rresp <= 2'b00;
                 mem_rdata <= {memory[idx+3], memory[idx+2], memory[idx+1], memory[idx]};
             end else begin

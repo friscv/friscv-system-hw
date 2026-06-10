@@ -1,5 +1,5 @@
 VERILATOR := verilator
-VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Irtl/core -Irtl/soc -Wno-fatal -Wno-TIMESCALEMOD
+VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Irtl/core -Irtl/soc
 VERILATOR_OUT := build/verilator/tb_integration
 ACT_REPO := https://github.com/riscv/riscv-arch-test.git
 ACT_REF := 5f69fff1851122eabe87233c08d6c4096dd0c5ac
