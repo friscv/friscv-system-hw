@@ -99,6 +99,11 @@ LAYOUT: list[Blank | Note | Param] = [
         default=1
     ),
     Param(
+        "ENFORCE_PMP",
+        "logic",
+        default=1
+    ),
+    Param(
         "PMP_ENTRIES",
         "int",
         default=16
@@ -188,6 +193,8 @@ PRESETS: dict[str, dict[str, int]] = {
         "ENABLE_EARLY_JAL_JALR": 1,
         "ENABLE_L2_BUFFER": 1,
         "ENABLE_MMU": 1,
+        "ENFORCE_PMP": 1,
+        "PMP_ENTRIES": 16,
         "ITLB_ENTRIES": 16,
         "DTLB_ENTRIES": 16,
         "ENABLE_FINE_TLB_FLUSH": 1,
@@ -205,6 +212,8 @@ PRESETS: dict[str, dict[str, int]] = {
         "ENABLE_EARLY_JAL_JALR": 1,
         "ENABLE_L2_BUFFER": 0,
         "ENABLE_MMU": 0,
+        "ENFORCE_PMP": 0,
+        "PMP_ENTRIES": 0,
         "ITLB_ENTRIES": 2,
         "DTLB_ENTRIES": 2,
         "ENABLE_FINE_TLB_FLUSH": 0,
