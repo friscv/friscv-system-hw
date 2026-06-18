@@ -203,9 +203,16 @@ package friscv_pkg;
 
     typedef logic [63:0] mtime_t;
 
+    typedef enum logic [1:0] {
+        PMP_OFF   = 2'b00,  // Null region (disabled)
+        PMP_TOR   = 2'b01,  // Top of range
+        PMP_NA4   = 2'b10,  // Naturally aligned four-byte region
+        PMP_NAPOT = 2'b11   // Naturally aligned power-of-two region, >= 8 bytes
+    } pmp_mode_e;
+
     typedef struct packed {
         logic       l;
-        logic [1:0] a;
+        pmp_mode_e  a;
         logic       x;
         logic       w;
         logic       r;

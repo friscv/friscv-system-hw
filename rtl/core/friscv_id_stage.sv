@@ -273,7 +273,7 @@ endfunction
 
 // Decode an 8-bit pmpcfg byte into a pmp_cfg_t struct
 function automatic pmp_cfg_t cfg_from_byte(logic [7:0] b);
-    cfg_from_byte = '{l: b[7], a: b[4:3], x: b[2], w: b[1], r: b[0]};
+    cfg_from_byte = '{l: b[7], a: pmp_mode_e'(b[4:3]), x: b[2], w: b[1], r: b[0]};
 endfunction
 
 // Pack the four cfg bytes of pmpcfg<regn>

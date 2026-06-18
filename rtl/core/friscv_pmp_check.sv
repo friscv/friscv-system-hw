@@ -8,6 +8,13 @@
 //
 // Version info is listed in friscv_pkg.sv
 
+/*
+ * This module implements a combinatorial PMP checker.
+ * If either of i_access_r/w/x is set, o_fault will be asserted if that access
+ * is not allowed as per i_pmp_table.
+ * If no i_access_* is set, o_fault will never assert.
+ */
+
 `timescale 1ns / 1ps
 
 import friscv_pkg::*;
@@ -17,10 +24,8 @@ module friscv_pmp_check (
     input  logic       i_access_r,
     input  logic       i_access_w,
     input  logic       i_access_x,
-    input  logic       i_mpp,
     input  mode_e      i_mode,
     input  pmp_table_t i_pmp_table,
-    output logic       o_allow,
     output logic       o_fault
 );
 
