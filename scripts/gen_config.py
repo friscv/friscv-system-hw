@@ -96,7 +96,13 @@ LAYOUT: list[Blank | Note | Param] = [
     Param(
         "ENABLE_MMU",
         "logic",
-        default=1),
+        default=1
+    ),
+    Param(
+        "PMP_ENTRIES",
+        "int",
+        default=16
+    ),
     Param(
         "ITLB_ENTRIES",
         "int",

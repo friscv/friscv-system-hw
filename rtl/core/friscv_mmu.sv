@@ -61,6 +61,7 @@ module friscv_mmu (
     input  logic        i_flush_vpn_en,
     input  asid_t       i_flush_asid,
     input  logic        i_flush_asid_en,
+    input  pmp_table_t  i_pmp_table,
 
     // Page fault signals
     output logic        o_inst_fault,

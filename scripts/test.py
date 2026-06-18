@@ -31,6 +31,8 @@ def run_test(bin_file: Path) -> dict[str, str | int]:
     output = (completed.stdout or "") + (completed.stderr or "")
     result_line = next((line for line in output.splitlines() if "[RESULT]" in line), "")
 
+    print(f"COMPLETED {bin_file.resolve().as_posix().split("/")[-1].removesuffix(".bin")}")
+
     return {
         "name": bin_file.stem,
         "returncode": completed.returncode,
@@ -70,6 +72,7 @@ def main() -> None:
                 results.append((name, f"{RED}{BOLD}FAIL{RESET} {name} ({reason})"))
                 failed += 1
 
+    print("\n=== RESULTS ===\n")
     for _, line in sorted(results):
         print(line)
 

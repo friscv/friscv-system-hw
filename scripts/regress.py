@@ -74,12 +74,15 @@ def run_test(elf: Path) -> dict[str, str]:
         output = (completed.stdout or "") + (completed.stderr or "")
         log_file.write_text(output, encoding="utf-8")
 
+        print(f"COMPLETED {name}")
+
         if completed.returncode != 0:
             return {"name": name, "status": "SIM_ERROR", "log": log_file.as_posix()}
         if "[RESULT] PASS" in output or "RVCP-SUMMARY: TEST PASSED" in output:
             return {"name": name, "status": "PASS", "log": log_file.as_posix()}
         return {"name": name, "status": "FAIL", "log": log_file.as_posix()}
     except Exception as exc:
+        print(f"ERROR {name}")
         return {"name": name, "status": "ERROR", "message": str(exc)}
 
 
@@ -113,6 +116,7 @@ def main() -> None:
             results.append(future.result())
 
     results.sort(key=lambda result: result["name"])
+    print("\n=== RESULTS ===\n")
     for result in results:
         print_result(result)
 

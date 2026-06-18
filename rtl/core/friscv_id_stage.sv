@@ -130,18 +130,11 @@ module friscv_id_stage #(
     output logic      sum_out,
     output logic      mxr_out,
     output mode_e     mode_out,
-    output mode_e     data_mode_out
+    output mode_e     data_mode_out,
+    output pmp_table_t pmp_table_out
 );
 
 data_t regfile [REGISTER_NUM];
-
-// Initialize regfile to prevent X in simulation
-genvar g;
-generate
-    for (g = 0; g < REGISTER_NUM; g++) begin : init_regfile
-        initial regfile[g] = '0;
-    end
-endgenerate
 
 instr_op_t ir_buff;
 addr_t     pc_in_buff;
@@ -260,18 +253,6 @@ typedef struct packed {
     data_t menvcfg;
     data_t menvcfgh;
 
-    // Machine Memory Protection
-    data_t pmpcfg0;
-    data_t pmpcfg1;
-    addr_t pmpaddr0;
-    addr_t pmpaddr1;
-    addr_t pmpaddr2;
-    addr_t pmpaddr3;
-    addr_t pmpaddr4;
-    addr_t pmpaddr5;
-    addr_t pmpaddr6;
-    addr_t pmpaddr7;
-
     // Machine Counter/Timers
     logic [63:0] mcycle;
     logic [63:0] minstret;
@@ -282,6 +263,24 @@ typedef struct packed {
 
 // Initialize CSRs to 0
 csr_file_t csr = '0;
+
+pmp_table_t pmp_table;
+
+// Pack a pmp_cfg_t struct into its 8-bit pmpcfg byte
+function automatic logic [7:0] pmpcfg_of(pmp_cfg_t pmp_cfg);
+    pmpcfg_of = {pmp_cfg.l, 2'b00, pmp_cfg.a, pmp_cfg.x, pmp_cfg.w, pmp_cfg.r};
+endfunction
+
+// Decode an 8-bit pmpcfg byte into a pmp_cfg_t struct
+function automatic pmp_cfg_t cfg_from_byte(logic [7:0] b);
+    cfg_from_byte = '{l: b[7], a: b[4:3], x: b[2], w: b[1], r: b[0]};
+endfunction
+
+// Pack the four cfg bytes of pmpcfg<regn>
+function automatic data_t pmpcfg_word(int regn);
+    pmpcfg_word = {pmpcfg_of(pmp_table[regn*4+3].cfg), pmpcfg_of(pmp_table[regn*4+2].cfg),
+                   pmpcfg_of(pmp_table[regn*4+1].cfg), pmpcfg_of(pmp_table[regn*4+0].cfg)};
+endfunction
 
 // Extract selected CSR address from the instruction word
 // This will store garbage if not a CSR instruction, but that's ok.
@@ -637,6 +636,7 @@ end
 always_ff @(posedge clk_in) begin
     if(!rst_n_in) begin
         csr <= '0;
+        pmp_table <= '0;
         r_mret_inhibit <= 1'b0;
         r_current_mode <= M_MODE;
         trap_seen      <= 1'b0;
@@ -772,22 +772,23 @@ always_ff @(posedge clk_in) begin
                 CSR_MEPC:     csr.mepc     <= csr_data_in;
                 CSR_MCAUSE:   csr.mcause   <= csr_data_in;
 
-                // Machine Memory Protection
-                CSR_PMPCFG0:  csr.pmpcfg0  <= csr_data_in;
-                CSR_PMPCFG1:  csr.pmpcfg1  <= csr_data_in;
-                CSR_PMPADDR0: csr.pmpaddr0 <= csr_data_in;
-                CSR_PMPADDR1: csr.pmpaddr1 <= csr_data_in;
-                CSR_PMPADDR2: csr.pmpaddr2 <= csr_data_in;
-                CSR_PMPADDR3: csr.pmpaddr3 <= csr_data_in;
-                CSR_PMPADDR4: csr.pmpaddr4 <= csr_data_in;
-                CSR_PMPADDR5: csr.pmpaddr5 <= csr_data_in;
-                CSR_PMPADDR6: csr.pmpaddr6 <= csr_data_in;
-                CSR_PMPADDR7: csr.pmpaddr7 <= csr_data_in;
+                // Machine Memory Protection: handled below (index-computed)
 
                 // Machine Counter Setup
                 CSR_MCOUNTINHIBIT: csr.mcountinhibit <= csr_data_in & 32'h0000_0005;
                 default: ;
             endcase
+
+            // Machine Memory Protection
+            if (int'(csr_sel_in) >= int'(CSR_PMPCFG0) &&
+                int'(csr_sel_in) <  int'(CSR_PMPCFG0) + PMP_ENTRIES/4) begin
+                automatic int base = (int'(csr_sel_in) - int'(CSR_PMPCFG0)) * 4;
+                for (int j = 0; j < 4; j++)
+                    pmp_table[base + j].cfg <= cfg_from_byte(csr_data_in[j*8 +: 8]);
+            end else if (int'(csr_sel_in) >= int'(CSR_PMPADDR0) &&
+                         int'(csr_sel_in) <  int'(CSR_PMPADDR0) + PMP_ENTRIES) begin
+                pmp_table[int'(csr_sel_in) - int'(CSR_PMPADDR0)].addr <= csr_data_in;
+            end
         end
 
         // Cycle counter
@@ -840,18 +841,6 @@ always_comb begin : csr_read
         CSR_MTVAL:         csr_out = csr.mtval;
         CSR_MIP:           csr_out = {20'b0, meip_in, 1'b0, csr.seip, 1'b0, mtip_in, 1'b0, stip_eff, 1'b0, msip_in, 1'b0, csr.ssip, 1'b0};
 
-        // Machine Memory Protection
-        CSR_PMPCFG0:       csr_out = csr.pmpcfg0;
-        CSR_PMPCFG1:       csr_out = csr.pmpcfg1;
-        CSR_PMPADDR0:      csr_out = csr.pmpaddr0;
-        CSR_PMPADDR1:      csr_out = csr.pmpaddr1;
-        CSR_PMPADDR2:      csr_out = csr.pmpaddr2;
-        CSR_PMPADDR3:      csr_out = csr.pmpaddr3;
-        CSR_PMPADDR4:      csr_out = csr.pmpaddr4;
-        CSR_PMPADDR5:      csr_out = csr.pmpaddr5;
-        CSR_PMPADDR6:      csr_out = csr.pmpaddr6;
-        CSR_PMPADDR7:      csr_out = csr.pmpaddr7;
-
         // Machine Counter/Timers
         CSR_MCYCLE:        csr_out = csr.mcycle[31:0];
         CSR_MINSTRET:      csr_out = csr.minstret[31:0];
@@ -895,6 +884,17 @@ always_comb begin : csr_read
             csr_not_implemented = 1'b1;
         end
     endcase
+
+    // Machine Memory Protection
+    if (int'(selected_csr) >= int'(CSR_PMPCFG0) &&
+        int'(selected_csr) <  int'(CSR_PMPCFG0) + PMP_ENTRIES/4) begin
+        csr_out = pmpcfg_word(int'(selected_csr) - int'(CSR_PMPCFG0));
+        csr_not_implemented = 1'b0;
+    end else if (int'(selected_csr) >= int'(CSR_PMPADDR0) &&
+                 int'(selected_csr) <  int'(CSR_PMPADDR0) + PMP_ENTRIES) begin
+        csr_out = pmp_table[int'(selected_csr) - int'(CSR_PMPADDR0)].addr;
+        csr_not_implemented = 1'b0;
+    end
 end : csr_read
 
 // ============================================================

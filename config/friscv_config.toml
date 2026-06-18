@@ -11,6 +11,7 @@ ENABLE_EARLY_JAL_JALR = true
 ENABLE_L2_BUFFER = true
 # Memory protection and address translation
 ENABLE_MMU = true
+PMP_ENTRIES = 16
 # Must be a power of 2 greater than 1
 ITLB_ENTRIES = 16
 DTLB_ENTRIES = 16

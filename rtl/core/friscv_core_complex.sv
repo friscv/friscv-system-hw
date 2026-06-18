@@ -147,6 +147,8 @@ assign o_mem_wdata = w_amo_active ? w_amo_store_data : w_l2_wdata;
 logic  w_inst_fault, w_load_fault, w_store_fault;
 addr_t w_fault_addr;
 
+pmp_table_t w_pmp_table;
+
 // The MMU contains an arbiter.
 // If the MMU is disabled, a bare arbiter is instantiated instead.
 if (ENABLE_MMU) begin
@@ -194,6 +196,7 @@ if (ENABLE_MMU) begin
         .i_flush_vpn_en  ( w_flush_vpn_en  ),
         .i_flush_asid    ( w_flush_asid    ),
         .i_flush_asid_en ( w_flush_asid_en ),
+        .i_pmp_table     ( w_pmp_table     ),
 
         // Page fault signals
         .o_inst_fault    ( w_inst_fault    ),
@@ -375,7 +378,8 @@ friscv_core #(
     .flush_vpn_out    ( w_flush_vpn     ),
     .flush_vpn_en_out ( w_flush_vpn_en  ),
     .flush_asid_out   ( w_flush_asid    ),
-    .flush_asid_en_out( w_flush_asid_en )
+    .flush_asid_en_out( w_flush_asid_en ),
+    .pmp_table_out    ( w_pmp_table     )
 );
 
 // ============================================================

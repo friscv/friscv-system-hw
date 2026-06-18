@@ -70,7 +70,8 @@ module friscv_core #(
     output vpn_t       flush_vpn_out,
     output logic       flush_vpn_en_out,
     output asid_t      flush_asid_out,
-    output logic       flush_asid_en_out
+    output logic       flush_asid_en_out,
+    output pmp_table_t pmp_table_out
 );
 
 logic flush_if, flush_id;
@@ -334,7 +335,8 @@ friscv_id_stage #(
     .sum_out          ( sum_out          ),
     .mxr_out          ( mxr_out          ),
     .mode_out         ( mode_out         ),
-    .data_mode_out    ( data_mode_out    )
+    .data_mode_out    ( data_mode_out    ),
+    .pmp_table_out    ( pmp_table_out    )
 );
 
 friscv_ex_stage ex_stage (
