@@ -13,11 +13,7 @@
 
 #define RVMODEL_DATA_SECTION
 
-#define RVMODEL_BOOT   \
-    li t0, 0xFFFFFFFF; \
-    csrw pmpaddr0, t0; \
-    li t0, 0x1F;       \
-    csrw pmpcfg0, t0;
+#define RVMODEL_BOOT
 
 #define RVMODEL_HALT_PASS     \
     li t0, FRISCV_GPIO_ADDR;  \
