@@ -42,7 +42,7 @@
     "pmp": {
       "grain": 0,
       "count": 16,
-      "usable_count": 16,
+      "usable_count": 4,
       "tor_supported": true,
       "na4_supported": true,
       "napot_supported": true

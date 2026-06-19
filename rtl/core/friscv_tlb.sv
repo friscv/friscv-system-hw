@@ -239,11 +239,35 @@ function automatic logic [PPN_WIDTH-1:0] reconstruct_ppn(
     reconstruct_ppn = (ppn & ~((PPN_WIDTH'(1) << shift) - 1)) | (PPN_WIDTH'(vpn) & low_mask);  // Combine high of ppn with low of vpn
 endfunction : reconstruct_ppn
 
+ppn_t       r_ppn, w_ppn;
+perm_t      r_perm, w_perm;
+pte_level_t r_level, w_level;
+logic       r_hit, w_hit;
+
+always_ff @(posedge i_clk) begin : buffer_lookup
+    if (!i_rstn) begin
+        r_ppn   <= '0;
+        r_perm  <= '0;
+        r_level <= '0;
+        r_hit   <= 1'b0;
+    end else begin
+        r_ppn   <= w_ppn;
+        r_perm  <= w_perm;
+        r_level <= w_level;
+        r_hit   <= w_hit;
+    end
+end
+
+assign o_ppn   = r_ppn;
+assign o_perm  = r_perm;
+assign o_level = r_level;
+assign o_hit   = r_hit;
+
 always_comb begin
-    o_ppn     = '0;
-    o_perm    = '0;
-    o_level   = '0;
-    o_hit     = 1'b0;
+    w_ppn     = '0;
+    w_perm    = '0;
+    w_level   = '0;
+    w_hit     = 1'b0;
     w_hit_idx = '0;
 
     for (int g = 0; g < ENTRY_COUNT; g++) begin : tlb_lookup
@@ -254,10 +278,10 @@ always_comb begin
         vpn_match = (i_match_vpn & mask) == r_tlb[g].vpn;
 
         if (r_tlb[g].perm.v && (r_tlb[g].perm.g || i_match_asid == r_tlb[g].asid) && vpn_match) begin
-            o_ppn     = reconstruct_ppn(r_tlb[g].ppn, i_match_vpn, r_tlb[g].level, i_mode);
-            o_perm    = r_tlb[g].perm;
-            o_level   = r_tlb[g].level;
-            o_hit     = 1'b1;
+            w_ppn     = reconstruct_ppn(r_tlb[g].ppn, i_match_vpn, r_tlb[g].level, i_mode);
+            w_perm    = r_tlb[g].perm;
+            w_level   = r_tlb[g].level;
+            w_hit     = 1'b1;
             w_hit_idx = g[$clog2(ENTRY_COUNT)-1:0];
         end
     end : tlb_lookup

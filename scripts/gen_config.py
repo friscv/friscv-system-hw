@@ -104,9 +104,19 @@ LAYOUT: list[Blank | Note | Param] = [
         default=1
     ),
     Param(
+        "ENFORCE_PTW_PMP",
+        "logic",
+        default=1
+    ),
+    Param(
         "PMP_ENTRIES",
         "int",
         default=16
+    ),
+    Param(
+        "PMP_USABLE",
+        "int",
+        default=4
     ),
     Param(
         "ITLB_ENTRIES",
@@ -194,7 +204,9 @@ PRESETS: dict[str, dict[str, int]] = {
         "ENABLE_L2_BUFFER": 1,
         "ENABLE_MMU": 1,
         "ENFORCE_PMP": 1,
+        "ENFORCE_PTW_PMP": 1,
         "PMP_ENTRIES": 16,
+        "PMP_USABLE": 16,
         "ITLB_ENTRIES": 16,
         "DTLB_ENTRIES": 16,
         "ENABLE_FINE_TLB_FLUSH": 1,
@@ -213,9 +225,11 @@ PRESETS: dict[str, dict[str, int]] = {
         "ENABLE_L2_BUFFER": 0,
         "ENABLE_MMU": 0,
         "ENFORCE_PMP": 0,
+        "ENFORCE_PTW_PMP": 0,
         "PMP_ENTRIES": 0,
-        "ITLB_ENTRIES": 2,
-        "DTLB_ENTRIES": 2,
+        "PMP_USABLE": 0,
+        "ITLB_ENTRIES": 0,
+        "DTLB_ENTRIES": 0,
         "ENABLE_FINE_TLB_FLUSH": 0,
         "ENABLE_MUL": 0,
         "ENABLE_DIV": 0,

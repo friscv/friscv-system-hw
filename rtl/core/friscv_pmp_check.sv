@@ -44,55 +44,35 @@ function automatic logic fault_for_cfg(pmp_cfg_t cfg);
         fault_for_cfg = 1'b0;
 endfunction
 
+// Stage 1: compute every entry's address match in parallel
+logic [PMP_ENTRIES-1:0] w_match;
+
 always_comb begin
+    w_match = '0;
+    for (int i = 0; i < PMP_ENTRIES; i++) begin
+        automatic pmp_entry_t entry     = i_pmp_table[i];
+        automatic addr_t      prev_addr = (i > 0) ? i_pmp_table[i-1].addr : '0;
+        automatic addr_t      cmp_mask  = ~entry.napot_mask;
+        case (entry.cfg.a)
+            // Top of range: pmpaddr[i-1] <= pa < pmpaddr[i]
+            PMP_TOR:   w_match[i] = (prev_addr <= w_aligned_pa) && (w_aligned_pa < entry.addr);
+            // Naturally aligned four-byte region
+            PMP_NA4:   w_match[i] = (w_aligned_pa == entry.addr);
+            // Naturally aligned power-of-two region (>= 8 bytes)
+            PMP_NAPOT: w_match[i] = ((w_aligned_pa & cmp_mask) == (entry.addr & cmp_mask));
+            // Null region (disabled)
+            default:   w_match[i] = 1'b0;
+        endcase
+    end
+end
+
+// Stage 2: priority-encode
+always_comb begin
+    o_fault = 1'b0;
     if (i_access_r || i_access_w || i_access_x) begin
-        // By default, succeed in M-mode, fail in S-mode and U-mode
         o_fault = (i_mode != M_MODE);
-
-        // Start from index 0 of PMP table and return the first match
-        for (int i = 0; i < PMP_ENTRIES; i++) begin
-            automatic pmp_entry_t entry = i_pmp_table[i];
-
-            // Match the PMP mode of the i-th entry
-            case (entry.cfg.a)
-
-                // Top of range
-                PMP_TOR: begin
-                    // 0 is the lower bound if 0-th PMP entry is TOR
-                    automatic addr_t prev_addr = (i > 0) ? i_pmp_table[i-1].addr : '0;
-                    // TOR matches, pmpaddr[i-1] <= pa < pmpaddr
-                    if (prev_addr <= w_aligned_pa && w_aligned_pa < entry.addr) begin
-                        o_fault = fault_for_cfg(entry.cfg);
-                        break;
-                    end
-                end
-
-                // Naturally aligned four-byte region
-                PMP_NA4: begin
-                    if (w_aligned_pa == entry.addr) begin
-                        o_fault = fault_for_cfg(entry.cfg);
-                        break;
-                    end
-                end
-
-                // Naturally aligned power-of-two region, >= 8 bytes
-                PMP_NAPOT: begin
-                    // Mask all low bits where entry.addr is 1
-                    automatic addr_t mask = entry.addr ^ (entry.addr + 1'b1);
-                    // Match masked addresses
-                    if ((w_aligned_pa & ~mask) == (entry.addr & ~mask)) begin
-                        o_fault = fault_for_cfg(entry.cfg);
-                        break;
-                    end
-                end
-
-                // Null region (disabled)
-                default: ;
-            endcase
-        end
-    end else begin
-        // No fault if no request
-        o_fault = 1'b0;
+        for (int i = PMP_ENTRIES-1; i >= 0; i--)
+            if (w_match[i]) o_fault = fault_for_cfg(i_pmp_table[i].cfg);
     end
 end
 

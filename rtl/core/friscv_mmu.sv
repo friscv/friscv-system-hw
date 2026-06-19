@@ -190,15 +190,13 @@ friscv_tlb #(
 // Arbitration layer
 // ============================================================
 
-logic w_allow_inst, w_allow_data;
-
 friscv_l1_arbiter l1_arbiter (
     .i_clk        ( i_clk         ),
     .i_rstn       ( i_rstn        ),
 
     .i_inst_addr  ( i_inst_addr   ),
     .o_inst_data  ( o_inst_data   ),
-    .i_inst_en    ( w_allow_inst  ),
+    .i_inst_en    ( i_inst_en     ),
     .o_inst_wait  ( o_inst_wait   ),
     .o_inst_err   ( w_l1_inst_err ),
 
@@ -206,7 +204,7 @@ friscv_l1_arbiter l1_arbiter (
     .i_data_size  ( i_data_size   ),
     .i_data_wdata ( i_data_wdata  ),
     .o_data_rdata ( o_data_rdata  ),
-    .i_data_en    ( w_allow_data  ),
+    .i_data_en    ( i_data_en     ),
     .i_data_wr    ( i_data_wr     ),
     .o_data_wait  ( o_data_wait   ),
     .i_amo_op     ( i_amo_op      ),
@@ -339,7 +337,7 @@ friscv_ptw ptw (
     .o_fault_addr    ( w_ptw_fault_addr  )
 );
 
-if (ENFORCE_PMP) begin
+if (ENFORCE_PMP && ENFORCE_PTW_PMP) begin
     friscv_pmp_check pmp_chk_ptw (
         .i_pa        ( w_walk_addr     ),
         .i_access_r  ( w_walk_req      ),
@@ -369,8 +367,9 @@ logic w_data_read, w_data_write;
 assign w_data_read  = i_data_en && (!i_data_store_like || (i_amo_op != AMO_NONE));
 assign w_data_write = i_data_en &&   i_data_store_like;
 
-assign w_allow_inst = i_inst_en && !w_inst_pmp_fault;
-assign w_allow_data = i_data_en && !w_data_pmp_fault;
+// PMP fault of the access currently granted on the bus
+logic w_grant_pmp_fault;
+assign w_grant_pmp_fault = w_grant_active && (w_eff_req_ctx.is_inst ? w_inst_pmp_fault : w_data_pmp_fault);
 
 if (ENFORCE_PMP) begin
     friscv_pmp_check pmp_chk_inst (
@@ -451,9 +450,9 @@ assign w_walk_err   = i_mem_err;
 // Stall arbiter while PTW is active or memory stalls
 assign w_stall = w_ptw_stall | i_mem_wait;
 
-// Suppress physical memory access on TLB miss (PTW takes over) or perm fault
+// Suppress physical memory access on TLB miss (PTW takes over), perm fault, or PMP fault
 assign o_mem_rw    = w_walk_en ? RW_READ :
-                     (w_tlb_miss | w_perm_fault) ? RW_IDLE :
+                     (w_tlb_miss | w_perm_fault | w_grant_pmp_fault) ? RW_IDLE :
                      w_grant_rw;
 
 assign o_mem_addr  = w_walk_en ? w_walk_addr : w_granted_pa;

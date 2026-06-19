@@ -59,10 +59,12 @@ package friscv_pkg;
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
     localparam logic ENFORCE_PMP = 1;
+    localparam logic ENFORCE_PTW_PMP = 0;
     localparam int   PMP_ENTRIES = 16;
+    localparam int   PMP_USABLE = 4;
     // Must be a power of 2 greater than 1
-    localparam int   ITLB_ENTRIES = 16;
-    localparam int   DTLB_ENTRIES = 16;
+    localparam int   ITLB_ENTRIES = 4;
+    localparam int   DTLB_ENTRIES = 8;
     // If not enabled, any sfence.vma will flush all TLB entries
     localparam logic ENABLE_FINE_TLB_FLUSH = 1;
 
@@ -163,25 +165,7 @@ package friscv_pkg;
 
         // Machine Memory Protection
         CSR_PMPCFG0   = 12'h3A0,
-        CSR_PMPCFG1   = 12'h3A1,
-        CSR_PMPCFG2   = 12'h3A2,
-        CSR_PMPCFG3   = 12'h3A3,
         CSR_PMPADDR0  = 12'h3B0,
-        CSR_PMPADDR1  = 12'h3B1,
-        CSR_PMPADDR2  = 12'h3B2,
-        CSR_PMPADDR3  = 12'h3B3,
-        CSR_PMPADDR4  = 12'h3B4,
-        CSR_PMPADDR5  = 12'h3B5,
-        CSR_PMPADDR6  = 12'h3B6,
-        CSR_PMPADDR7  = 12'h3B7,
-        CSR_PMPADDR8  = 12'h3B8,
-        CSR_PMPADDR9  = 12'h3B9,
-        CSR_PMPADDR10 = 12'h3BA,
-        CSR_PMPADDR11 = 12'h3BB,
-        CSR_PMPADDR12 = 12'h3BC,
-        CSR_PMPADDR13 = 12'h3BD,
-        CSR_PMPADDR14 = 12'h3BE,
-        CSR_PMPADDR15 = 12'h3BF,
 
         // Machine Counter/Timers
         CSR_MCYCLE    = 12'hB00,
@@ -221,6 +205,7 @@ package friscv_pkg;
     typedef struct packed {
         pmp_cfg_t cfg;
         addr_t    addr;
+        addr_t    napot_mask;
     } pmp_entry_t;
 
     typedef pmp_entry_t [PMP_ENTRIES-1:0] pmp_table_t;

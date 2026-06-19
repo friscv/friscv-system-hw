@@ -803,17 +803,20 @@ always_ff @(posedge clk_in) begin
                 automatic int base = (int'(csr_sel_in) - int'(CSR_PMPCFG0)) * 4;
                 for (int j = 0; j < 4; j++) begin
                     automatic int i = base + j;
-                    // Ignore the write if this entry is locked
-                    if (!pmp_table[i].cfg.l)
+                    // Only the first PMP_USABLE entries are functional, the rest are read-only-zero
+                    if (i < PMP_USABLE && !pmp_table[i].cfg.l)
                         pmp_table[i].cfg <= cfg_from_byte(csr_data_in[j*8 +: 8]);
                 end
             end else if (int'(csr_sel_in) >= int'(CSR_PMPADDR0) &&
                          int'(csr_sel_in) <  int'(CSR_PMPADDR0) + PMP_ENTRIES) begin
                 // Writing to pmpaddr
                 automatic int i = int'(csr_sel_in) - int'(CSR_PMPADDR0);
-                // Ignore write if this or directly following TOR entry is locked
-                if (!pmpaddr_write_ignored(i))
-                    pmp_table[i].addr <= csr_data_in;
+                // Ignore write if unusable (read-only-zero entry), or this/following TOR entry is locked
+                if (i < PMP_USABLE && !pmpaddr_write_ignored(i)) begin
+                    pmp_table[i].addr       <= csr_data_in;
+                    // Precompute the NAPOT mask once
+                    pmp_table[i].napot_mask <= csr_data_in ^ (csr_data_in + 1'b1);
+                end
             end
         end
 

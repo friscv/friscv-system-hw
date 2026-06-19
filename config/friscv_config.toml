@@ -12,10 +12,12 @@ ENABLE_L2_BUFFER = true
 # Memory protection and address translation
 ENABLE_MMU = true
 ENFORCE_PMP = true
+ENFORCE_PTW_PMP = false
 PMP_ENTRIES = 16
+PMP_USABLE = 4
 # Must be a power of 2 greater than 1
-ITLB_ENTRIES = 16
-DTLB_ENTRIES = 16
+ITLB_ENTRIES = 4
+DTLB_ENTRIES = 8
 # If not enabled, any sfence.vma will flush all TLB entries
 ENABLE_FINE_TLB_FLUSH = true
 # Extension selection
