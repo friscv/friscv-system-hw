@@ -8,7 +8,7 @@ ACT_CONFIG_SRC := verif/arch-test/friscv-full
 ACT_CONFIG_DST := $(ACT_ROOT)/config/cores/friscv/friscv-full
 ACT_CONFIG := config/cores/friscv/friscv-full/test_config.yaml
 ACT_WORK := $(ACT_ROOT)/work/friscv-full
-ACT_EXCLUDE_EXTENSIONS ?= Sm,S,InterruptsSm,InterruptsS,InterruptsU,ExceptionsZalrsc,ExceptionsZaamo,PMPF,PMPS,PMPSm,PMPU,PMPZaamo,PMPZalrsc,PMPZca,PMPZicbo,Svade,Svadu,SvaduPMP,SvPMP,SvZicbo,SvPMPZicbo
+ACT_EXCLUDE_EXTENSIONS ?= Sm,S,InterruptsSm,InterruptsS,InterruptsU,ExceptionsZalrsc,ExceptionsZaamo,Svade,Svadu,SvaduPMP,SvPMP,SvZicbo,SvPMPZicbo
 JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 UV_LINK_MODE ?= copy
 

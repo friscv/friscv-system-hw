@@ -125,8 +125,16 @@ def main() -> None:
 
     passed = sum(result["status"] == "PASS" for result in results)
     failed = len(results) - passed
+
     print()
     if failed:
+        print("\n=== FAILED ===\n")
+        for result in results:
+            if result["status"] == "FAIL":
+                print(f"{RED}{BOLD}{result["name"]}{RESET}")
+                print(f"  {result["log"]}")
+        print()
+
         print(f"{GREEN}{BOLD}{passed} passed{RESET}  {RED}{BOLD}{failed} failed{RESET}")
         print(f"report: {report}")
         sys.exit(1)
