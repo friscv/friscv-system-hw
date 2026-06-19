@@ -633,6 +633,16 @@ end
 // CSR write
 // ============================================================
 
+// Ignore a write to pmpaddr if
+//  1) This entry is locked or
+//  2) The following entry is TOR and locked
+function automatic logic pmpaddr_write_ignored(int i);
+    pmpaddr_write_ignored = pmp_table[i].cfg.l ||
+                            (i < PMP_ENTRIES-1 &&
+                             pmp_table[i+1].cfg.a == PMP_TOR &&
+                             pmp_table[i+1].cfg.l);
+endfunction
+
 always_ff @(posedge clk_in) begin
     if(!rst_n_in) begin
         csr <= '0;
@@ -782,12 +792,21 @@ always_ff @(posedge clk_in) begin
             // Machine Memory Protection
             if (int'(csr_sel_in) >= int'(CSR_PMPCFG0) &&
                 int'(csr_sel_in) <  int'(CSR_PMPCFG0) + PMP_ENTRIES/4) begin
+                // Writing to pmpcfg
                 automatic int base = (int'(csr_sel_in) - int'(CSR_PMPCFG0)) * 4;
-                for (int j = 0; j < 4; j++)
-                    pmp_table[base + j].cfg <= cfg_from_byte(csr_data_in[j*8 +: 8]);
+                for (int j = 0; j < 4; j++) begin
+                    automatic int i = base + j;
+                    // Ignore the write if this entry is locked
+                    if (!pmp_table[i].cfg.l)
+                        pmp_table[i].cfg <= cfg_from_byte(csr_data_in[j*8 +: 8]);
+                end
             end else if (int'(csr_sel_in) >= int'(CSR_PMPADDR0) &&
                          int'(csr_sel_in) <  int'(CSR_PMPADDR0) + PMP_ENTRIES) begin
-                pmp_table[int'(csr_sel_in) - int'(CSR_PMPADDR0)].addr <= csr_data_in;
+                // Writing to pmpaddr
+                automatic int i = int'(csr_sel_in) - int'(CSR_PMPADDR0);
+                // Ignore write if this or directly following TOR entry is locked
+                if (!pmpaddr_write_ignored(i))
+                    pmp_table[i].addr <= csr_data_in;
             end
         end
 
