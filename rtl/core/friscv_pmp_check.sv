@@ -31,7 +31,7 @@ module friscv_pmp_check (
 
 // The two lowest bits are not used for PMP matching
 addr_t w_aligned_pa;
-assign w_aligned_pa = addr_t'(i_pa[ADDR_WIDTH-1:2]);
+assign w_aligned_pa = addr_t'(i_pa >> 2);
 
 function automatic logic fault_for_cfg(pmp_cfg_t cfg);
     if (cfg.l || (i_mode != M_MODE))
@@ -50,7 +50,7 @@ always_comb begin
         o_fault = (i_mode != M_MODE);
 
         // Start from index 0 of PMP table and return the first match
-        for (int i = 0; i < PMP_ENTRIES-1; i++) begin
+        for (int i = 0; i < PMP_ENTRIES; i++) begin
             automatic pmp_entry_t entry = i_pmp_table[i];
 
             // Match the PMP mode of the i-th entry
@@ -69,12 +69,21 @@ always_comb begin
 
                 // Naturally aligned four-byte region
                 PMP_NA4: begin
-                    
+                    if (w_aligned_pa == entry.addr) begin
+                        o_fault = fault_for_cfg(entry.cfg);
+                        break;
+                    end
                 end
 
                 // Naturally aligned power-of-two region, >= 8 bytes
                 PMP_NAPOT: begin
-                    
+                    // Mask all low bits where entry.addr is 1
+                    automatic addr_t mask = entry.addr ^ (entry.addr + 1'b1);
+                    // Match masked addresses
+                    if ((w_aligned_pa & ~mask) == (entry.addr & ~mask)) begin
+                        o_fault = fault_for_cfg(entry.cfg);
+                        break;
+                    end
                 end
 
                 // Null region (disabled)
