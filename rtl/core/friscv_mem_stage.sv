@@ -316,7 +316,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                     instr_valid: instr_valid_in,
                     mode: mode_in
                 };
-                r_mem_active      <= w_is_mem_instr && (cond_valid || (conditional_in && addr_virtual_in));
+                r_mem_active      <= w_is_mem_instr && (cond_valid || conditional_in);
                 r_load_data_valid <= 1'b0;  // Clear on new instruction
                 r_sc_res_valid    <= 1'b0;
                 cond_valid_r      <= cond_valid;
@@ -364,9 +364,12 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 pipe_buff.instr_valid <= 1'b0;
             end
 
-            // Clear reservation after SC completes
+            // Only a SUCCESSFUL SC consumes the reservation.
+            // A failing SC is now active only to run the access-permission (PMP/page)
+            // check, so it must not clear the reservation.
             if (pipe_buff.conditional && !(w_page_fault || w_access_fault || pipe_buff.misaligned)) begin
-                reserve_valid <= 1'b0;
+                if (cond_valid_r)
+                    reserve_valid <= 1'b0;
                 r_sc_res <= !cond_valid_r;
                 r_sc_res_valid <= 1'b1;
             end

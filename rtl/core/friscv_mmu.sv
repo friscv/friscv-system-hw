@@ -366,8 +366,8 @@ assign o_inst_pmp_fault = w_inst_pmp_fault || (w_ptw_access_fault && w_walk_en);
 assign o_data_pmp_fault = w_data_pmp_fault || (w_ptw_access_fault && w_walk_en);
 
 logic w_data_read, w_data_write;
-assign w_data_read  = i_data_en && (!i_data_wr || i_amo_op != AMO_NONE);
-assign w_data_write = i_data_en && ( i_data_wr || i_amo_op != AMO_NONE);
+assign w_data_read  = i_data_en && (!i_data_store_like || (i_amo_op != AMO_NONE));
+assign w_data_write = i_data_en &&   i_data_store_like;
 
 assign w_allow_inst = i_inst_en && !w_inst_pmp_fault;
 assign w_allow_data = i_data_en && !w_data_pmp_fault;

@@ -197,6 +197,7 @@ always_ff @(posedge clk_in) begin
             inst_fault_buff  <= inst_fault_in;
             fault_addr_buff  <= fault_addr_in;
             inst_err_buff    <= inst_err_in;
+            inst_pmp_fault_buff <= inst_pmp_fault_in;
             pc_mode_buff     <= r_current_mode;
 
         end
@@ -278,7 +279,8 @@ endfunction
 
 // Decode an 8-bit pmpcfg byte into a pmp_cfg_t struct
 function automatic pmp_cfg_t cfg_from_byte(logic [7:0] b);
-    cfg_from_byte = '{l: b[7], a: pmp_mode_e'(b[4:3]), x: b[2], w: b[1], r: b[0]};
+    if (b[1] && !b[0]) cfg_from_byte = '{l: b[7], a: pmp_mode_e'(b[4:3]), x: 1'b0, w: 1'b0, r: 1'b0};
+    else               cfg_from_byte = '{l: b[7], a: pmp_mode_e'(b[4:3]), x: b[2], w: b[1], r: b[0]};
 endfunction
 
 // Pack the four cfg bytes of pmpcfg<regn>

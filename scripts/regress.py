@@ -126,7 +126,6 @@ def main() -> None:
     passed = sum(result["status"] == "PASS" for result in results)
     failed = len(results) - passed
 
-    print()
     if failed:
         print("\n=== FAILED ===\n")
         for result in results:
