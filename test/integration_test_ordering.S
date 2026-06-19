@@ -27,6 +27,11 @@ _start:
     li   x31, 0x80000800       # checkpoint base = 0x80000800
     lui  x30, 0x40000          # GPIO = 0x40000000
 
+    li   t0, 0xFFFFFFFF      # NAPOT covering the whole address space
+    csrw pmpaddr0, t0
+    li   t0, 0x1F            # L=0, A=NAPOT, X=1, W=1, R=1
+    csrw pmpcfg0, t0
+
     csrw mie, x0
     j    main_start
 

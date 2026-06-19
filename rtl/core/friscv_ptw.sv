@@ -34,6 +34,11 @@ module friscv_ptw (
     input  addr_t      i_req_va,
     input  logic       i_req_is_write,
 
+    // PMP control
+    input  logic       i_pmp_fault,
+    output logic       o_walk_req,
+    output logic       o_pmp_fault,
+
     // External bus
     output addr_t      o_walk_addr,
     output logic       o_walk_en,
@@ -66,7 +71,8 @@ typedef enum logic [2:0] {
     S_READ,
     S_DECODE,
     S_FILL,
-    S_FAULT
+    S_PAGE_FAULT,
+    S_PMP_FAULT
 } state_e;
 
 state_e r_state, w_next_state;
@@ -240,8 +246,9 @@ always_comb begin : transition_logic
     w_next_state = r_state;
     w_descend    = 1'b0;
 
-    o_walk_en = 1'b0;
-    o_stall   = 1'b1;
+    o_walk_en  = 1'b0;
+    o_walk_req = 1'b0;
+    o_stall    = 1'b1;
 
     o_fill_vpn     = '0;
     o_fill_ppn     = '0;
@@ -255,15 +262,18 @@ always_comb begin : transition_logic
     o_load_fault  = 1'b0;
     o_store_fault = 1'b0;
     o_fault_addr  = '0;
+    o_pmp_fault   = 1'b0;
 
     case (r_state)
 
         S_IDLE: begin
-            o_stall = 1'b0;
-            if (w_start_walk) begin
+            o_stall    = 1'b0;
+            o_walk_req = 1'b1;
+            if (w_start_walk && !i_pmp_fault) begin
                 // Assert walk_en now with the effective address
                 // Registers capture at posedge, so in S_READ the address is unchanged
                 // and i_walk_wait already asserted
+                // Do not start the walk on a PMP fault
                 o_walk_en    = 1'b1;
                 o_stall      = 1'b1;
                 w_next_state = S_READ;
@@ -271,7 +281,8 @@ always_comb begin : transition_logic
         end
 
         S_READ: begin
-            o_walk_en = 1'b1;
+            o_walk_req = 1'b1;
+            o_walk_en  = 1'b1;
             if (!i_walk_wait && i_walk_err) begin
                 o_stall      = 1'b0;
                 w_next_state = S_IDLE;
@@ -283,24 +294,30 @@ always_comb begin : transition_logic
         S_DECODE: begin
             if (!r_pte.perm.v || (r_pte.perm.w && !r_pte.perm.r)) begin
                 // Invalid PTE
-                w_next_state = S_FAULT;
+                w_next_state = S_PAGE_FAULT;
             end else if (r_pte.perm.r || r_pte.perm.x) begin
                 // Leaf PTE, fill TLB and let requester retry
                 // Fault if misaligned superpage
-                w_next_state = (r_level != '0 && r_pte.ppn[9:0] != 10'b0) ? S_FAULT : S_FILL;
+                w_next_state = (r_level != '0 && r_pte.ppn[9:0] != 10'b0) ? S_PAGE_FAULT : S_FILL;
             end else begin
                 // Non-leaf PTE
                 if (r_pte.perm.d || r_pte.perm.a || r_pte.perm.u) begin
                     // Non-leaf with D/A/U set
-                    w_next_state = S_FAULT;
+                    w_next_state = S_PAGE_FAULT;
                 end else if (r_level == '0) begin
                     // Non-leaf at last level, walk exhausted
-                    w_next_state = S_FAULT;
+                    w_next_state = S_PAGE_FAULT;
                 end else begin
                     // Non-leaf, descend, assert walk_en now with the next-level address
+                    o_walk_req = 1'b1;
                     w_descend    = 1'b1;
-                    o_walk_en    = 1'b1;
-                    w_next_state = S_READ;
+                    if (!i_pmp_fault) begin
+                        o_walk_en    = 1'b1;
+                        w_next_state = S_READ;
+                    end else begin
+                        // Stop walk if descended level gives PMP fault
+                        w_next_state = S_PMP_FAULT;
+                    end
                 end
             end
         end
@@ -317,7 +334,7 @@ always_comb begin : transition_logic
         end
 
         // Release stall so the pipeline can capture the fault
-        S_FAULT: begin
+        S_PAGE_FAULT: begin
             o_stall       = 1'b0;
             o_inst_fault  = r_itlb_miss;
             o_load_fault  = r_dtlb_miss && !r_req_is_write;
@@ -326,11 +343,13 @@ always_comb begin : transition_logic
             w_next_state  = S_IDLE;
         end
 
-        default: begin
-            o_walk_en    = 1'b0;
+        S_PMP_FAULT: begin
             o_stall      = 1'b0;
+            o_pmp_fault  = 1'b1;
             w_next_state = S_IDLE;
         end
+
+        default: ;
 
     endcase
 end : transition_logic

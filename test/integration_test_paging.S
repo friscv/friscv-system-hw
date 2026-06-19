@@ -21,6 +21,12 @@
 
 _start:
     lui  x30, 0x40000          # GPIO address = 0x40000000
+
+    li   t0, 0xFFFFFFFF      # NAPOT covering the whole address space
+    csrw pmpaddr0, t0
+    li   t0, 0x1F            # L=0, A=NAPOT, X=1, W=1, R=1
+    csrw pmpcfg0, t0
+
     csrw mie, x0               # disable all interrupts
     j    main_start
 

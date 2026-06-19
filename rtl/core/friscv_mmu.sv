@@ -27,6 +27,7 @@ module friscv_mmu (
     input  logic        i_inst_en,
     output logic        o_inst_wait,
     output logic        o_inst_err,
+    output logic        o_inst_pmp_fault,
 
     // Data Memory Interface
     input  addr_t       i_data_addr,
@@ -38,6 +39,7 @@ module friscv_mmu (
     input  logic        i_data_store_like,
     output logic        o_data_wait,
     output logic        o_data_err,
+    output logic        o_data_pmp_fault,
     input  amo_op_e     i_amo_op,
 
     // External Memory Interface
@@ -88,6 +90,9 @@ mmu_req_ctx_t r_req_ctx;
 logic         r_req_ctx_valid;
 mmu_req_ctx_t w_eff_req_ctx;
 mmu_req_ctx_t w_start_req_ctx;
+asid_t        w_eff_asid;
+
+logic w_paging_en;
 
 // ============================================================
 // TLB layer
@@ -114,6 +119,11 @@ perm_t      w_fill_perm;
 pte_level_t w_fill_level;
 logic       w_fill_itlb, w_fill_dtlb;
 
+// Physical addresses
+addr_t w_inst_pa, w_data_pa;
+assign w_inst_pa = w_paging_en ? {w_itlb_ppn, i_inst_addr[11:0]} : i_inst_addr;
+assign w_data_pa = w_paging_en ? {w_dtlb_ppn, i_data_addr[11:0]} : i_data_addr;
+
 friscv_tlb #(
     .ENTRY_COUNT(ITLB_ENTRIES)
 ) itlb (
@@ -123,7 +133,7 @@ friscv_tlb #(
     // Lookup
     .i_match_vpn     ( w_inst_vpn      ),
     .i_mode          ( w_tlb_mode      ),
-    .i_match_asid    ( w_eff_req_ctx.satp.asid ),
+    .i_match_asid    ( w_eff_asid      ),
     .o_ppn           ( w_itlb_ppn      ),
     .o_perm          ( w_itlb_perm     ),
     .o_level         ( w_itlb_level    ),
@@ -154,7 +164,7 @@ friscv_tlb #(
     // Lookup
     .i_match_vpn     ( w_data_vpn      ),
     .i_mode          ( w_tlb_mode      ),
-    .i_match_asid    ( w_eff_req_ctx.satp.asid ),
+    .i_match_asid    ( w_eff_asid      ),
     .o_ppn           ( w_dtlb_ppn      ),
     .o_perm          ( w_dtlb_perm     ),
     .o_level         ( w_dtlb_level    ),
@@ -180,13 +190,15 @@ friscv_tlb #(
 // Arbitration layer
 // ============================================================
 
+logic w_allow_inst, w_allow_data;
+
 friscv_l1_arbiter l1_arbiter (
     .i_clk        ( i_clk         ),
     .i_rstn       ( i_rstn        ),
 
     .i_inst_addr  ( i_inst_addr   ),
     .o_inst_data  ( o_inst_data   ),
-    .i_inst_en    ( i_inst_en     ),
+    .i_inst_en    ( w_allow_inst  ),
     .o_inst_wait  ( o_inst_wait   ),
     .o_inst_err   ( w_l1_inst_err ),
 
@@ -194,7 +206,7 @@ friscv_l1_arbiter l1_arbiter (
     .i_data_size  ( i_data_size   ),
     .i_data_wdata ( i_data_wdata  ),
     .o_data_rdata ( o_data_rdata  ),
-    .i_data_en    ( i_data_en     ),
+    .i_data_en    ( w_allow_data  ),
     .i_data_wr    ( i_data_wr     ),
     .o_data_wait  ( o_data_wait   ),
     .i_amo_op     ( i_amo_op      ),
@@ -218,7 +230,6 @@ friscv_l1_arbiter l1_arbiter (
 // ============================================================
 
 // Paging active when satp.MODE != 0 and not in M-mode
-logic w_paging_en;
 assign w_paging_en = (|w_eff_req_ctx.satp.mode) && (w_eff_req_ctx.mode != M_MODE);
 
 // Arbiter is in a grant state when it drives a non-idle command
@@ -247,6 +258,7 @@ always_comb begin
     if (w_grant_active && r_req_ctx_valid) begin
         w_eff_req_ctx = r_req_ctx;
     end
+    w_eff_asid = w_eff_req_ctx.satp.asid;
 end
 
 always_ff @(posedge i_clk) begin
@@ -279,6 +291,10 @@ logic  w_ptw_stall;
 logic  w_ptw_inst_fault, w_ptw_load_fault, w_ptw_store_fault;
 addr_t w_ptw_fault_addr;
 
+// PTW PMP
+logic w_walk_req;
+logic w_ptw_pmp_fault, w_ptw_access_fault;
+
 friscv_ptw ptw (
     .i_clk           ( i_clk             ),
     .i_rstn          ( i_rstn            ),
@@ -291,6 +307,11 @@ friscv_ptw ptw (
     .i_dtlb_miss     ( w_dtlb_miss       ),
     .i_req_va        ( w_eff_req_ctx.addr ),
     .i_req_is_write  ( w_eff_req_ctx.is_write ),
+
+    // PMP control
+    .i_pmp_fault     ( w_ptw_pmp_fault   ),
+    .o_walk_req      ( w_walk_req        ),
+    .o_pmp_fault     ( w_ptw_access_fault),
 
     // External bus
     .o_walk_addr     ( w_walk_addr       ),
@@ -318,6 +339,20 @@ friscv_ptw ptw (
     .o_fault_addr    ( w_ptw_fault_addr  )
 );
 
+if (ENFORCE_PMP) begin
+    friscv_pmp_check pmp_chk_ptw (
+        .i_pa        ( w_walk_addr     ),
+        .i_access_r  ( w_walk_req      ),
+        .i_access_w  ( 1'b0            ),
+        .i_access_x  ( 1'b0            ),
+        .i_mode      ( S_MODE          ),
+        .i_pmp_table ( i_pmp_table     ),
+        .o_fault     ( w_ptw_pmp_fault )
+    );
+end else begin
+    assign w_ptw_pmp_fault = 1'b0;
+end
+
 // ============================================================
 // Permission check (TLB hit path)
 // ============================================================
@@ -325,6 +360,42 @@ friscv_ptw ptw (
 logic w_perm_inst_ok, w_perm_load_ok, w_perm_store_ok;
 logic w_perm_inst_fault, w_perm_load_fault, w_perm_store_fault;
 logic w_perm_fault;
+
+logic w_inst_pmp_fault, w_data_pmp_fault;
+assign o_inst_pmp_fault = w_inst_pmp_fault || (w_ptw_access_fault && w_walk_en);
+assign o_data_pmp_fault = w_data_pmp_fault || (w_ptw_access_fault && w_walk_en);
+
+logic w_data_read, w_data_write;
+assign w_data_read  = i_data_en && (!i_data_wr || i_amo_op != AMO_NONE);
+assign w_data_write = i_data_en && ( i_data_wr || i_amo_op != AMO_NONE);
+
+assign w_allow_inst = i_inst_en && !w_inst_pmp_fault;
+assign w_allow_data = i_data_en && !w_data_pmp_fault;
+
+if (ENFORCE_PMP) begin
+    friscv_pmp_check pmp_chk_inst (
+        .i_pa        ( w_inst_pa        ),
+        .i_access_r  ( 1'b0             ),
+        .i_access_w  ( 1'b0             ),
+        .i_access_x  ( i_inst_en        ),
+        .i_mode      ( i_inst_mode      ),
+        .i_pmp_table ( i_pmp_table      ),
+        .o_fault     ( w_inst_pmp_fault )
+    );
+
+    friscv_pmp_check pmp_chk_data (
+        .i_pa        ( w_data_pa        ),
+        .i_access_r  ( w_data_read      ),
+        .i_access_w  ( w_data_write     ),
+        .i_access_x  ( 1'b0             ),
+        .i_mode      ( i_data_mode      ),
+        .i_pmp_table ( i_pmp_table      ),
+        .o_fault     ( w_data_pmp_fault )
+    );
+end else begin
+    assign w_inst_pmp_fault = 1'b0;
+    assign w_data_pmp_fault = 1'b0;
+end
 
 // Instruction fetch TLB permission check
 assign w_perm_inst_ok = w_itlb_perm.x &&

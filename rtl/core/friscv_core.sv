@@ -47,6 +47,7 @@ module friscv_core #(
     output logic       i_mem_en_out,
     input  logic       i_mem_wait_in,
     input  logic       i_mem_err_in,
+    input  logic       i_mem_pmp_fault_in,
 
     // Data memory interface 
     output addr_t      d_mem_addr_out,
@@ -58,6 +59,7 @@ module friscv_core #(
     output mem_width_e d_mem_size_out,
     input  logic       d_mem_wait_in,
     input  logic       d_mem_err_in,
+    input  logic       d_mem_pmp_fault_in,
     output amo_op_e    d_mem_amo_op_out,
 
     // Memory management outputs
@@ -262,6 +264,7 @@ friscv_id_stage #(
     .inst_fault_in    ( i_inst_fault     ),
     .fault_addr_in    ( i_fault_addr     ),
     .inst_err_in      ( i_mem_err_in     ),
+    .inst_pmp_fault_in( i_mem_pmp_fault_in ),
 
     // Page fault signals, from MEM stage
     .mem_trap_in      ( mem_trap_out     ),
@@ -459,6 +462,7 @@ friscv_mem_stage mem_stage (
     .d_mem_size_out      ( d_mem_size_out          ),
     .d_mem_wait_in       ( d_mem_wait_in           ),
     .d_mem_err_in        ( d_mem_err_in            ),
+    .d_mem_pmp_fault_in  ( d_mem_pmp_fault_in      ),
     .d_mem_amo_op_out    ( d_mem_amo_op_out        )
 );
 

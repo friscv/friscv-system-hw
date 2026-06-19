@@ -81,6 +81,7 @@ module friscv_mem_stage (
     output mem_width_e     d_mem_size_out,
     input  logic           d_mem_wait_in,
     input  logic           d_mem_err_in,
+    input  logic           d_mem_pmp_fault_in,
     output amo_op_e        d_mem_amo_op_out
 );
 
@@ -140,11 +141,14 @@ assign mem_trap_pc_out = r_mem_fault_pc;
 assign mem_trap_va_out = r_mem_fault_va;
 assign mem_trap_mode_out = r_mem_fault_mode;
 
+logic w_page_fault, w_access_fault;
+assign w_page_fault = load_fault_in || store_fault_in;
+assign w_access_fault = d_mem_err_in || d_mem_pmp_fault_in;
+
 logic w_mem_completion_fault;
 assign w_mem_completion_fault = r_mem_active &&
                                 !d_mem_wait_in &&
-                                (load_fault_in || store_fault_in ||
-                                 d_mem_err_in || pipe_buff.misaligned);
+                                (w_page_fault || w_access_fault || pipe_buff.misaligned );
 
 // CSR passthrough
 assign csr_sel_out      = pipe_buff.csr_sel;
@@ -258,8 +262,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             // would otherwise advance, the younger EX instruction must be
             // ignored completely.
             if (r_mem_active &&
-                ((load_fault_in || store_fault_in) ||
-                 (!d_mem_wait_in && (d_mem_err_in || pipe_buff.misaligned)))) begin
+                (w_page_fault || (!d_mem_wait_in && (w_access_fault || pipe_buff.misaligned)))) begin
                 pipe_buff         <= MEM_PIPE_BUBBLE;
                 r_mem_active      <= 1'b0;
                 r_load_data_valid <= 1'b0;
@@ -267,10 +270,10 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 cond_valid_r      <= 1'b0;
                 r_mem_fault_pc    <= pipe_buff.pc;
                 r_mem_fault_mode  <= pipe_buff.mode;
-                if (load_fault_in || store_fault_in) begin
+                if (w_page_fault) begin
                     r_mem_fault    <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
                     r_mem_fault_va <= fault_addr_in;
-                end else if (d_mem_err_in) begin
+                end else if (w_access_fault) begin
                     r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
                     r_mem_fault_va <= pipe_buff.alu_data;
                 end else begin
@@ -320,8 +323,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
                 r_mem_fault       <= MEM_TRAP_NONE;  // Clear fault on new instruction
             end
 
-            if (!clear_reserve_in &&
-                !(instr_valid_in && w_is_mem_instr && w_mem_misaligned)) begin
+            if (!clear_reserve_in && !(instr_valid_in && w_is_mem_instr && w_mem_misaligned)) begin
                 if (reserve_in) begin
                     reserve_valid <= 1'b1;
                     reserve_addr  <= alu_data_in;
@@ -336,14 +338,14 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             r_mem_active <= 1'b0;
 
             // Capture page fault
-            if (load_fault_in || store_fault_in) begin
+            if (w_page_fault) begin
                 r_mem_fault      <= store_fault_in ? MEM_TRAP_STORE : MEM_TRAP_LOAD;
                 r_mem_fault_pc   <= pipe_buff.pc;
                 r_mem_fault_va   <= fault_addr_in;
                 r_mem_fault_mode <= pipe_buff.mode;
                 pipe_buff.rd_sel <= 5'b0;  // Suppress WB writeback for faulting instruction
                 pipe_buff.instr_valid <= 1'b0;
-            end else if (d_mem_err_in) begin
+            end else if (w_access_fault) begin
                 // Capture access fault
                 r_mem_fault    <= r_mem_store_like ? MEM_TRAP_STORE_ACCESS : MEM_TRAP_LOAD_ACCESS;
                 r_mem_fault_pc <= pipe_buff.pc;
@@ -363,7 +365,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             end
 
             // Clear reservation after SC completes
-            if (pipe_buff.conditional && !(load_fault_in || store_fault_in || d_mem_err_in || pipe_buff.misaligned)) begin
+            if (pipe_buff.conditional && !(w_page_fault || w_access_fault || pipe_buff.misaligned)) begin
                 reserve_valid <= 1'b0;
                 r_sc_res <= !cond_valid_r;
                 r_sc_res_valid <= 1'b1;
@@ -372,7 +374,7 @@ always_ff @(posedge clk_in or negedge rst_n_in) begin
             // Capture load data when load completes
             // Skip on fault
             if (pipe_buff.mem_instr_sel == MEM_INSTR_LOAD &&
-                !(load_fault_in || store_fault_in || d_mem_err_in || pipe_buff.misaligned)) begin
+                !(w_page_fault || w_access_fault || pipe_buff.misaligned)) begin
                 load_data_buff <= load_data;
                 r_load_data_valid <= 1'b1;
             end

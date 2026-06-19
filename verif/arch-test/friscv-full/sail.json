@@ -11,7 +11,7 @@
     },
     "scounteren_writable_bits": {
       "len": 32,
-      "value": "0x0000_0000"
+      "value": "0x0000_0007"
     },
     "xtval_nonzero": {
       "illegal_instruction": true,
@@ -43,9 +43,9 @@
       "grain": 0,
       "count": 0,
       "usable_count": 0,
-      "tor_supported": false,
-      "na4_supported": false,
-      "napot_supported": false
+      "tor_supported": true,
+      "na4_supported": true,
+      "napot_supported": true
     },
     "misaligned": {
       "supported": true,

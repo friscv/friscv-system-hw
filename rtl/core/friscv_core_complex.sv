@@ -148,6 +148,7 @@ logic  w_inst_fault, w_load_fault, w_store_fault;
 addr_t w_fault_addr;
 
 pmp_table_t w_pmp_table;
+logic w_inst_pmp_fault, w_data_pmp_fault;
 
 // The MMU contains an arbiter.
 // If the MMU is disabled, a bare arbiter is instantiated instead.
@@ -162,6 +163,7 @@ if (ENABLE_MMU) begin
         .i_inst_en       ( w_inst_en       ),
         .o_inst_wait     ( w_inst_wait     ),
         .o_inst_err      ( w_inst_err      ),
+        .o_inst_pmp_fault( w_inst_pmp_fault),
 
         // Data Memory Interface
         .i_data_addr     ( w_data_addr     ),
@@ -173,6 +175,7 @@ if (ENABLE_MMU) begin
         .i_data_store_like ( w_data_store_like ),
         .o_data_wait     ( w_data_wait     ),
         .o_data_err      ( w_data_err      ),
+        .o_data_pmp_fault( w_data_pmp_fault),
         .i_amo_op        ( w_amo_op        ),
 
         // External Memory Interface
@@ -242,6 +245,8 @@ end else begin
     assign w_load_fault  = 1'b0;
     assign w_store_fault = 1'b0;
     assign w_fault_addr  = '0;
+    assign w_inst_pmp_fault = 1'b0;
+    assign w_data_pmp_fault = 1'b0;
 end
 
 // ============================================================
@@ -355,6 +360,7 @@ friscv_core #(
     .i_mem_en_out     ( w_inst_en       ),
     .i_mem_wait_in    ( w_stall_if      ),
     .i_mem_err_in     ( w_inst_err      ),
+    .i_mem_pmp_fault_in ( w_inst_pmp_fault ),
 
     // Data memory interface
     .d_mem_addr_out   ( w_data_addr     ),
@@ -366,6 +372,7 @@ friscv_core #(
     .d_mem_size_out   ( w_data_size     ),
     .d_mem_wait_in    ( w_data_wait     ),
     .d_mem_err_in     ( w_data_err      ),
+    .d_mem_pmp_fault_in ( w_data_pmp_fault ),
     .d_mem_amo_op_out ( w_amo_op        ),
 
     // Memory management outputs

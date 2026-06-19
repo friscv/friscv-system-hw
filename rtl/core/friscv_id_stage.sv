@@ -54,6 +54,7 @@ module friscv_id_stage #(
     input  logic      inst_fault_in,
     input  addr_t     fault_addr_in,
     input  logic      inst_err_in,
+    input  logic      inst_pmp_fault_in,
 
     // Data memory page fault
     input  mem_trap_e mem_trap_in,
@@ -144,6 +145,7 @@ imm_e      imm_sel;
 logic      inst_fault_buff;
 addr_t     fault_addr_buff;
 logic      inst_err_buff;
+logic      inst_pmp_fault_buff;
 mode_e     pc_mode_buff;
 
 assign rs1_out = regfile[rs1_sel_out];
@@ -165,6 +167,7 @@ always_ff @(posedge clk_in) begin
         inst_fault_buff  <= 1'b0;
         fault_addr_buff  <= '0;
         inst_err_buff    <= 1'b0;
+        inst_pmp_fault_buff <= 1'b0;
         pc_mode_buff     <= M_MODE;
 
         for (int i = 0; i < REGISTER_NUM; i++) begin
@@ -183,6 +186,7 @@ always_ff @(posedge clk_in) begin
             inst_fault_buff  <= 1'b0;
             fault_addr_buff  <= '0;
             inst_err_buff    <= 1'b0;
+            inst_pmp_fault_buff <= 1'b0;
             pc_mode_buff     <= M_MODE;
 
         end else if (!stage_stall_in) begin
@@ -265,6 +269,7 @@ typedef struct packed {
 csr_file_t csr = '0;
 
 pmp_table_t pmp_table;
+assign pmp_table_out = pmp_table;
 
 // Pack a pmp_cfg_t struct into its 8-bit pmpcfg byte
 function automatic logic [7:0] pmpcfg_of(pmp_cfg_t pmp_cfg);
@@ -409,9 +414,9 @@ typedef enum logic [1:0] {
 } if_trap_e;
 
 if_trap_e if_trap;
-assign if_trap = inst_fault_buff ? IF_TRAP_FAULT  :
-                 inst_err_buff   ? IF_TRAP_ACCESS :
-                                   IF_TRAP_NONE;
+assign if_trap = inst_fault_buff                      ? IF_TRAP_FAULT  :
+                 inst_err_buff || inst_pmp_fault_buff ? IF_TRAP_ACCESS :
+                                                        IF_TRAP_NONE;
 
 // An IF exception is not taken if there is a branch redirect in-flight that would kill the trapping instruction anyway, or if the trap is currently inhibited.
 logic if_trap_inhibit;
@@ -661,7 +666,7 @@ always_ff @(posedge clk_in) begin
 
         if (trap_out)
             if_trap_inhibit <= 1'b1;
-        else if (!stage_stall_in && !(inst_fault_in || inst_err_in))
+        else if (!stage_stall_in && !(inst_fault_in || inst_err_in || inst_pmp_fault_in))
             if_trap_inhibit <= 1'b0;
 
         if (trap_out) begin
