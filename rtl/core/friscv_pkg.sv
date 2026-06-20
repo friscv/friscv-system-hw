@@ -61,7 +61,7 @@ package friscv_pkg;
     localparam logic ENFORCE_PMP = 1;
     localparam logic ENFORCE_PTW_PMP = 0;
     localparam int   PMP_ENTRIES = 16;
-    localparam int   PMP_USABLE = 4;
+    localparam int   PMP_USABLE = 5;
     // Must be a power of 2 greater than 1
     localparam int   ITLB_ENTRIES = 4;
     localparam int   DTLB_ENTRIES = 8;
