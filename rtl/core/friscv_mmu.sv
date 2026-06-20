@@ -271,10 +271,38 @@ always_ff @(posedge i_clk) begin
     end
 end
 
+// TLB validity gate
+vpn_t r_ivpn_q, r_dvpn_q;
+// A fill/flush last cycle, the registered TLB result is stale this cycle
+logic r_tlb_changed;
+
+always_ff @(posedge i_clk) begin
+    if (!i_rstn) begin
+        r_ivpn_q      <= '0;
+        r_dvpn_q      <= '0;
+        r_tlb_changed <= 1'b0;
+    end else begin
+        r_ivpn_q      <= w_inst_vpn;
+        r_dvpn_q      <= w_data_vpn;
+        r_tlb_changed <= w_fill_itlb | w_fill_dtlb | i_flush_tlb;
+    end
+end
+
+// The registered TLB output is valid for this access only when
+//  1) its VPN was the one looked up last cycle and
+//  2) no fill/flush last cycle changed the TLB contents
+// Pending only matters under paging, a granted access whose registered translation is
+// not yet valid for its own VPN must wait
+logic w_tlate_valid, w_tlate_pending;
+assign w_tlate_valid = !r_tlb_changed &&
+                       (w_eff_req_ctx.is_inst ? (r_ivpn_q == w_inst_vpn)
+                                              : (r_dvpn_q == w_data_vpn));
+assign w_tlate_pending = w_paging_en && w_grant_active && !w_tlate_valid;
+
 // TLB miss - arbiter has granted the request, paging is on, and the TLB did not hit
 logic w_itlb_miss, w_dtlb_miss, w_tlb_miss;
-assign w_itlb_miss = w_grant_active &&  w_eff_req_ctx.is_inst && !w_itlb_hit && w_paging_en;
-assign w_dtlb_miss = w_grant_active && !w_eff_req_ctx.is_inst && !w_dtlb_hit && w_paging_en;
+assign w_itlb_miss = w_grant_active &&  w_eff_req_ctx.is_inst && !w_itlb_hit && w_paging_en && !w_tlate_pending;
+assign w_dtlb_miss = w_grant_active && !w_eff_req_ctx.is_inst && !w_dtlb_hit && w_paging_en && !w_tlate_pending;
 assign w_tlb_miss  = w_itlb_miss || w_dtlb_miss;
 
 // PTW memory interface
@@ -416,9 +444,9 @@ assign w_perm_store_ok = w_dtlb_perm.w &&
                           (w_eff_req_ctx.mode == S_MODE && (!w_dtlb_perm.u || w_eff_req_ctx.sum)));
 
 // Perm fault: paging on, arbiter granted, TLB hit, but permission denied
-assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_eff_req_ctx.is_inst                            && w_itlb_hit && !w_perm_inst_ok;
-assign w_perm_load_fault  = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst && !w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_load_ok;
-assign w_perm_store_fault = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst &&  w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_store_ok;
+assign w_perm_inst_fault  = w_paging_en && w_grant_active &&  w_eff_req_ctx.is_inst                            && w_itlb_hit && !w_perm_inst_ok  && !w_tlate_pending;
+assign w_perm_load_fault  = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst && !w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_load_ok  && !w_tlate_pending;
+assign w_perm_store_fault = w_paging_en && w_grant_active && !w_eff_req_ctx.is_inst &&  w_eff_req_ctx.is_write && w_dtlb_hit && !w_perm_store_ok && !w_tlate_pending;
 assign w_perm_fault       = w_perm_inst_fault | w_perm_load_fault | w_perm_store_fault;
 
 // Final fault outputs: PTW structural faults OR perm faults
@@ -447,12 +475,14 @@ assign w_walk_rdata = i_mem_rdata;
 assign w_walk_wait  = i_mem_wait;
 assign w_walk_err   = i_mem_err;
 
-// Stall arbiter while PTW is active or memory stalls
-assign w_stall = w_ptw_stall | i_mem_wait;
+// Stall arbiter while PTW is active, memory stalls, or the registered
+// translation for the granted access is not yet valid
+assign w_stall = w_ptw_stall | i_mem_wait | w_tlate_pending;
 
-// Suppress physical memory access on TLB miss (PTW takes over), perm fault, or PMP fault
+// Suppress physical memory access on TLB miss (PTW takes over), perm fault,
+// PMP fault, or while the translation is still not ready
 assign o_mem_rw    = w_walk_en ? RW_READ :
-                     (w_tlb_miss | w_perm_fault | w_grant_pmp_fault) ? RW_IDLE :
+                     (w_tlb_miss | w_perm_fault | w_grant_pmp_fault | w_tlate_pending) ? RW_IDLE :
                      w_grant_rw;
 
 assign o_mem_addr  = w_walk_en ? w_walk_addr : w_granted_pa;
