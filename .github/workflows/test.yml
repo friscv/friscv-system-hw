@@ -15,6 +15,7 @@ jobs:
             run: |
                 sudo apt-get update
                 sudo apt-get install -y verilator binutils-riscv64-unknown-elf
+                curl https://mise.run | sh
 
           - name: Run integration tests
             run: make test
