@@ -1,6 +1,7 @@
 VERILATOR := verilator
 VERILATOR_FLAGS := -j 0 --binary --timing --sv -Irtl -Irtl/core -Irtl/soc -O3 --x-assign fast --x-initial fast --noassert -CFLAGS "-O3 -march=native"
 VERILATOR_OUT := build/verilator/tb_integration
+
 ACT_REPO := https://github.com/riscv/riscv-arch-test.git
 ACT_REF := 5f69fff1851122eabe87233c08d6c4096dd0c5ac
 ACT_ROOT := verif/arch-test/riscv-arch-test
@@ -32,8 +33,10 @@ test: verilate test-bin verilator-test
 .PHONY: act-clone
 act-clone:
 	@if [ ! -d $(ACT_ROOT)/.git ]; then \
-		git clone $(ACT_REPO) $(ACT_ROOT); \
-		cd $(ACT_ROOT) && git checkout $(ACT_REF); \
+		git clone --depth 1 $(ACT_REPO) $(ACT_ROOT); \
+		cd $(ACT_ROOT); \
+		git fetch --depth 1 origin $(ACT_REF); \
+		git checkout $(ACT_REF); \
 	fi
 
 .PHONY: act-config
