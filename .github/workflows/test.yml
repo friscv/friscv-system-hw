@@ -1,8 +1,7 @@
-name: Integration Tests
+name: Tests
 
 on:
     push:
-        branches: [main, dev]
     pull_request:
         branches: [main]
 
@@ -19,3 +18,10 @@ jobs:
 
           - name: Run integration tests
             run: make test
+
+          - name: Run certification tests
+            run: |
+                make act-clone
+                make act-config
+                make act-build
+                make regress
