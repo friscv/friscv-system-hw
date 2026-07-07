@@ -431,7 +431,7 @@ assign is_id_trap = exception_safe &&
                     (ecall_active  ||
                      ebreak_active ||
                      illegal_inst  ||
-                     (ENABLE_EARLY_JAL_JALR && target_misaligned));
+                     target_misaligned);
 
 logic is_mem_trap;
 assign is_mem_trap = mem_trap_in != MEM_TRAP_NONE;
@@ -978,10 +978,10 @@ always_comb begin
     endcase
 end
 
-// Compute the final target of a JAL/JALR if ENABLE_EARLY_JAL_JALR is set (ID redirects instead of EX).
+// Compute the final target of a JAL/JALR.
 // This is separate from the target_misaligned logic to avoid a combinatorial loop in trap detection.
 always_comb begin
-    if (ENABLE_EARLY_JAL_JALR && !trap_out) begin
+    if (!trap_out) begin
         addr_t jal_target_base;
         data_t jal_imm;
         jal_target_base = '0;

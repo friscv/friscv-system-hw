@@ -474,6 +474,7 @@ end else begin
     assign w_l2_backend_wait  = w_amo_bootstrap ? 1'b1 :
                                 w_amo_active ? w_amo_core_wait :
                                 i_mem_wait;
+    assign w_l2_backend_err = i_mem_err;
     assign o_mem_rw   = w_amo_bootstrap ? RW_IDLE :
                         w_amo_active ? w_amo_rw :
                         w_l2_rw;

@@ -78,13 +78,6 @@ LAYOUT: list[Blank | Note | Param] = [
         comment=["Set this to 0 for debugging"]
     ),
     Blank(),
-    Note("Performance optimizations"),
-    Param(
-        "ENABLE_EARLY_JAL_JALR",
-        "logic",
-        default=1,
-        comment=["If enabled, execute JAL(R) in IF instead of EX"]
-    ),
     Param(
         "ENABLE_L2_BUFFER",
         "logic",
@@ -200,7 +193,6 @@ PRESETS: dict[str, dict[str, int]] = {
     # Full-featured core
     "full": {
         "ZSBL_ROM_SIZE_BYTES": 1024,
-        "ENABLE_EARLY_JAL_JALR": 1,
         "ENABLE_L2_BUFFER": 1,
         "ENABLE_MMU": 1,
         "ENFORCE_PMP": 1,
@@ -221,7 +213,6 @@ PRESETS: dict[str, dict[str, int]] = {
     # Smallest functional RV32I_Zicsr core
     "minimal": {
         "ZSBL_ROM_SIZE_BYTES": 0,
-        "ENABLE_EARLY_JAL_JALR": 1,
         "ENABLE_L2_BUFFER": 0,
         "ENABLE_MMU": 0,
         "ENFORCE_PMP": 0,

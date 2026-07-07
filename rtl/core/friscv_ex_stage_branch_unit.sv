@@ -10,7 +10,7 @@
 
 /*
  * This module implements the branch unit of the EX stage, which is responsible for
- * evaluating branch conditions and determining whether a branch or jump (if not ENABLE_EARLY_JAL_JALR) is taken.
+ * evaluating branch conditions and determining whether a branch is taken.
  * It asserts misaligned_out if the target address is not properly aligned, and the redirect should otherwise be taken.
  */
 
@@ -43,7 +43,7 @@ always_comb begin
     v = (src1_in[DATA_WIDTH-1] ^ src2_in[DATA_WIDTH-1]) & (src1_in[DATA_WIDTH-1] ^ w_sub[DATA_WIDTH-1]);
 
     case (branch_jal_sel_in)
-        BRANCH_INSTR: begin
+        BRANCH_INSTR:
             case (branch_cond_in)     
                 COND_EQ:     branch_ok_out = z;
                 COND_NE:     branch_ok_out = !z;
@@ -54,17 +54,8 @@ always_comb begin
                 COND_GEU:    branch_ok_out = c;
                 default:     branch_ok_out = 1'b0;
             endcase
-        end
-        JAL_INSTR: begin
-            if (ENABLE_EARLY_JAL_JALR) begin
-                branch_ok_out = 1'b0;
-            end else begin
-                branch_ok_out = 1'b1;
-            end
-        end
-        default: begin
+        default:
             branch_ok_out = 1'b0;
-        end
     endcase
 end
 

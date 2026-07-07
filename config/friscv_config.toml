@@ -4,9 +4,6 @@
 
 # Set this to 0 for debugging
 ZSBL_ROM_SIZE_BYTES = 1024
-# Performance optimizations
-# If enabled, execute JAL(R) in IF instead of EX
-ENABLE_EARLY_JAL_JALR = true
 # If enabled, buffer outbound requests to improve timing
 ENABLE_L2_BUFFER = true
 # Memory protection and address translation
