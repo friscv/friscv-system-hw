@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sat Jun 20 19:42:13 2026" VIVADOVERSION="2025.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Wed Jul  8 01:36:51 2026" VIVADOVERSION="2025.2">
 
   <SYSTEMINFO ARCH="zynq" BOARD="tul.com.tw:pynq-z2:part0:1.0" DEVICE="7z020" NAME="design_1" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -200,6 +200,578 @@
   </EXTERNALINTERFACES>
 
   <MODULES>
+    <MODULE COREREVISION="36" FULLNAME="/axi_register_slice_0" HWVERSION="2.1" INSTANCE="axi_register_slice_0" IPTYPE="BUS" IS_ENABLE="1" MODCLASS="BUS" MODTYPE="axi_register_slice" VLNV="xilinx.com:ip:axi_register_slice:2.1">
+      <DOCUMENTS>
+        <DOCUMENT SOURCE="http://www.xilinx.com/cgi-bin/docs/ipdoc?c=axi_interconnect;v=v2_1;d=pg059-axi-interconnect.pdf"/>
+      </DOCUMENTS>
+      <PARAMETERS>
+        <PARAMETER NAME="C_AXI_ADDR_WIDTH" VALUE="32"/>
+        <PARAMETER NAME="C_AXI_ARUSER_WIDTH" VALUE="1"/>
+        <PARAMETER NAME="C_AXI_AWUSER_WIDTH" VALUE="1"/>
+        <PARAMETER NAME="C_AXI_BUSER_WIDTH" VALUE="1"/>
+        <PARAMETER NAME="C_AXI_DATA_WIDTH" VALUE="32"/>
+        <PARAMETER NAME="C_AXI_ID_WIDTH" VALUE="1"/>
+        <PARAMETER NAME="C_AXI_PROTOCOL" VALUE="0"/>
+        <PARAMETER NAME="C_AXI_RUSER_WIDTH" VALUE="1"/>
+        <PARAMETER NAME="C_AXI_SUPPORTS_USER_SIGNALS" VALUE="0"/>
+        <PARAMETER NAME="C_AXI_WUSER_WIDTH" VALUE="1"/>
+        <PARAMETER NAME="C_FAMILY" VALUE="zynq"/>
+        <PARAMETER NAME="C_NUM_SLR_CROSSINGS" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MASTER_AR" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MASTER_AW" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MASTER_B" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MASTER_R" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MASTER_W" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MIDDLE_AR" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MIDDLE_AW" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MIDDLE_B" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MIDDLE_R" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_MIDDLE_W" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_SLAVE_AR" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_SLAVE_AW" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_SLAVE_B" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_SLAVE_R" VALUE="0"/>
+        <PARAMETER NAME="C_PIPELINES_SLAVE_W" VALUE="0"/>
+        <PARAMETER NAME="C_REG_CONFIG_AR" VALUE="7"/>
+        <PARAMETER NAME="C_REG_CONFIG_AW" VALUE="7"/>
+        <PARAMETER NAME="C_REG_CONFIG_B" VALUE="7"/>
+        <PARAMETER NAME="C_REG_CONFIG_R" VALUE="1"/>
+        <PARAMETER NAME="C_REG_CONFIG_W" VALUE="1"/>
+        <PARAMETER NAME="C_RESERVE_MODE" VALUE="0"/>
+        <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
+        <PARAMETER NAME="ARUSER_WIDTH" VALUE="0"/>
+        <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
+        <PARAMETER NAME="BUSER_WIDTH" VALUE="0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_axi_register_slice_0_0"/>
+        <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
+        <PARAMETER NAME="HAS_BRESP" VALUE="1"/>
+        <PARAMETER NAME="HAS_BURST" VALUE="1"/>
+        <PARAMETER NAME="HAS_CACHE" VALUE="1"/>
+        <PARAMETER NAME="HAS_LOCK" VALUE="1"/>
+        <PARAMETER NAME="HAS_PROT" VALUE="1"/>
+        <PARAMETER NAME="HAS_QOS" VALUE="1"/>
+        <PARAMETER NAME="HAS_REGION" VALUE="1"/>
+        <PARAMETER NAME="HAS_RRESP" VALUE="1"/>
+        <PARAMETER NAME="HAS_WSTRB" VALUE="1"/>
+        <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
+        <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="1"/>
+        <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="1"/>
+        <PARAMETER NAME="NUM_READ_THREADS" VALUE="0"/>
+        <PARAMETER NAME="NUM_SLR_CROSSINGS" VALUE="0"/>
+        <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="1"/>
+        <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MASTER_AR" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MASTER_AW" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MASTER_B" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MASTER_R" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MASTER_W" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MIDDLE_AR" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MIDDLE_AW" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MIDDLE_B" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MIDDLE_R" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_MIDDLE_W" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_SLAVE_AR" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_SLAVE_AW" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_SLAVE_B" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_SLAVE_R" VALUE="0"/>
+        <PARAMETER NAME="PIPELINES_SLAVE_W" VALUE="0"/>
+        <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
+        <PARAMETER NAME="READ_WRITE_MODE" VALUE="READ_WRITE"/>
+        <PARAMETER NAME="REG_AR" VALUE="7"/>
+        <PARAMETER NAME="REG_AW" VALUE="7"/>
+        <PARAMETER NAME="REG_B" VALUE="7"/>
+        <PARAMETER NAME="REG_R" VALUE="1"/>
+        <PARAMETER NAME="REG_W" VALUE="1"/>
+        <PARAMETER NAME="RESERVE_MODE" VALUE="0"/>
+        <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>
+        <PARAMETER NAME="RUSER_WIDTH" VALUE="0"/>
+        <PARAMETER NAME="SUPPORTS_NARROW_BURST" VALUE="1"/>
+        <PARAMETER NAME="USE_AUTOPIPELINING" VALUE="0"/>
+        <PARAMETER NAME="WUSER_BITS_PER_BYTE" VALUE="0"/>
+        <PARAMETER NAME="WUSER_WIDTH" VALUE="0"/>
+        <PARAMETER NAME="EDK_IPTYPE" VALUE="BUS"/>
+      </PARAMETERS>
+      <PORTS>
+        <PORT CLKFREQUENCY="50000000" DIR="I" NAME="aclk" SIGIS="clk" SIGNAME="processing_system7_0_FCLK_CLK0">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="processing_system7_0" PORT="FCLK_CLK0"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="proc_sys_reset_0_peripheral_aresetn">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="proc_sys_reset_0" PORT="peripheral_aresetn"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="31" NAME="m_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_araddr">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_araddr"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="1" NAME="m_axi_arburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arburst">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arburst"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="3" NAME="m_axi_arcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arcache">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arcache"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="7" NAME="m_axi_arlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arlen">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arlen"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="0" NAME="m_axi_arlock" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arlock">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arlock"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="2" NAME="m_axi_arprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arprot">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arprot"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="3" NAME="m_axi_arqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arqos">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arqos"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="m_axi_arready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="2" NAME="m_axi_arsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arsize">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arsize"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="m_axi_arvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="31" NAME="m_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awaddr">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awaddr"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="1" NAME="m_axi_awburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awburst">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awburst"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="3" NAME="m_axi_awcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awcache">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awcache"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="7" NAME="m_axi_awlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awlen">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awlen"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="0" NAME="m_axi_awlock" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awlock">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awlock"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="2" NAME="m_axi_awprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awprot">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awprot"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="3" NAME="m_axi_awqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awqos">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awqos"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="m_axi_awready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="2" NAME="m_axi_awsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awsize">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awsize"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="m_axi_awvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="m_axi_bready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_bready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_bready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="1" NAME="m_axi_bresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_bresp">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_bresp"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="m_axi_bvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_bvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_bvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="31" NAME="m_axi_rdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rdata">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rdata"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="m_axi_rlast" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rlast">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rlast"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="m_axi_rready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="1" NAME="m_axi_rresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rresp">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rresp"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="m_axi_rvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="31" NAME="m_axi_wdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wdata">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wdata"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="m_axi_wlast" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wlast">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wlast"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="m_axi_wready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="3" NAME="m_axi_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wstrb">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wstrb"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="m_axi_wvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="31" NAME="s_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_araddr">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_araddr"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="1" NAME="s_axi_arburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arburst">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arburst"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="3" NAME="s_axi_arcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arcache">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arcache"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="7" NAME="s_axi_arlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arlen">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arlen"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="0" NAME="s_axi_arlock" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arlock">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arlock"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="2" NAME="s_axi_arprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arprot">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arprot"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="3" NAME="s_axi_arqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arqos">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arqos"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="s_axi_arready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="2" NAME="s_axi_arsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arsize">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arsize"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="s_axi_arvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="31" NAME="s_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awaddr">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awaddr"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="1" NAME="s_axi_awburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awburst">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awburst"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="3" NAME="s_axi_awcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awcache">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awcache"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="7" NAME="s_axi_awlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awlen">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awlen"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="0" NAME="s_axi_awlock" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awlock">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awlock"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="2" NAME="s_axi_awprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awprot">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awprot"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="3" NAME="s_axi_awqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awqos">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awqos"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="s_axi_awready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="2" NAME="s_axi_awsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awsize">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awsize"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="s_axi_awvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="s_axi_bready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_bready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_bready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="1" NAME="s_axi_bresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_bresp">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_bresp"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="s_axi_bvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_bvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_bvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="31" NAME="s_axi_rdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rdata">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rdata"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="s_axi_rlast" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rlast">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rlast"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="s_axi_rready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="1" NAME="s_axi_rresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rresp">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rresp"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="s_axi_rvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="31" NAME="s_axi_wdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wdata">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wdata"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="s_axi_wlast" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wlast">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wlast"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="s_axi_wready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wready">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wready"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" LEFT="3" NAME="s_axi_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wstrb">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wstrb"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="s_axi_wvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wvalid"/>
+          </CONNECTIONS>
+        </PORT>
+      </PORTS>
+      <BUSINTERFACES>
+        <BUSINTERFACE BUSNAME="axi_register_slice_0_M_AXI" DATAWIDTH="32" NAME="M_AXI" TYPE="MASTER" VLNV="xilinx.com:interface:aximm:1.0">
+          <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
+          <PARAMETER NAME="ARUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="BUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_processing_system7_0_0_FCLK_CLK0"/>
+          <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="HAS_BRESP" VALUE="1"/>
+          <PARAMETER NAME="HAS_BURST" VALUE="1"/>
+          <PARAMETER NAME="HAS_CACHE" VALUE="1"/>
+          <PARAMETER NAME="HAS_LOCK" VALUE="1"/>
+          <PARAMETER NAME="HAS_PROT" VALUE="1"/>
+          <PARAMETER NAME="HAS_QOS" VALUE="1"/>
+          <PARAMETER NAME="HAS_REGION" VALUE="0"/>
+          <PARAMETER NAME="HAS_RRESP" VALUE="1"/>
+          <PARAMETER NAME="HAS_WSTRB" VALUE="1"/>
+          <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="INSERT_VIP" VALUE="0"/>
+          <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="256"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
+          <PARAMETER NAME="PHASE" VALUE="0.0"/>
+          <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
+          <PARAMETER NAME="READ_WRITE_MODE" VALUE="READ_WRITE"/>
+          <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>
+          <PARAMETER NAME="RUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="SUPPORTS_NARROW_BURST" VALUE="1"/>
+          <PARAMETER NAME="WUSER_BITS_PER_BYTE" VALUE="0"/>
+          <PARAMETER NAME="WUSER_WIDTH" VALUE="0"/>
+          <PORTMAPS>
+            <PORTMAP LOGICAL="ARADDR" PHYSICAL="m_axi_araddr"/>
+            <PORTMAP LOGICAL="ARBURST" PHYSICAL="m_axi_arburst"/>
+            <PORTMAP LOGICAL="ARCACHE" PHYSICAL="m_axi_arcache"/>
+            <PORTMAP LOGICAL="ARLEN" PHYSICAL="m_axi_arlen"/>
+            <PORTMAP LOGICAL="ARLOCK" PHYSICAL="m_axi_arlock"/>
+            <PORTMAP LOGICAL="ARPROT" PHYSICAL="m_axi_arprot"/>
+            <PORTMAP LOGICAL="ARQOS" PHYSICAL="m_axi_arqos"/>
+            <PORTMAP LOGICAL="ARREADY" PHYSICAL="m_axi_arready"/>
+            <PORTMAP LOGICAL="ARSIZE" PHYSICAL="m_axi_arsize"/>
+            <PORTMAP LOGICAL="ARVALID" PHYSICAL="m_axi_arvalid"/>
+            <PORTMAP LOGICAL="AWADDR" PHYSICAL="m_axi_awaddr"/>
+            <PORTMAP LOGICAL="AWBURST" PHYSICAL="m_axi_awburst"/>
+            <PORTMAP LOGICAL="AWCACHE" PHYSICAL="m_axi_awcache"/>
+            <PORTMAP LOGICAL="AWLEN" PHYSICAL="m_axi_awlen"/>
+            <PORTMAP LOGICAL="AWLOCK" PHYSICAL="m_axi_awlock"/>
+            <PORTMAP LOGICAL="AWPROT" PHYSICAL="m_axi_awprot"/>
+            <PORTMAP LOGICAL="AWQOS" PHYSICAL="m_axi_awqos"/>
+            <PORTMAP LOGICAL="AWREADY" PHYSICAL="m_axi_awready"/>
+            <PORTMAP LOGICAL="AWSIZE" PHYSICAL="m_axi_awsize"/>
+            <PORTMAP LOGICAL="AWVALID" PHYSICAL="m_axi_awvalid"/>
+            <PORTMAP LOGICAL="BREADY" PHYSICAL="m_axi_bready"/>
+            <PORTMAP LOGICAL="BRESP" PHYSICAL="m_axi_bresp"/>
+            <PORTMAP LOGICAL="BVALID" PHYSICAL="m_axi_bvalid"/>
+            <PORTMAP LOGICAL="RDATA" PHYSICAL="m_axi_rdata"/>
+            <PORTMAP LOGICAL="RLAST" PHYSICAL="m_axi_rlast"/>
+            <PORTMAP LOGICAL="RREADY" PHYSICAL="m_axi_rready"/>
+            <PORTMAP LOGICAL="RRESP" PHYSICAL="m_axi_rresp"/>
+            <PORTMAP LOGICAL="RVALID" PHYSICAL="m_axi_rvalid"/>
+            <PORTMAP LOGICAL="WDATA" PHYSICAL="m_axi_wdata"/>
+            <PORTMAP LOGICAL="WLAST" PHYSICAL="m_axi_wlast"/>
+            <PORTMAP LOGICAL="WREADY" PHYSICAL="m_axi_wready"/>
+            <PORTMAP LOGICAL="WSTRB" PHYSICAL="m_axi_wstrb"/>
+            <PORTMAP LOGICAL="WVALID" PHYSICAL="m_axi_wvalid"/>
+          </PORTMAPS>
+        </BUSINTERFACE>
+        <BUSINTERFACE BUSNAME="friscv_cpu_subsystem_m_axi" DATAWIDTH="32" NAME="S_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
+          <PARAMETER NAME="ADDR_WIDTH" VALUE="32"/>
+          <PARAMETER NAME="ARUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="BUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_processing_system7_0_0_FCLK_CLK0"/>
+          <PARAMETER NAME="DATA_WIDTH" VALUE="32"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="50000000"/>
+          <PARAMETER NAME="HAS_BRESP" VALUE="1"/>
+          <PARAMETER NAME="HAS_BURST" VALUE="1"/>
+          <PARAMETER NAME="HAS_CACHE" VALUE="1"/>
+          <PARAMETER NAME="HAS_LOCK" VALUE="1"/>
+          <PARAMETER NAME="HAS_PROT" VALUE="1"/>
+          <PARAMETER NAME="HAS_QOS" VALUE="1"/>
+          <PARAMETER NAME="HAS_REGION" VALUE="1"/>
+          <PARAMETER NAME="HAS_RRESP" VALUE="1"/>
+          <PARAMETER NAME="HAS_WSTRB" VALUE="1"/>
+          <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="INSERT_VIP" VALUE="0"/>
+          <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="256"/>
+          <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
+          <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
+          <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
+          <PARAMETER NAME="PHASE" VALUE="0.0"/>
+          <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
+          <PARAMETER NAME="READ_WRITE_MODE" VALUE="READ_WRITE"/>
+          <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>
+          <PARAMETER NAME="RUSER_WIDTH" VALUE="0"/>
+          <PARAMETER NAME="SUPPORTS_NARROW_BURST" VALUE="1"/>
+          <PARAMETER NAME="WUSER_BITS_PER_BYTE" VALUE="0"/>
+          <PARAMETER NAME="WUSER_WIDTH" VALUE="0"/>
+          <PORTMAPS>
+            <PORTMAP LOGICAL="ARADDR" PHYSICAL="s_axi_araddr"/>
+            <PORTMAP LOGICAL="ARBURST" PHYSICAL="s_axi_arburst"/>
+            <PORTMAP LOGICAL="ARCACHE" PHYSICAL="s_axi_arcache"/>
+            <PORTMAP LOGICAL="ARLEN" PHYSICAL="s_axi_arlen"/>
+            <PORTMAP LOGICAL="ARLOCK" PHYSICAL="s_axi_arlock"/>
+            <PORTMAP LOGICAL="ARPROT" PHYSICAL="s_axi_arprot"/>
+            <PORTMAP LOGICAL="ARQOS" PHYSICAL="s_axi_arqos"/>
+            <PORTMAP LOGICAL="ARREADY" PHYSICAL="s_axi_arready"/>
+            <PORTMAP LOGICAL="ARSIZE" PHYSICAL="s_axi_arsize"/>
+            <PORTMAP LOGICAL="ARVALID" PHYSICAL="s_axi_arvalid"/>
+            <PORTMAP LOGICAL="AWADDR" PHYSICAL="s_axi_awaddr"/>
+            <PORTMAP LOGICAL="AWBURST" PHYSICAL="s_axi_awburst"/>
+            <PORTMAP LOGICAL="AWCACHE" PHYSICAL="s_axi_awcache"/>
+            <PORTMAP LOGICAL="AWLEN" PHYSICAL="s_axi_awlen"/>
+            <PORTMAP LOGICAL="AWLOCK" PHYSICAL="s_axi_awlock"/>
+            <PORTMAP LOGICAL="AWPROT" PHYSICAL="s_axi_awprot"/>
+            <PORTMAP LOGICAL="AWQOS" PHYSICAL="s_axi_awqos"/>
+            <PORTMAP LOGICAL="AWREADY" PHYSICAL="s_axi_awready"/>
+            <PORTMAP LOGICAL="AWSIZE" PHYSICAL="s_axi_awsize"/>
+            <PORTMAP LOGICAL="AWVALID" PHYSICAL="s_axi_awvalid"/>
+            <PORTMAP LOGICAL="BREADY" PHYSICAL="s_axi_bready"/>
+            <PORTMAP LOGICAL="BRESP" PHYSICAL="s_axi_bresp"/>
+            <PORTMAP LOGICAL="BVALID" PHYSICAL="s_axi_bvalid"/>
+            <PORTMAP LOGICAL="RDATA" PHYSICAL="s_axi_rdata"/>
+            <PORTMAP LOGICAL="RLAST" PHYSICAL="s_axi_rlast"/>
+            <PORTMAP LOGICAL="RREADY" PHYSICAL="s_axi_rready"/>
+            <PORTMAP LOGICAL="RRESP" PHYSICAL="s_axi_rresp"/>
+            <PORTMAP LOGICAL="RVALID" PHYSICAL="s_axi_rvalid"/>
+            <PORTMAP LOGICAL="WDATA" PHYSICAL="s_axi_wdata"/>
+            <PORTMAP LOGICAL="WLAST" PHYSICAL="s_axi_wlast"/>
+            <PORTMAP LOGICAL="WREADY" PHYSICAL="s_axi_wready"/>
+            <PORTMAP LOGICAL="WSTRB" PHYSICAL="s_axi_wstrb"/>
+            <PORTMAP LOGICAL="WVALID" PHYSICAL="s_axi_wvalid"/>
+          </PORTMAPS>
+        </BUSINTERFACE>
+      </BUSINTERFACES>
+    </MODULE>
     <MODULE COREREVISION="7" FULLNAME="/concat_rstn" HWVERSION="2.1" INSTANCE="concat_rstn" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="xlconcat" VLNV="xilinx.com:ip:xlconcat:2.1">
       <DOCUMENTS/>
       <PARAMETERS>
@@ -1325,169 +1897,169 @@
             <CONNECTION INSTANCE="External_Ports" PORT="done_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="31" NAME="m_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_araddr">
+        <PORT DIR="O" LEFT="31" NAME="m_axi_araddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_araddr">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_araddr"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_araddr"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="1" NAME="m_axi_arburst" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arburst">
+        <PORT DIR="O" LEFT="1" NAME="m_axi_arburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arburst">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arburst"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arburst"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="3" NAME="m_axi_arcache" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arcache">
+        <PORT DIR="O" LEFT="3" NAME="m_axi_arcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arcache">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arcache"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arcache"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="7" NAME="m_axi_arlen" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arlen">
+        <PORT DIR="O" LEFT="7" NAME="m_axi_arlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arlen">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arlen"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arlen"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_arlock" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arlock">
+        <PORT DIR="O" NAME="m_axi_arlock" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arlock">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arlock"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arlock"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="2" NAME="m_axi_arprot" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arprot">
+        <PORT DIR="O" LEFT="2" NAME="m_axi_arprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arprot">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arprot"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arprot"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="3" NAME="m_axi_arqos" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arqos">
+        <PORT DIR="O" LEFT="3" NAME="m_axi_arqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arqos">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arqos"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arqos"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="m_axi_arready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arready">
+        <PORT DIR="I" NAME="m_axi_arready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="2" NAME="m_axi_arsize" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arsize">
+        <PORT DIR="O" LEFT="2" NAME="m_axi_arsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arsize">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arsize"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arsize"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_arvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arvalid">
+        <PORT DIR="O" NAME="m_axi_arvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_arvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_arvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_arvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="31" NAME="m_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awaddr">
+        <PORT DIR="O" LEFT="31" NAME="m_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awaddr">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awaddr"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awaddr"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="1" NAME="m_axi_awburst" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awburst">
+        <PORT DIR="O" LEFT="1" NAME="m_axi_awburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awburst">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awburst"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awburst"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="3" NAME="m_axi_awcache" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awcache">
+        <PORT DIR="O" LEFT="3" NAME="m_axi_awcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awcache">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awcache"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awcache"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="7" NAME="m_axi_awlen" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awlen">
+        <PORT DIR="O" LEFT="7" NAME="m_axi_awlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awlen">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awlen"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awlen"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_awlock" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awlock">
+        <PORT DIR="O" NAME="m_axi_awlock" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awlock">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awlock"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awlock"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="2" NAME="m_axi_awprot" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awprot">
+        <PORT DIR="O" LEFT="2" NAME="m_axi_awprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awprot">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awprot"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awprot"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="3" NAME="m_axi_awqos" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awqos">
+        <PORT DIR="O" LEFT="3" NAME="m_axi_awqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awqos">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awqos"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awqos"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="m_axi_awready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awready">
+        <PORT DIR="I" NAME="m_axi_awready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="2" NAME="m_axi_awsize" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awsize">
+        <PORT DIR="O" LEFT="2" NAME="m_axi_awsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awsize">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awsize"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awsize"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_awvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awvalid">
+        <PORT DIR="O" NAME="m_axi_awvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_awvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_awvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_awvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_bready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_bready">
+        <PORT DIR="O" NAME="m_axi_bready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_bready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_bready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_bready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="1" NAME="m_axi_bresp" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_bresp">
+        <PORT DIR="I" LEFT="1" NAME="m_axi_bresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_bresp">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_bresp"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_bresp"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="m_axi_bvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_bvalid">
+        <PORT DIR="I" NAME="m_axi_bvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_bvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_bvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_bvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="31" NAME="m_axi_rdata" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rdata">
+        <PORT DIR="I" LEFT="31" NAME="m_axi_rdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rdata"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_rdata"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="m_axi_rlast" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rlast">
+        <PORT DIR="I" NAME="m_axi_rlast" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rlast">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rlast"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_rlast"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_rready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rready">
+        <PORT DIR="O" NAME="m_axi_rready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_rready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="1" NAME="m_axi_rresp" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rresp">
+        <PORT DIR="I" LEFT="1" NAME="m_axi_rresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rresp">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rresp"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_rresp"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="m_axi_rvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rvalid">
+        <PORT DIR="I" NAME="m_axi_rvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_rvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_rvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_rvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="31" NAME="m_axi_wdata" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wdata">
+        <PORT DIR="O" LEFT="31" NAME="m_axi_wdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wdata"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_wdata"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_wlast" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wlast">
+        <PORT DIR="O" NAME="m_axi_wlast" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wlast">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wlast"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_wlast"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="m_axi_wready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wready">
+        <PORT DIR="I" NAME="m_axi_wready" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_wready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="3" NAME="m_axi_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wstrb">
+        <PORT DIR="O" LEFT="3" NAME="m_axi_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wstrb">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wstrb"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_wstrb"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="m_axi_wvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wvalid">
+        <PORT DIR="O" NAME="m_axi_wvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_s_axi_wvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="fv_interconnect" PORT="S00_AXI_wvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="s_axi_wvalid"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="meip" SIGIS="undef" SIGNAME="zero_dout">
@@ -3664,174 +4236,174 @@
             <CONNECTION INSTANCE="proc_sys_reset_0" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="31" NAME="S00_AXI_araddr" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_araddr">
+        <PORT DIR="I" LEFT="31" NAME="S00_AXI_araddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_araddr">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_araddr"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_araddr"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="1" NAME="S00_AXI_arburst" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arburst">
+        <PORT DIR="I" LEFT="1" NAME="S00_AXI_arburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arburst">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arburst"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arburst"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="S00_AXI_arcache" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arcache">
+        <PORT DIR="I" LEFT="3" NAME="S00_AXI_arcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arcache">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arcache"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arcache"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="7" NAME="S00_AXI_arlen" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arlen">
+        <PORT DIR="I" LEFT="7" NAME="S00_AXI_arlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arlen">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arlen"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arlen"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_arlock" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arlock">
+        <PORT DIR="I" LEFT="0" NAME="S00_AXI_arlock" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arlock">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arlock"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arlock"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="2" NAME="S00_AXI_arprot" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arprot">
+        <PORT DIR="I" LEFT="2" NAME="S00_AXI_arprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arprot">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arprot"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arprot"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="S00_AXI_arqos" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arqos">
+        <PORT DIR="I" LEFT="3" NAME="S00_AXI_arqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arqos">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arqos"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arqos"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="S00_AXI_arready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arready">
+        <PORT DIR="O" NAME="S00_AXI_arready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="2" NAME="S00_AXI_arsize" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arsize">
+        <PORT DIR="I" LEFT="2" NAME="S00_AXI_arsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arsize">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arsize"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arsize"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_arvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_arvalid">
+        <PORT DIR="I" NAME="S00_AXI_arvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_arvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_arvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_arvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="31" NAME="S00_AXI_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awaddr">
+        <PORT DIR="I" LEFT="31" NAME="S00_AXI_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awaddr">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awaddr"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awaddr"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="1" NAME="S00_AXI_awburst" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awburst">
+        <PORT DIR="I" LEFT="1" NAME="S00_AXI_awburst" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awburst">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awburst"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awburst"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="S00_AXI_awcache" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awcache">
+        <PORT DIR="I" LEFT="3" NAME="S00_AXI_awcache" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awcache">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awcache"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awcache"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="7" NAME="S00_AXI_awlen" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awlen">
+        <PORT DIR="I" LEFT="7" NAME="S00_AXI_awlen" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awlen">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awlen"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awlen"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_awlock" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awlock">
+        <PORT DIR="I" LEFT="0" NAME="S00_AXI_awlock" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awlock">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awlock"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awlock"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="2" NAME="S00_AXI_awprot" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awprot">
+        <PORT DIR="I" LEFT="2" NAME="S00_AXI_awprot" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awprot">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awprot"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awprot"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="S00_AXI_awqos" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awqos">
+        <PORT DIR="I" LEFT="3" NAME="S00_AXI_awqos" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awqos">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awqos"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awqos"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="S00_AXI_awready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awready">
+        <PORT DIR="O" NAME="S00_AXI_awready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="2" NAME="S00_AXI_awsize" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awsize">
+        <PORT DIR="I" LEFT="2" NAME="S00_AXI_awsize" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awsize">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awsize"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awsize"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_awvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_awvalid">
+        <PORT DIR="I" NAME="S00_AXI_awvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_awvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_awvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_awvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_bready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_bready">
+        <PORT DIR="I" NAME="S00_AXI_bready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_bready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_bready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_bready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="1" NAME="S00_AXI_bresp" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_bresp">
+        <PORT DIR="O" LEFT="1" NAME="S00_AXI_bresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_bresp">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_bresp"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_bresp"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="S00_AXI_bvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_bvalid">
+        <PORT DIR="O" NAME="S00_AXI_bvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_bvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_bvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_bvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="31" NAME="S00_AXI_rdata" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rdata">
+        <PORT DIR="O" LEFT="31" NAME="S00_AXI_rdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rdata"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_rdata"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="S00_AXI_rlast" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rlast">
+        <PORT DIR="O" NAME="S00_AXI_rlast" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rlast">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rlast"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_rlast"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_rready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rready">
+        <PORT DIR="I" NAME="S00_AXI_rready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_rready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="1" NAME="S00_AXI_rresp" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rresp">
+        <PORT DIR="O" LEFT="1" NAME="S00_AXI_rresp" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rresp">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rresp"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_rresp"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="S00_AXI_rvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_rvalid">
+        <PORT DIR="O" NAME="S00_AXI_rvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_rvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_rvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_rvalid"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="31" NAME="S00_AXI_wdata" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wdata">
+        <PORT DIR="I" LEFT="31" NAME="S00_AXI_wdata" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wdata"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_wdata"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_wlast" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wlast">
+        <PORT DIR="I" NAME="S00_AXI_wlast" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wlast">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wlast"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_wlast"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" NAME="S00_AXI_wready" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wready">
+        <PORT DIR="O" NAME="S00_AXI_wready" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wready">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wready"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_wready"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" LEFT="3" NAME="S00_AXI_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wstrb">
+        <PORT DIR="I" LEFT="3" NAME="S00_AXI_wstrb" RIGHT="0" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wstrb">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wstrb"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_wstrb"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_AXI_wvalid" SIGIS="undef" SIGNAME="friscv_cpu_subsystem_m_axi_wvalid">
+        <PORT DIR="I" NAME="S00_AXI_wvalid" SIGIS="undef" SIGNAME="axi_register_slice_0_m_axi_wvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="m_axi_wvalid"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="m_axi_wvalid"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
       <BUSINTERFACES>
-        <BUSINTERFACE BUSNAME="friscv_cpu_subsystem_m_axi" DATAWIDTH="32" NAME="S00_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
+        <BUSINTERFACE BUSNAME="axi_register_slice_0_M_AXI" DATAWIDTH="32" NAME="S00_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
           <PORTMAPS>
             <PORTMAP LOGICAL="ARADDR" PHYSICAL="S00_AXI_araddr"/>
             <PORTMAP LOGICAL="ARBURST" PHYSICAL="S00_AXI_arburst"/>
@@ -5140,8 +5712,8 @@
         </PORT>
         <PORT DIR="O" NAME="Res" SIGIS="undef" SIGNAME="merge_rstn_vec_Res">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="util_vector_logic_0" PORT="Op1"/>
             <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="aresetn"/>
+            <CONNECTION INSTANCE="util_vector_logic_0" PORT="Op1"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
@@ -5198,6 +5770,7 @@
             <CONNECTION INSTANCE="friscv_clint" PORT="rstn_in"/>
             <CONNECTION INSTANCE="fv_gpio_2" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M05_ARESETN"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="0" NAME="peripheral_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
@@ -6265,6 +6838,7 @@
             <CONNECTION INSTANCE="friscv_cpu_subsystem" PORT="aclk"/>
             <CONNECTION INSTANCE="fv_gpio_2" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="fv_interconnect" PORT="M05_ACLK"/>
+            <CONNECTION INSTANCE="axi_register_slice_0" PORT="aclk"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="FCLK_RESET0_N" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="processing_system7_0_FCLK_RESET0_N">
