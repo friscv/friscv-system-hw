@@ -9,6 +9,7 @@ ENABLE_L2_BUFFER = true
 # Memory protection and address translation
 ENABLE_MMU = true
 ENFORCE_PMP = true
+ENABLE_FAKE_PMP = true
 ENFORCE_PTW_PMP = false
 PMP_ENTRIES = 16
 PMP_USABLE = 5

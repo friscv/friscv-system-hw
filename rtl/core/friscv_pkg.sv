@@ -56,6 +56,8 @@ package friscv_pkg;
     // Memory protection and address translation
     localparam logic ENABLE_MMU = 1;
     localparam logic ENFORCE_PMP = 1;
+    // If enabled, PMP is faked (all accesses allowed) for testing
+    localparam logic ENABLE_FAKE_PMP = 1;
     localparam logic ENFORCE_PTW_PMP = 0;
     localparam int   PMP_ENTRIES = 16;
     localparam int   PMP_USABLE = 5;
