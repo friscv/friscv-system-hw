@@ -97,6 +97,12 @@ LAYOUT: list[Blank | Note | Param] = [
         default=1
     ),
     Param(
+        "ENABLE_FAKE_PMP",
+        "logic",
+        default=0,
+        comment=["If enabled, PMP is faked (all accesses allowed) for testing"]
+    ),
+    Param(
         "ENFORCE_PTW_PMP",
         "logic",
         default=1
@@ -196,6 +202,7 @@ PRESETS: dict[str, dict[str, int]] = {
         "ENABLE_L2_BUFFER": 1,
         "ENABLE_MMU": 1,
         "ENFORCE_PMP": 1,
+        "ENABLE_FAKE_PMP": 0,
         "ENFORCE_PTW_PMP": 1,
         "PMP_ENTRIES": 16,
         "PMP_USABLE": 16,
@@ -216,6 +223,7 @@ PRESETS: dict[str, dict[str, int]] = {
         "ENABLE_L2_BUFFER": 0,
         "ENABLE_MMU": 0,
         "ENFORCE_PMP": 0,
+        "ENABLE_FAKE_PMP": 0,
         "ENFORCE_PTW_PMP": 0,
         "PMP_ENTRIES": 0,
         "PMP_USABLE": 0,
